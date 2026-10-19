@@ -81,7 +81,7 @@ async function ready() {
         "--silent",
         "--max-time",
         "15",
-        "https://api.ipify.org",
+        "https://example.com/",
       ],
       { timeout: 20000 },
     );
@@ -408,7 +408,7 @@ async function verify(id) {
       : "--noproxy '*'";
   await command(
     id,
-    `curl ${proxy} --fail --silent --show-error --max-time 25 https://api.ipify.org && test -f /etc/chromium/policies/managed/rakazo-proxy.json`,
+    `curl ${proxy} --fail --silent --show-error --max-time 25 https://example.com/ && test -f /etc/chromium/policies/managed/rakazo-proxy.json`,
     35,
   );
 }
