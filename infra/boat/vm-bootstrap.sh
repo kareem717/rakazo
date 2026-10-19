@@ -111,12 +111,22 @@ if [ ! -d "/sys/fs/cgroup/$terminal_group" ]; then
  runuser -u user -- env XDG_RUNTIME_DIR="/run/user/$terminal_uid" DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$terminal_uid/bus" systemctl --user start app.slice
 fi
 [ -d "/sys/fs/cgroup/$terminal_group" ]
+# The provider preview tunnel can also inherit a command cgroup when its socket
+# is recreated. Mark its transport without changing its routes or peer config.
+provider_mark=""
+if ip link show wg0 >/dev/null 2>&1; then
+ provider_mark=$(wg show wg0 fwmark)
+ if [ "$provider_mark" = "off" ]; then
+  provider_mark=0x51822
+  wg set wg0 fwmark "$provider_mark"
+ fi
+fi
 iptables -w -t nat -N RAKAZO_TERM_NAT 2>/dev/null || true
 iptables -w -t nat -N RAKAZO_TERM_APP 2>/dev/null || true
 iptables -w -t nat -F RAKAZO_TERM_NAT
 iptables -w -t nat -F RAKAZO_TERM_APP
 iptables -w -t nat -A RAKAZO_TERM_NAT -m owner --uid-owner "$dns_uid" -p tcp --dport 853 -j REDIRECT --to-ports 12345
-iptables -w -t nat -A RAKAZO_TERM_NAT -m cgroup --path "$terminal_group" -j RAKAZO_TERM_APP
+iptables -w -t nat -A RAKAZO_TERM_NAT -m cgroup --path "$terminal_group" -m conntrack --ctdir ORIGINAL -j RAKAZO_TERM_APP
 iptables -w -t nat -A RAKAZO_TERM_APP -p udp --dport 53 -j REDIRECT --to-ports 1053
 iptables -w -t nat -A RAKAZO_TERM_APP -p tcp --dport 53 -j REDIRECT --to-ports 1053
 for destination in 0.0.0.0/8 10.0.0.0/8 100.64.0.0/10 127.0.0.0/8 169.254.0.0/16 172.16.0.0/12 192.168.0.0/16 224.0.0.0/4 240.0.0.0/4; do
@@ -132,11 +142,20 @@ iptables -w -A RAKAZO_TERM_OUT -d 127.0.0.0/8 -j RETURN
 # WireGuard sockets can inherit the bootstrap command cgroup. Preserve the
 # tunnel transport itself; its mark is set in clientConfig.
 iptables -w -A RAKAZO_TERM_OUT -m mark --mark 0x51821 -j RETURN
+if [ -n "$provider_mark" ]; then
+ iptables -w -A RAKAZO_TERM_OUT -m mark --mark "$provider_mark" -j RETURN
+fi
 iptables -w -A RAKAZO_TERM_OUT -p udp -j REJECT
 iptables -w -C OUTPUT -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT 2>/dev/null || iptables -w -I OUTPUT 1 -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT
 ip6tables -w -N RAKAZO_TERM_OUT6 2>/dev/null || true
 ip6tables -w -F RAKAZO_TERM_OUT6
 ip6tables -w -A RAKAZO_TERM_OUT6 -d ::1/128 -j RETURN
+ip6tables -w -A RAKAZO_TERM_OUT6 -m mark --mark 0x51821 -j RETURN
+if [ -n "$provider_mark" ]; then
+ ip6tables -w -A RAKAZO_TERM_OUT6 -m mark --mark "$provider_mark" -j RETURN
+fi
+# Replies to provider-forwarded preview connections must retain their route.
+ip6tables -w -A RAKAZO_TERM_OUT6 -m conntrack --ctdir REPLY -j RETURN
 ip6tables -w -A RAKAZO_TERM_OUT6 -j REJECT
 ip6tables -w -C OUTPUT -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT6 2>/dev/null || ip6tables -w -I OUTPUT 1 -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT6
 ROUTES

@@ -53,3 +53,8 @@ if args.rebind_wireguard:
     run(['sudo', '-n', 'wg', 'set', 'rakazo0', 'listen-port', '0'])
     check('WireGuard rebind preserves tunnel transport',
           run(['curl', '-4', '--noproxy', '*', '-fsS', '--max-time', '20', url]) == expected)
+    if 'wg0' in run(['sudo', '-n', 'wg', 'show', 'interfaces']).split():
+        check('provider preview transport is marked',
+              run(['sudo', '-n', 'wg', 'show', 'wg0', 'fwmark']) != 'off')
+        run(['sudo', '-n', 'wg', 'set', 'wg0', 'listen-port', '0'])
+        print('Provider preview tunnel rebound; verify the screen connection externally', flush=True)
