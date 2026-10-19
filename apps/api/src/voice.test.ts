@@ -11,6 +11,7 @@ import {
   MAX_TRANSCRIBE_REQUEST_BYTES,
   mountVoiceHttpRoutes,
   persistVoiceCredential,
+  resolveVoiceTarget,
   synthesizeVoice,
   toVoiceCredential,
   toVoiceStatus,
@@ -19,7 +20,99 @@ import {
   voiceChoicesChanged,
   voiceCredentialPlaintext,
   voiceCredentialServer,
+  voiceStatus,
 } from "./voice.js";
+
+describe("bot voice assignments", () => {
+  const actor = { userId: "user", spaceId: "space" } as Actor;
+  afterEach(() => vi.restoreAllMocks());
+  function deps(bot: { voiceId: string | null; voiceProvider: string | null } | null) {
+    return {
+      prisma: {
+        bot: { findFirst: vi.fn().mockResolvedValue(bot) },
+        secret: { findFirst: vi.fn().mockResolvedValue({ id: "secret", ciphertext: "encrypted" }) },
+      },
+      secrets: { load: vi.fn().mockResolvedValue("fake-key") },
+    } as unknown as VoiceDeps;
+  }
+  it("uses each bot's provider and voice even when the space has another default", async () => {
+    const credential = vi.spyOn(db, "findVoiceCredential").mockResolvedValue({
+      provider: "fish-audio",
+      secretId: "secret",
+      voiceId: "provider-default",
+    } as never);
+    const defaultCredential = vi
+      .spyOn(db, "findDefaultVoiceCredential")
+      .mockResolvedValue({ provider: "openai", voiceId: "alloy" } as never);
+    const first = deps({ voiceId: "first-voice", voiceProvider: "fish-audio" });
+    const second = deps({ voiceId: "second-voice", voiceProvider: "fish-audio" });
+    expect((await resolveVoiceTarget(first, actor, { botId: "first" })).voiceId).toBe(
+      "first-voice",
+    );
+    expect((await resolveVoiceTarget(second, actor, { botId: "second" })).voiceId).toBe(
+      "second-voice",
+    );
+    expect(credential).toHaveBeenCalledWith(first.prisma, actor, "fish-audio");
+    expect(defaultCredential).not.toHaveBeenCalled();
+    expect(first.prisma.bot.findFirst).toHaveBeenCalledWith({
+      where: { id: "first", ...actor },
+      select: { voiceId: true, voiceProvider: true },
+    });
+  });
+  it("fails without sending the bot's voice to another provider when disconnected", async () => {
+    vi.spyOn(db, "findVoiceCredential").mockResolvedValue(null);
+    const fallback = vi.spyOn(db, "findDefaultVoiceCredential");
+    await expect(
+      resolveVoiceTarget(deps({ voiceId: "private-voice", voiceProvider: "fish-audio" }), actor, {
+        botId: "bot",
+      }),
+    ).rejects.toThrow();
+    expect(fallback).not.toHaveBeenCalled();
+  });
+  it("preserves the space default and legacy bot voice behavior", async () => {
+    vi.spyOn(db, "findDefaultVoiceCredential").mockResolvedValue({
+      provider: "openai",
+      voiceId: "alloy",
+      secretId: "secret",
+    } as never);
+    expect(
+      (
+        await resolveVoiceTarget(deps({ voiceId: null, voiceProvider: null }), actor, {
+          botId: "bot",
+        })
+      ).voiceId,
+    ).toBe("alloy");
+    expect(
+      (
+        await resolveVoiceTarget(deps({ voiceId: "nova", voiceProvider: null }), actor, {
+          botId: "bot",
+        })
+      ).voiceId,
+    ).toBe("nova");
+  });
+  it("reports a configured bot voice with no space default while keeping dictation separate", async () => {
+    vi.spyOn(db, "findDefaultVoiceCredential").mockResolvedValue(null);
+    vi.spyOn(db, "findVoiceCredential").mockResolvedValue({
+      provider: "fish-audio",
+      voiceId: "",
+      secretId: "secret",
+    } as never);
+    expect(
+      await voiceStatus(deps({ voiceId: "chosen", voiceProvider: "fish-audio" }), actor, "bot"),
+    ).toEqual({
+      configured: true,
+      ready: true,
+      provider: "fish-audio",
+      voiceId: "chosen",
+      transcribe: false,
+    });
+  });
+  it("rejects another owner's bot before accessing any provider credential", async () => {
+    const credential = vi.spyOn(db, "findVoiceCredential");
+    await expect(resolveVoiceTarget(deps(null), actor, { botId: "not-owned" })).rejects.toThrow();
+    expect(credential).not.toHaveBeenCalled();
+  });
+});
 
 describe("toVoiceStatus", () => {
   it("treats a saved key without a voice as configured but not ready", () => {

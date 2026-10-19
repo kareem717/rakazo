@@ -73,6 +73,7 @@ function mapBot(
     thread: { id: string; unread: boolean } | null;
     computer: { scope: string } | null;
     voiceId?: string | null;
+    voiceProvider?: string | null;
     autoSpeak?: boolean;
     modelProvider?: string | null;
     modelId?: string | null;
@@ -118,6 +119,7 @@ function mapBot(
     createdAt: bot.createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
     voiceId: bot.voiceId ?? null,
+    voiceProvider: bot.voiceProvider ?? null,
     autoSpeak: bot.autoSpeak ?? false,
     modelProvider: bot.modelProvider ? canonicalPiProviderId(bot.modelProvider) : null,
     modelId: bot.modelId ?? null,

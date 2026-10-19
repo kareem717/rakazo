@@ -191,19 +191,40 @@ export async function resolveVoiceTarget(
   input: { botId?: string; voiceId?: string },
 ) {
   let botVoiceId: string | null = null;
+  let botVoiceProvider: string | null = null;
   if (input.botId) {
     const bot = await deps.prisma.bot.findFirst({
       where: { id: input.botId, spaceId: actor.spaceId, userId: actor.userId },
-      select: { voiceId: true },
+      select: { voiceId: true, voiceProvider: true },
     });
     if (!bot) throw new IsolationError();
     botVoiceId = bot.voiceId;
+    botVoiceProvider = bot.voiceId ? bot.voiceProvider : null;
   }
-  const loaded = await loadDefaultVoiceCredential(deps, actor);
+  const loaded = await loadVoiceCredential(deps, actor, botVoiceProvider ?? undefined);
   if (!loaded) throw new NoVoiceConfigured("key");
   const voiceId = input.voiceId || botVoiceId || loaded.cred.voiceId;
   if (!voiceId) throw new NoVoiceConfigured("voice");
   return { ...loaded, voiceId };
+}
+
+export async function voiceStatus(
+  deps: VoiceDeps,
+  actor: Actor,
+  botId?: string,
+): Promise<VoiceStatus> {
+  const fallback = toVoiceStatus(await findDefaultVoiceCredential(deps.prisma, actor));
+  if (!botId) return fallback;
+  try {
+    const target = await resolveVoiceTarget(deps, actor, { botId });
+    return {
+      ...toVoiceStatus({ ...target.cred, voiceId: target.voiceId }),
+      transcribe: fallback.transcribe,
+    };
+  } catch (error) {
+    if (error instanceof NoVoiceConfigured) return { ...fallback, ready: false };
+    throw error;
+  }
 }
 
 export async function persistVoiceCredential(

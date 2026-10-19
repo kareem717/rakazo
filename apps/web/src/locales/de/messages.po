@@ -320,8 +320,8 @@ msgid "Account"
 msgstr "Konto"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "Kontostandard"
+#~ msgid "Account default"
+#~ msgstr "Kontostandard"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1669,6 +1669,10 @@ msgstr ""
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not load voice settings"
 msgstr "Stimmeinstellungen konnten nicht geladen werden"
+
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
 
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
@@ -3409,6 +3413,10 @@ msgstr ""
 msgid "No trigger"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
 msgstr "Noch keine"
@@ -4271,6 +4279,14 @@ msgstr "Anbieter suchen"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4304,10 @@ msgstr "Bot auswählen"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "Verbundenes Modell auswählen"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4535,6 +4555,7 @@ msgstr "Der Space wurde gewechselt. Öffne Modelle erneut, um die Backups zu lad
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "Der Space wurde gewechselt. Öffne Modelle erneut, um die Backups zu speichern."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "Space-Standard"
@@ -5133,11 +5154,16 @@ msgstr ""
 msgid "View chat"
 msgstr "Chat anzeigen"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "Stimme"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

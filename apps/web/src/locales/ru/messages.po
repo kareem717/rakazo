@@ -320,8 +320,8 @@ msgid "Account"
 msgstr "Аккаунт"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "Учетная запись по умолчанию"
+#~ msgid "Account default"
+#~ msgstr "Учетная запись по умолчанию"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1669,6 +1669,10 @@ msgstr "Не удалось загрузить статус обновления
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not load voice settings"
 msgstr "Не удалось загрузить голосовые настройки."
+
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
 
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
@@ -3409,6 +3413,10 @@ msgstr "Нет доступных инструментов."
 msgid "No trigger"
 msgstr "Нет триггера"
 
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
 msgstr "Пока нет"
@@ -4271,6 +4279,14 @@ msgstr "Поиск поставщиков"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4304,10 @@ msgstr "Выберите бота"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "Выберите подключённую модель"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4535,6 +4555,7 @@ msgstr "Пространство изменилось. Откройте разд
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "Пространство изменилось. Откройте раздел «Модели» снова, чтобы сохранить список резервных моделей."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "Пространство по умолчанию"
@@ -5133,11 +5154,16 @@ msgstr ""
 msgid "View chat"
 msgstr "Открыть чат"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "Голос"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."
