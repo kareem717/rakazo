@@ -333,7 +333,7 @@ import {
   McpApprovalCard,
 } from "./shell/message-cards";
 import type { RosterDropTarget } from "./shell/roster-drop";
-import { resolveRosterDrop } from "./shell/roster-drop";
+import { canDropSection, resolveRosterDrop } from "./shell/roster-drop";
 import { commitSpaceRename, sidebarGroupsForSpaces } from "./shell/space-sidebar";
 import { WindowChrome } from "./WindowChrome";
 
@@ -489,6 +489,9 @@ function SpaceShell() {
   const botOrderEpochRef = useRef(0);
   const pendingBotOrderRef = useRef<string[] | null>(null);
   const savingBotOrderRef = useRef(false);
+  const [draggedSection, setDraggedSection] = useState<{ id: string; spaceId: string } | null>(
+    null,
+  );
   const [botSections, setBotSections] = useState<BotSection[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
@@ -740,7 +743,7 @@ function SpaceShell() {
   const [newSectionTarget, setNewSectionTarget] = useState<
     | { kind: "bot"; chat: Bot }
     | { kind: "group"; chat: Group }
-    | { kind: "section"; parentId: string; spaceId: string }
+    | { kind: "section"; parentId: string | null; spaceId: string }
     | null
   >(null);
   const [renameSectionTarget, setRenameSectionTarget] = useState<{
@@ -3263,10 +3266,33 @@ function SpaceShell() {
                     row.item.kind === "bot" && row.parentId === parentId ? [row.item.chat.id] : [],
                   );
                 const hasSpaceActions = group.canOpenSpaceSettings;
+                const section = (
+                  group.spaceId === bootstrapMe?.spaceId
+                    ? botSections
+                    : (spaces.find((space) => space.id === group.spaceId)?.botSections ?? [])
+                ).find((item) => item.id === group.sectionId);
+                const hasHeaderActions = hasSpaceActions || Boolean(section);
+                const canMoveSectionHere =
+                  draggedSection &&
+                  (group.sectionId ||
+                    group.canOpenSpaceSettings ||
+                    group.key.endsWith("unassigned")) &&
+                  canDropSection({
+                    sectionId: draggedSection.id,
+                    sourceSpaceId: draggedSection.spaceId,
+                    targetSpaceId: group.spaceId,
+                    parentId: group.sectionId,
+                    sections:
+                      group.spaceId === bootstrapMe?.spaceId
+                        ? botSections
+                        : (spaces.find((space) => space.id === group.spaceId)?.botSections ?? []),
+                  });
                 const headerDropTarget: RosterDropTarget | null =
                   group.spaceId === bootstrapMe?.spaceId &&
                   !group.emptySpaceId &&
-                  (group.sectionId || group.key.endsWith("unassigned"))
+                  (group.sectionId ||
+                    group.canOpenSpaceSettings ||
+                    group.key.endsWith("unassigned"))
                     ? { kind: "section", sectionId: group.sectionId }
                     : null;
                 const headerDropKey = `header:${group.key}`;
@@ -3282,12 +3308,15 @@ function SpaceShell() {
                         role="group"
                         data-roster-drop={rosterDropKey === headerDropKey ? "true" : undefined}
                         className={`${
-                          group.title && hasSpaceActions
+                          group.title && hasHeaderActions
                             ? "grid pt-3 pb-0.5"
                             : `flex items-center pt-3 pb-0.5${group.title ? "" : " justify-end"}`
                         } rounded-lg ${rosterDropKey === headerDropKey ? "bg-sidebar-accent" : ""}`}
                         onDragOver={(event) => {
-                          if (!headerDropTarget || !rosterDropAction(headerDropTarget, false))
+                          if (
+                            !canMoveSectionHere &&
+                            (!headerDropTarget || !rosterDropAction(headerDropTarget, false))
+                          )
                             return;
                           event.preventDefault();
                           event.dataTransfer.dropEffect = "move";
@@ -3297,6 +3326,21 @@ function SpaceShell() {
                           if (rosterDropKey === headerDropKey) setRosterDropKey(null);
                         }}
                         onDrop={(event) => {
+                          if (canMoveSectionHere && draggedSection) {
+                            event.preventDefault();
+                            void rpc.botSections
+                              .update(
+                                { sectionId: draggedSection.id, parentId: group.sectionId },
+                                { context: { spaceId: group.spaceId } },
+                              )
+                              .then(() => refreshBots())
+                              .catch((error) =>
+                                setSendError(errorText(error, t`Could not move section`)),
+                              );
+                            setDraggedSection(null);
+                            setRosterDropKey(null);
+                            return;
+                          }
                           if (!headerDropTarget) return;
                           event.preventDefault();
                           applyRosterDrop(headerDropTarget, false, groupBotIds);
@@ -3305,7 +3349,20 @@ function SpaceShell() {
                         {group.title ? (
                           <button
                             type="button"
-                            className={`flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/60 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${hasSpaceActions ? "col-start-1 row-start-1 w-full pe-8" : "flex-1"}`}
+                            draggable={Boolean(section)}
+                            data-sidebar-section-id={section?.id}
+                            onDragStart={(event) => {
+                              if (!section) return;
+                              setDraggedBotId(null);
+                              setDraggedSection({ id: section.id, spaceId: group.spaceId });
+                              event.dataTransfer.effectAllowed = "move";
+                              event.dataTransfer.setData("text/plain", section.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedSection(null);
+                              setRosterDropKey(null);
+                            }}
+                            className={`flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/60 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${hasHeaderActions ? "col-start-1 row-start-1 w-full pe-8" : "flex-1"}`}
                             onClick={() => {
                               if (group.emptySpaceId) {
                                 openSpaceChat(group.emptySpaceId, "/onboarding");
@@ -3375,7 +3432,7 @@ function SpaceShell() {
                             )}
                           </button>
                         ) : null}
-                        {hasSpaceActions ? (
+                        {hasHeaderActions ? (
                           <Button
                             variant="ghost"
                             size="icon-sm"
@@ -3384,9 +3441,22 @@ function SpaceShell() {
                                 ? "col-start-1 row-start-1 justify-self-end self-center"
                                 : undefined
                             }
-                            aria-label={t`Actions for ${group.spaceName}`}
+                            aria-label={
+                              section
+                                ? t`Actions for ${section.name}`
+                                : t`Actions for ${group.spaceName}`
+                            }
                             onClick={(event) => {
                               const rect = event.currentTarget.getBoundingClientRect();
+                              if (section) {
+                                sectionMenuAnchor.current = event.currentTarget;
+                                setSectionMenu({
+                                  section,
+                                  spaceId: group.spaceId,
+                                  position: { x: rect.left, y: rect.bottom },
+                                });
+                                return;
+                              }
                               spaceMenuAnchor.current = event.currentTarget;
                               setSpaceMenu({
                                 id: group.spaceId,
@@ -3498,6 +3568,7 @@ function SpaceShell() {
                               }
                               onDragStart={(event) => {
                                 if (item.kind !== "bot") return;
+                                setDraggedSection(null);
                                 setDraggedBotId(item.chat.id);
                                 event.dataTransfer.effectAllowed = "move";
                                 event.dataTransfer.setData("text/plain", item.chat.id);
@@ -4695,6 +4766,18 @@ function SpaceShell() {
               sideOffset={0}
               className="w-[220px]"
             >
+              {spaceMenuTarget ? (
+                <DropdownMenuItem
+                  onClick={() => {
+                    setNewSectionTarget({
+                      kind: "section",
+                      parentId: null,
+                      spaceId: spaceMenuTarget.id,
+                    });
+                    setSpaceMenu(null);
+                  }}
+                >{t`New section`}</DropdownMenuItem>
+              ) : null}
               {spaceMenuTarget ? (
                 <DropdownMenuItem
                   onClick={() => {

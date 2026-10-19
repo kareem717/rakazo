@@ -46,3 +46,26 @@ export function resolveRosterDrop(input: {
     }
   }
 }
+
+/** Section drags stay in their space and cannot target their own subtree. */
+export function canDropSection(input: {
+  sectionId: string;
+  sourceSpaceId: string;
+  targetSpaceId: string;
+  parentId: string | null;
+  sections: readonly { id: string; parentId?: string | null }[];
+}): boolean {
+  if (input.sourceSpaceId !== input.targetSpaceId) return false;
+  const section = input.sections.find((item) => item.id === input.sectionId);
+  if (!section || (section.parentId ?? null) === input.parentId) return false;
+  const seen = new Set([section.id]);
+  let parentId = input.parentId;
+  while (parentId) {
+    if (seen.has(parentId)) return false;
+    seen.add(parentId);
+    const parent = input.sections.find((item) => item.id === parentId);
+    if (!parent) return false;
+    parentId = parent.parentId ?? null;
+  }
+  return true;
+}
