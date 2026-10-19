@@ -228,6 +228,10 @@ describe("contracts", () => {
     const parsed = CreateBotInput.parse({ name: "Chief" });
     expect(parsed.title).toBe("");
     expect(parsed.notifyOnFinish).toBe(true);
+    expect(parsed.computerMode).toBe("dedicated");
+    expect(CreateBotInput.parse({ name: "Team bot", computerMode: "team" }).computerMode).toBe(
+      "team",
+    );
   });
 
   it("normalizes bot creation fields without losing the longer instruction copy", () => {

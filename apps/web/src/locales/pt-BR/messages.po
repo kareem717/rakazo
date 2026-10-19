@@ -125,7 +125,6 @@ msgid "{count} years"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{days}d ago"
 msgstr "{days}d atrás"
 
@@ -134,12 +133,10 @@ msgid "{hidden, plural, one {+# earlier step} other {+# earlier steps}}"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{hours}h ago"
 msgstr "{hours}h atrás"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{minutes}m ago"
 msgstr "{minutes}m atrás"
 
@@ -318,10 +315,6 @@ msgstr "Token de acesso (opcional)"
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Account"
 msgstr "Conta"
-
-#: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "Padrão da conta"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1670,6 +1663,10 @@ msgstr ""
 msgid "Could not load voice settings"
 msgstr "Não foi possível carregar as configurações de voz"
 
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
+
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
 msgstr "Não foi possível sair. Tente novamente."
@@ -2761,7 +2758,6 @@ msgid "Jump to replied message: {excerpt}"
 msgstr "Ir para a mensagem respondida: {excerpt}"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "just now"
 msgstr "agora mesmo"
 
@@ -3407,6 +3403,10 @@ msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "No trigger"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
@@ -4271,6 +4271,14 @@ msgstr "Pesquisar provedores"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4296,10 @@ msgstr "Selecione um bot"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "Selecione um modelo conectado"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4535,6 +4547,7 @@ msgstr "O espaço mudou. Reabra Modelos para carregar a lista de backups."
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "O espaço mudou. Reabra Modelos para salvar a lista de backups."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "Padrão do espaço"
@@ -5133,11 +5146,16 @@ msgstr ""
 msgid "View chat"
 msgstr "Ver conversa"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "Voz"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

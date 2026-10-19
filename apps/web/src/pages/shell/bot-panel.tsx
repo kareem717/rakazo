@@ -7,12 +7,13 @@ import type {
   ModelCatalogEntry,
   ModelCredential,
   ThinkingLevel,
-  VoiceInfo,
+  VoiceCredential,
 } from "@rakazo/contracts";
 import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_NAME_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
+  DEFAULT_COMPUTER_MODE,
   isBuiltinToolName,
 } from "@rakazo/contracts";
 import {
@@ -35,6 +36,7 @@ import { X } from "lucide-react";
 import { lazy, Suspense, useEffect, useId, useRef, useState } from "react";
 import { ErrorBoundary, SectionLoadFailed } from "../../components/ErrorBoundary";
 import { InstructionSettings } from "../../components/InstructionSettings";
+import { VoicePicker } from "../../components/VoicePicker";
 import { botProfilePatch } from "../../lib/bot-profile-patch";
 import { thinkingLevelLabel } from "../../lib/model-catalog";
 import { rpc } from "../../lib/rpc";
@@ -105,7 +107,7 @@ export function CreateBotForm({
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [computerMode, setComputerMode] = useState<ComputerMode>("team");
+  const [computerMode, setComputerMode] = useState<ComputerMode>(DEFAULT_COMPUTER_MODE);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -222,6 +224,7 @@ export function BotSettings({
     autoSpeak?: boolean;
     fleetManagement?: boolean;
     voiceId?: string | null;
+    voiceProvider?: string | null;
     modelProvider?: string | null;
     modelId?: string | null;
     thinkingLevel?: ThinkingLevel | null;
@@ -232,6 +235,7 @@ export function BotSettings({
 }) {
   const { t } = useLingui();
   const [advancedOpened, setAdvancedOpened] = useState(false);
+  const [voiceOpened, setVoiceOpened] = useState(false);
   const ids = useId();
   const [name, setName] = useState(bot.name);
   const [title, setTitle] = useState(bot.title);
@@ -249,7 +253,8 @@ export function BotSettings({
   const [fleetManagement, setFleetManagement] = useState(bot.fleetManagement);
   useEffect(() => setFleetManagement(bot.fleetManagement), [bot.fleetManagement]);
   const [voiceId, setVoiceId] = useState(bot.voiceId ?? "");
-  const [voices, setVoices] = useState<VoiceInfo[]>([]);
+  const [voiceProvider, setVoiceProvider] = useState(bot.voiceProvider ?? "");
+  const [voiceCredentials, setVoiceCredentials] = useState<VoiceCredential[]>([]);
   const [modelKey, setModelKey] = useState(
     bot.modelProvider && bot.modelId ? modelOptionKey(bot.modelProvider, bot.modelId) : "",
   );
@@ -291,9 +296,9 @@ export function BotSettings({
   >(async () => undefined);
   useEffect(() => {
     void rpc.voice
-      .voices({})
-      .then(setVoices)
-      .catch(() => setVoices([]));
+      .credentials()
+      .then(setVoiceCredentials)
+      .catch(() => undefined);
     void Promise.all([rpc.models.credentials(), rpc.models.list(), rpc.me()])
       .then(([nextCredentials, nextCatalog, nextMe]) => {
         setCredentials(nextCredentials);
@@ -380,6 +385,7 @@ export function BotSettings({
         memoryScope,
         autoSpeak,
         voiceId: voiceId || null,
+        voiceProvider: voiceId ? voiceProvider || null : null,
         modelProvider: selected?.provider ?? null,
         modelId: selected?.modelId ?? null,
         ...(modelMetaReady &&
@@ -553,6 +559,54 @@ export function BotSettings({
           }}
         />
       </div>
+      {voiceCredentials.length || voiceId ? (
+        <details
+          className="mt-4 space-y-2"
+          data-testid="bot-voice-settings"
+          onToggle={(event) => {
+            if (event.currentTarget.open) setVoiceOpened(true);
+          }}
+        >
+          <summary className="cursor-pointer text-[14px] text-muted-foreground">
+            <Trans>Voice</Trans>
+          </summary>
+          <label htmlFor={`${ids}-voice-provider`} className={fieldLabelClass}>
+            <Trans>Voice provider</Trans>
+          </label>
+          <NativeSelect
+            id={`${ids}-voice-provider`}
+            className="w-full"
+            value={voiceProvider}
+            onChange={(event) => {
+              setVoiceProvider(event.target.value);
+              setVoiceId("");
+            }}
+          >
+            <NativeSelectOption value="">{t`Space default`}</NativeSelectOption>
+            {voiceProvider && !voiceCredentials.some((cred) => cred.provider === voiceProvider) ? (
+              <NativeSelectOption value={voiceProvider}>{voiceProvider}</NativeSelectOption>
+            ) : null}
+            {voiceCredentials.map((cred) => (
+              <NativeSelectOption key={cred.provider} value={cred.provider}>
+                {cred.provider}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          {voiceOpened ? (
+            <VoicePicker
+              key={voiceProvider}
+              provider={voiceProvider || undefined}
+              value={voiceId}
+              onChange={(value) => {
+                setVoiceId(value);
+                if (value && !voiceProvider)
+                  setVoiceProvider(voiceCredentials.find((cred) => cred.isDefault)?.provider ?? "");
+              }}
+              allowDefault
+            />
+          ) : null}
+        </details>
+      ) : null}
       <details
         data-testid="bot-settings-advanced"
         className="group mt-5"
@@ -691,24 +745,6 @@ export function BotSettings({
             change.
           </Trans>
         </div>
-        {voices.length ? (
-          <label htmlFor={`${ids}-voice`} className={fieldLabelClass}>
-            <Trans>Voice</Trans>
-            <NativeSelect
-              id={`${ids}-voice`}
-              className="mt-2 w-full"
-              value={voiceId}
-              onChange={(event) => setVoiceId(event.target.value)}
-            >
-              <NativeSelectOption value="">{t`Account default`}</NativeSelectOption>
-              {voices.map((voice) => (
-                <NativeSelectOption key={voice.id} value={voice.id}>
-                  {voice.label}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
-          </label>
-        ) : null}
         <label htmlFor={`${ids}-disabled-tools`} className={fieldLabelClass}>
           <Trans>Disabled tools</Trans>
           <Input

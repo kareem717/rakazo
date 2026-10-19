@@ -125,7 +125,6 @@ msgid "{count} years"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{days}d ago"
 msgstr "{days}일 전"
 
@@ -134,12 +133,10 @@ msgid "{hidden, plural, one {+# earlier step} other {+# earlier steps}}"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{hours}h ago"
 msgstr "{hours}시간 전"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{minutes}m ago"
 msgstr "{minutes}분 전"
 
@@ -318,10 +315,6 @@ msgstr "액세스 토큰(선택 사항)"
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Account"
 msgstr "계정"
-
-#: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "계정 기본값"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1670,6 +1663,10 @@ msgstr "업데이트 상태를 불러올 수 없습니다"
 msgid "Could not load voice settings"
 msgstr "음성 설정을 불러오지 못했습니다."
 
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
+
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
 msgstr "로그아웃하지 못했습니다. 다시 시도해 주세요."
@@ -2761,7 +2758,6 @@ msgid "Jump to replied message: {excerpt}"
 msgstr "답장한 메시지로 이동: {excerpt}"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "just now"
 msgstr "방금"
 
@@ -3408,6 +3404,10 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "No trigger"
 msgstr "트리거 없음"
+
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
@@ -4271,6 +4271,14 @@ msgstr "AI 서비스 검색"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4296,10 @@ msgstr "대화할 Bot을 선택하세요"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "연결된 모델 선택"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4535,6 +4547,7 @@ msgstr "공간이 변경되었습니다. 백업 목록을 불러오려면 모델
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "공간이 변경되었습니다. 백업 목록을 저장하려면 모델 설정을 다시 여세요."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "스페이스 기본값"
@@ -5133,11 +5146,16 @@ msgstr ""
 msgid "View chat"
 msgstr "채팅 보기"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "음성"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

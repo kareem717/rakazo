@@ -1,5 +1,10 @@
 import type { Actor, Bot, BotSection, MessageBlock, SpaceBot } from "@rakazo/contracts";
-import { BOT_COLORS, canonicalPiProviderId, InstructionVersionSchema } from "@rakazo/contracts";
+import {
+  BOT_COLORS,
+  canonicalPiProviderId,
+  DEFAULT_COMPUTER_MODE,
+  InstructionVersionSchema,
+} from "@rakazo/contracts";
 import {
   BACKGROUND_RUN_TRIGGERS,
   isBackgroundRunTrigger,
@@ -73,6 +78,7 @@ function mapBot(
     thread: { id: string; unread: boolean } | null;
     computer: { scope: string } | null;
     voiceId?: string | null;
+    voiceProvider?: string | null;
     autoSpeak?: boolean;
     modelProvider?: string | null;
     modelId?: string | null;
@@ -118,6 +124,7 @@ function mapBot(
     createdAt: bot.createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
     voiceId: bot.voiceId ?? null,
+    voiceProvider: bot.voiceProvider ?? null,
     autoSpeak: bot.autoSpeak ?? false,
     modelProvider: bot.modelProvider ? canonicalPiProviderId(bot.modelProvider) : null,
     modelId: bot.modelId ?? null,
@@ -585,7 +592,7 @@ export function createRepos(
               ...input.initialMessage,
             });
           }
-          if (input.computerMode === "dedicated") {
+          if ((input.computerMode ?? DEFAULT_COMPUTER_MODE) === "dedicated") {
             const dedicated = await ensureComputerRecord(tx, {
               mode: "dedicated",
               spaceId: actor.spaceId,

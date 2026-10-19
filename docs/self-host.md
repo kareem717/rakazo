@@ -497,7 +497,7 @@ Native file reads and workspace exports are limited to 8 MiB per file. A larger 
   local supervisor and published `ghcr.io/elie222/rakazo/computer` image. No E2B account required.
   Optional: set `e2b`, `daytona`, `createos`, or `box` plus the matching API key for remote computers.
 - **Docker** is the quick-start default for published images and for a source checkout / full local
-  Compose stack. Workspace bots share a persistent Team Computer by default; Private computers are
+  Compose stack. Bots get persistent Private Computers by default; a shared Team Computer is
   optional. Keep the supervisor private, as the included Compose files do.
 - **E2B** runs bot computers away from the Rakazo host and is a good choice for public or multi-user
   production deployments. Rakazo checkpoints the portable workspace and browser-profile directory to

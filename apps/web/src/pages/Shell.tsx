@@ -648,9 +648,10 @@ function SpaceShell() {
   const memoryProviderConfigRevision = useRef(0);
   const call = useCallSession();
   /** Calls a bot, or opens voice settings first when no voice is connected. */
-  const callBot = (bot: Bot) => {
+  const callBot = async (bot: Bot) => {
     if (!bootstrapMe?.phoneCallsEnabled) return;
-    if (!voiceStatus?.ready) {
+    const status = await rpc.voice.status({ botId: bot.id }).catch(() => null);
+    if (!status?.ready) {
       openSettings("voice");
       return;
     }
@@ -658,7 +659,7 @@ function SpaceShell() {
       botId: bot.id,
       botName: bot.name,
       botColor: bot.color,
-      transcribe: voiceStatus ? Boolean(voiceStatus.transcribe) : undefined,
+      transcribe: status.transcribe,
     });
   };
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
@@ -1405,10 +1406,19 @@ function SpaceShell() {
   }, []);
 
   useEffect(() => {
+    let current = true;
     void rpc.voice
-      .status()
-      .then(setVoiceStatus)
+      .status({ botId: active?.id })
+      .then((status) => {
+        if (current) setVoiceStatus(status);
+      })
       .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [active?.id, active?.voiceId, active?.voiceProvider]);
+
+  useEffect(() => {
     const unsubSpeech = speaker.subscribe((state) => {
       setSpeakingMessageId(state.status === "idle" ? null : (state.messageId ?? null));
     });
@@ -5020,7 +5030,10 @@ function SpaceShell() {
             onVoiceStatusMaybeChanged={async () => {
               try {
                 setVoiceStatus(
-                  await Promise.race([rpc.voice.status(), voiceStatusRefreshTimeout()]),
+                  await Promise.race([
+                    rpc.voice.status({ botId: active?.id }),
+                    voiceStatusRefreshTimeout(),
+                  ]),
                 );
               } catch {
                 // Prefer reopening Voice settings over starting a call with stale readiness.

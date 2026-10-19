@@ -125,7 +125,6 @@ msgid "{count} years"
 msgstr "{count} שנים"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{days}d ago"
 msgstr "לפני {days} ימים"
 
@@ -134,12 +133,10 @@ msgid "{hidden, plural, one {+# earlier step} other {+# earlier steps}}"
 msgstr "{hidden, plural, one {+# שלב קודם} other {+# שלבים קודמים}}"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{hours}h ago"
 msgstr "לפני {hours} שע׳"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{minutes}m ago"
 msgstr "לפני {minutes} דק׳"
 
@@ -318,10 +315,6 @@ msgstr "טוקן גישה (אופציונלי)"
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Account"
 msgstr "חשבון"
-
-#: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "ברירת המחדל של החשבון"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1670,6 +1663,10 @@ msgstr "לא ניתן לטעון את סטטוס העדכון"
 msgid "Could not load voice settings"
 msgstr "לא ניתן לטעון את הגדרות הקול"
 
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
+
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
 msgstr "לא ניתן להתנתק. יש לנסות שוב."
@@ -2761,7 +2758,6 @@ msgid "Jump to replied message: {excerpt}"
 msgstr "מעבר להודעה שנענתה: {excerpt}"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "just now"
 msgstr "הרגע"
 
@@ -3408,6 +3404,10 @@ msgstr "אין כלים זמינים."
 #: src/pages/RoutineEditor.tsx
 msgid "No trigger"
 msgstr "ללא טריגר"
+
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
@@ -4271,6 +4271,14 @@ msgstr "חיפוש ספקים"
 msgid "Search runs"
 msgstr "חיפוש הרצות"
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4296,10 @@ msgstr "בחירת בוט"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "בחירת מודל מחובר"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4535,6 +4547,7 @@ msgstr "המרחב השתנה. יש לפתוח מחדש את המודלים כד
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "המרחב השתנה. יש לפתוח מחדש את המודלים כדי לשמור את רשימת הגיבוי שלו."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "ברירת המחדל של המרחב"
@@ -5133,11 +5146,16 @@ msgstr "גרסה"
 msgid "View chat"
 msgstr "צפייה בצ׳אט"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "קול"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."
