@@ -293,7 +293,9 @@ describe("mobile computer screen", () => {
     expect(src).toContain("retainScreenSource");
     expect(src).toContain("isReady()");
     expect(src).not.toContain("${embeddedScreenUrl ??");
-    expect(src).toContain(`key={\`$\{nativeKeyboard ? "keys" : "view"}:$\{sourceUrl.current}\`}`);
+    expect(src).toContain(
+      `key={\`$\{nativeKeyboard ? "keys" : "view"}:$\{revision}:$\{sourceUrl.current}\`}`,
+    );
     expect(src).not.toContain("key={url}");
     expect(src).not.toContain("key={sourceUrl.current}");
   });

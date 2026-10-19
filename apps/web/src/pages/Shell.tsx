@@ -158,6 +158,7 @@ import {
   useHoldToTalk,
 } from "../components/composer/HoldToTalk";
 import { ComputerWorkspace } from "../components/computer/ComputerWorkspace";
+import { ScreenFrame } from "../components/computer/ScreenFrame";
 import { lazyOverlay } from "../components/ErrorBoundary";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
 import {
@@ -1215,7 +1216,7 @@ function SpaceShell() {
     return snap;
   }
 
-  async function refreshComputerScreen(id: string) {
+  async function refreshComputerScreen(id: string, recovering = false) {
     if (!computerVisible.current) return null;
     const request = ++screenRequest.current;
     return loadComputerScreen({
@@ -1225,6 +1226,7 @@ function SpaceShell() {
         (activeBotId.current === id || computerBotIdRef.current === id) &&
         computerVisible.current,
       commit: (screen) => {
+        if (recovering && screen.error) return;
         setScreenUrl(screen.url);
         setComputerError(screen.error);
         setComputerErrorFromScreen(Boolean(screen.error));
@@ -4195,7 +4197,8 @@ function SpaceShell() {
                   ) : computer?.kind === "desktop" ? (
                     <DesktopKindEmptyState className="grid h-full place-items-center px-6 text-center text-sm text-muted-foreground/80" />
                   ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
-                    <iframe
+                    <ScreenFrame
+                      onReconnect={() => refreshComputerScreen(active.id, true)}
                       title={t`Bot screen preview`}
                       src={embeddedScreenUrl}
                       sandbox={screenIframeSandbox(embeddedScreenUrl)}
@@ -5205,7 +5208,8 @@ function SpaceShell() {
                   <DesktopKindEmptyState className="grid h-full place-items-center px-8 text-center text-sm text-muted-foreground/80" />
                 ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
                   <>
-                    <iframe
+                    <ScreenFrame
+                      onReconnect={() => refreshComputerScreen(computerBot.id, true)}
                       title={t`Bot screen`}
                       src={embeddedScreenUrl}
                       sandbox={screenIframeSandbox(embeddedScreenUrl)}

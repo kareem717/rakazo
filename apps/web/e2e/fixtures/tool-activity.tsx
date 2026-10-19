@@ -1,5 +1,6 @@
 import { I18nProvider } from "@lingui/react";
 import type { MessageBlock } from "@rakazo/contracts";
+import { reduceLiveMessageBlocks } from "@rakazo/core";
 import { useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -42,10 +43,21 @@ const stepsBlock: MessageBlock = {
   ...(live ? {} : { durationMs: 12_400 }),
 };
 
+const eventBlocks = reduceLiveMessageBlocks(
+  reduceLiveMessageBlocks([], {
+    type: "progress",
+    payload: { text: "Opening page: https://example.test", activity: true },
+  }),
+  { type: "tool", name: "browser_navigate" },
+);
+
 // A live run that has only called tools so far, or the finished reply with its tool card.
-const botBlocks: MessageBlock[] = live
-  ? [stepsBlock]
-  : [stepsBlock, { kind: "text", text: REPLY_TEXT }];
+const botBlocks: MessageBlock[] =
+  params.get("events") === "unpunctuated"
+    ? eventBlocks
+    : live
+      ? [stepsBlock]
+      : [stepsBlock, { kind: "text", text: REPLY_TEXT }];
 
 function BotMessage({ blocks }: { blocks: MessageBlock[] }) {
   const showToolActivity = useSyncExternalStore(subscribeToolActivity, getToolActivityEnabled);

@@ -120,6 +120,22 @@ describe("response streaming preference", () => {
 });
 
 describe("reduceLiveMessageBlocks", () => {
+  it("shows tool calls even when no narration arrived first", () => {
+    expect(reduceLiveMessageBlocks([], { type: "tool", name: "browser_snapshot" })).toEqual([
+      { kind: "steps", steps: [{ label: "Browser snapshot", count: 1 }] },
+    ]);
+  });
+
+  it("shows tools immediately after activity text without sentence punctuation", () => {
+    const activity = reduceLiveMessageBlocks([], {
+      type: "progress",
+      payload: { text: "Opening page: https://example.test", activity: true },
+    });
+    expect(reduceLiveMessageBlocks(activity, { type: "tool", name: "browser_navigate" })).toEqual([
+      { kind: "steps", steps: [{ label: "Browser navigate", count: 1 }] },
+    ]);
+  });
+
   it("preserves structured live activity markers", () => {
     expect(
       reduceLiveMessageBlocks([], {
