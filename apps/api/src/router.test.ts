@@ -77,6 +77,15 @@ describe("account preferences", () => {
     const connection = vi
       .spyOn(adapters, "networkConnection")
       .mockResolvedValue({ available: false });
+    const apply = vi
+      .spyOn(adapters, "networkApplyStatus")
+      .mockResolvedValue({
+        available: false,
+        phase: "idle",
+        operationId: null,
+        revision: null,
+        error: null,
+      });
     try {
       const member = createRouterClient(createRouter(deps), {
         context: { actor: { ...actor, isDeploymentOwner: false } } as never,
@@ -85,6 +94,11 @@ describe("account preferences", () => {
       await expect(member.network.connection()).rejects.toMatchObject({ code: "FORBIDDEN" });
       await expect(member.network.connect()).rejects.toMatchObject({ code: "FORBIDDEN" });
       expect(connection).not.toHaveBeenCalled();
+      await expect(member.network.applyStatus()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.apply({ revision: "0".repeat(64) })).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      expect(apply).not.toHaveBeenCalled();
       await expect(
         member.network.save({ config: { version: 1, mode: "direct" }, revision: "0".repeat(64) }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -95,6 +109,9 @@ describe("account preferences", () => {
       await expect(owner.network.connection()).resolves.toEqual({ available: false });
       await owner.network.connect();
       expect(connection).toHaveBeenLastCalledWith(true);
+      await owner.network.applyStatus();
+      await owner.network.apply({ revision: "0".repeat(64) });
+      expect(apply).toHaveBeenLastCalledWith("0".repeat(64));
       await owner.network.save({
         config: { version: 1, mode: "direct" },
         revision: "0".repeat(64),
@@ -104,6 +121,7 @@ describe("account preferences", () => {
       read.mockRestore();
       save.mockRestore();
       connection.mockRestore();
+      apply.mockRestore();
     }
   });
 

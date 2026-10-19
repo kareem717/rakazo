@@ -62,10 +62,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     const config = gatewayEgressConfig();
     if (process.argv[2] === "--check")
       console.log(`Network egress configuration is valid (${config.mode})`);
-    else
+    else {
       await writeFile(process.argv[2] ?? "/state/egress.env", gatewayEnvironment(config), {
         mode: 0o600,
       });
+      if (process.argv[3])
+        await writeFile(process.argv[3], JSON.stringify(config), { mode: 0o600 });
+    }
   } catch {
     console.error("Invalid network egress configuration; gateway did not start");
     process.exitCode = 1;

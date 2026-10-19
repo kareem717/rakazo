@@ -640,6 +640,14 @@ msgstr "Appearance"
 msgid "Apply"
 msgstr "Apply"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr "Apply and restart"
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr "Applying network settings… Reconnecting automatically."
+
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
 msgstr "Approval boundaries"
@@ -1047,6 +1055,10 @@ msgstr "Check for updates"
 msgid "Check in."
 msgstr "Check in."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr "Check restart status"
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "Check the API key or sign-in, then test again."
@@ -1440,6 +1452,10 @@ msgstr "Could not add"
 msgid "Could not add MCP server"
 msgstr "Could not add MCP server"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr "Could not apply network settings"
+
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
 msgstr "Could not approve this server"
@@ -1735,6 +1751,10 @@ msgstr "Could not play a test clip"
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "Could not reach the model server."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr "Could not reach the network restart service"
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -4714,9 +4734,13 @@ msgstr "Steps"
 msgid "Stop"
 msgstr "Stop"
 
-#: src/components/NetworkSettings.tsx
+#: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
 msgstr "Stop computers and restart the deployment to apply."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers before applying."
+msgstr "Stop computers before applying."
 
 #: src/pages/Shell.tsx
 msgid "Stop speaking"

@@ -640,6 +640,14 @@ msgstr "모양"
 msgid "Apply"
 msgstr "적용"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
 msgstr "승인이 필요한 범위"
@@ -1047,6 +1055,10 @@ msgstr "업데이트 확인"
 msgid "Check in."
 msgstr "확인해 주세요."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "API 키 또는 로그인을 확인한 뒤 다시 테스트하세요."
@@ -1440,6 +1452,10 @@ msgstr "추가하지 못했습니다."
 msgid "Could not add MCP server"
 msgstr "MCP 서버를 추가하지 못했습니다."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
 msgstr "서버를 승인하지 못했습니다."
@@ -1735,6 +1751,10 @@ msgstr "샘플 음성을 재생하지 못했습니다."
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "모델 서버에 연결하지 못했습니다."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr ""
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -4714,8 +4734,12 @@ msgstr "실행 단계"
 msgid "Stop"
 msgstr "중지"
 
-#: src/components/NetworkSettings.tsx
+#: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers before applying."
 msgstr ""
 
 #: src/pages/Shell.tsx

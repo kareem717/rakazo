@@ -25,3 +25,15 @@ export const NetworkSettingsSchema = z.discriminatedUnion("available", [
   }),
 ]);
 export type NetworkSettings = z.infer<typeof NetworkSettingsSchema>;
+
+export const NetworkApplyStatusSchema = z.object({
+  available: z.boolean(),
+  operationId: z.string().nullable(),
+  revision: z.string().nullable(),
+  phase: z.enum(["idle", "checking", "restarting", "verifying", "succeeded", "failed"]),
+  error: z.string().nullable(),
+});
+export type NetworkApplyStatus = z.infer<typeof NetworkApplyStatusSchema>;
+export const NetworkApplyInputSchema = z
+  .object({ revision: z.string().regex(/^[a-f0-9]{64}$/) })
+  .strict();

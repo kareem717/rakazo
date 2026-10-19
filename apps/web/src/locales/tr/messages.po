@@ -640,6 +640,14 @@ msgstr "Görünüm"
 msgid "Apply"
 msgstr "Uygula"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
 msgstr "Onay sınırları"
@@ -1047,6 +1055,10 @@ msgstr ""
 msgid "Check in."
 msgstr "Durum bildir."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "API anahtarını veya oturumu kontrol et, sonra yeniden test et."
@@ -1440,6 +1452,10 @@ msgstr "Eklenemedi"
 msgid "Could not add MCP server"
 msgstr "MCP sunucusu eklenemedi"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
 msgstr "Bu sunucu onaylanamadı"
@@ -1735,6 +1751,10 @@ msgstr "Deneme sesi çalınamadı"
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "Model sunucusuna ulaşılamadı."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr ""
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -4714,8 +4734,12 @@ msgstr "Adımlar"
 msgid "Stop"
 msgstr "Durdur"
 
-#: src/components/NetworkSettings.tsx
+#: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers before applying."
 msgstr ""
 
 #: src/pages/Shell.tsx

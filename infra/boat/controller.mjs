@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
 import { randomUUID, timingSafeEqual } from "node:crypto";
 import { lookup } from "node:dns/promises";
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdir, open, readFile, rename, unlink, writeFile } from "node:fs/promises";
 import http from "node:http";
 import https from "node:https";
 import { isIP } from "node:net";
@@ -24,6 +25,8 @@ let key, state;
 const busy = new Map();
 let saves = Promise.resolve();
 let registrations = Promise.resolve();
+let activeRequests = 0;
+const applyLock = "/state/network-apply.lock";
 
 export function gatewayErrorStatus(error) {
   return Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599
@@ -278,6 +281,16 @@ export async function assertModeTransition(vms, mode, inspect) {
   }
 }
 
+export async function assertNetworkApplyStopped(vms, bots, inspect) {
+  if (Object.values(bots).some((intent) => intent.phase === "intent"))
+    throw new Error("Computer provisioning is still pending");
+  for (const id of Object.keys(vms)) {
+    const box = await inspect(id);
+    if (!["archived", "stopped", "deleted"].includes(box.state))
+      throw new Error("Stop computers before applying network settings");
+  }
+}
+
 async function bootstrapOnce(id) {
   if (!(await ready())) throw new Error("Configured network egress is unavailable");
   const vm = state.vms[id];
@@ -512,9 +525,11 @@ async function handler(req, res) {
         ready: available,
         provider: "boat",
         mode: networkConfig.mode,
+        activeRequests,
       });
     }
     if (!authorized(req.headers.authorization)) return json(401, { error: "unauthorized" });
+    if (existsSync(applyLock)) return json(503, { error: "Network settings are being applied" });
     if (!(await ready())) return json(503, { error: "Configured network egress is unavailable" });
     const body = await readBody(req);
     if (req.url === "/admin/retry-bootstrap" && req.method === "POST") {
@@ -648,6 +663,39 @@ async function main() {
     if (e.code !== "ENOENT") throw e;
     state = { bots: {}, vms: {} };
   }
+  if (process.argv.includes("--freeze-network") || process.argv.includes("--unfreeze-network")) {
+    const token = process.argv[3];
+    if (!/^[a-f0-9-]{36}$/.test(token ?? "")) throw new Error("Invalid operation");
+    if (process.argv.includes("--freeze-network")) {
+      const lock = await open(applyLock, "wx", 0o600);
+      try {
+        await lock.writeFile(token);
+      } finally {
+        await lock.close();
+      }
+    } else {
+      if ((await readFile(applyLock, "utf8")) !== token) throw new Error("Invalid operation");
+      await unlink(applyLock);
+    }
+    return;
+  }
+  if (process.argv.includes("--check-network-apply")) {
+    const response = await fetch("http://127.0.0.1:8788/health", {
+      signal: AbortSignal.timeout(20000),
+    });
+    const health = await response.json();
+    if (!existsSync(applyLock) || health.activeRequests !== 0)
+      throw new Error("Computer operations are still pending");
+    await assertNetworkApplyStopped(state.vms, state.bots, async (id) => {
+      try {
+        return (await api(`/boxes/${id}`)).box;
+      } catch (error) {
+        if (error.status === 404) return { state: "deleted" };
+        throw error;
+      }
+    });
+    return;
+  }
   await assertModeTransition(state.vms, networkConfig.mode, async (id) => {
     try {
       return (await api(`/boxes/${id}`)).box;
@@ -681,7 +729,11 @@ async function main() {
   }
   http
     .createServer((req, res) => {
-      void handler(req, res);
+      const counted = req.url !== "/health";
+      if (counted) activeRequests++;
+      void handler(req, res).finally(() => {
+        if (counted) activeRequests--;
+      });
     })
     .listen(8788, "127.0.0.1", () => console.log("Rakazo Boat gateway listening on loopback"));
 }

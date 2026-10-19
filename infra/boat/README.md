@@ -21,6 +21,29 @@ This is deployment routing, not a sandbox security boundary against root command
 
 ## Configuration
 
+Network settings can also apply a saved route from the app. The optional
+`compose.apply.yml` overlay runs a restricted restart service from the updater
+image. Build the updater image from this source, copy the overlay beside the
+deployment Compose files, and set `RAKAZO_DEPLOY_DIR`, `RAKAZO_NETWORK_CONFIG_DIR`,
+and `RAKAZO_COMPOSE_FILE` to the deployment's absolute directory, private config
+directory, and full ordered list of relative Compose files (including this
+overlay). Set the updater image/tag to the built image. The service has Docker
+access and must remain private; only the API receives its restricted Unix socket.
+It has no TCP listener, application credentials in its environment or network.
+
+After saving, choose **Apply and restart**. Stop computers first using their
+existing Stop control. The backend freezes new computer operations, checks the
+provider's actual state, refuses pending work, recreates only the gateway and
+application services, and reconnects the UI to the durable operation status.
+It never stops a computer automatically or changes the selected image. If the
+new route fails, it restores the previous route and retains the saved edit for
+another attempt. Without the optional service, applying remains a server action.
+
+An interrupted operation leaves its config and gateway locks in place. Inspect
+the restart service's private recovery record, restore a healthy route, then
+clear locks only after checking that no operation is still running. The UI
+reports recovery requiring server access rather than claiming the change worked.
+
 Create a private JSON file outside Git. Its schema is versioned and validated before startup; unknown fields and unsupported combinations fail closed. Choose one of these examples.
 
 Ordinary networking:

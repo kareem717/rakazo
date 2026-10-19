@@ -2,7 +2,7 @@
 set -eu
 umask 077
 mkdir -p /state
-node /deployment/network-config.mjs /state/egress.env
+node /deployment/network-config.mjs /state/egress.env /state/network-active.json
 . /state/egress.env
 export EGRESS_MODE
 node /deployment/controller.mjs --check-network-transition

@@ -13,13 +13,29 @@ test("owner configures network scope with transport fields and pending restart",
       await route.fulfill({ response, json: body });
     });
   }
-  const current = {
+  let current = {
     version: 1,
     mode: "tools",
     transport: { type: "ssh", target: "proxy@egress.example.test", tailscale: true },
   };
   let saved: unknown = current;
   let revision = "0".repeat(64);
+  let applyState = {
+    available: true,
+    phase: "idle",
+    operationId: null as string | null,
+    revision: null as string | null,
+    error: null,
+  };
+  await page.route("**/rpc/network/applyStatus", (route) =>
+    route.fulfill({ json: { json: applyState } }),
+  );
+  await page.route("**/rpc/network/apply", async (route) => {
+    expect(route.request().postDataJSON().json.revision).toBe(revision);
+    current = saved as typeof current;
+    applyState = { ...applyState, phase: "succeeded", operationId: "operation", revision };
+    await route.fulfill({ json: { json: { ...applyState, phase: "checking" } } });
+  });
   const state = () => ({
     available: true,
     writable: true,
@@ -88,6 +104,10 @@ test("owner configures network scope with transport fields and pending restart",
   await form.getByRole("button", { name: "Save", exact: true }).click();
   await expect(form.getByRole("status")).toContainText("Restart required");
   await captureScreenshot(page, testInfo, "network-settings-restart-required");
+  await expect(form.getByRole("button", { name: "Apply and restart", exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "network-settings-apply-button");
+  await form.getByRole("button", { name: "Apply and restart", exact: true }).click();
+  await expect(form).not.toContainText("Restart required");
   await form.getByLabel("Routing", { exact: true }).selectOption("direct");
   await expect(form.getByLabel("Tailscale exit node", { exact: true })).toHaveCount(0);
 });

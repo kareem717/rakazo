@@ -109,7 +109,12 @@ import {
   IntegrationSetupStateSchema,
 } from "./integration-settings.js";
 import { NetworkConnectionSchema } from "./network-connection.js";
-import { NetworkEgressConfigSchema, NetworkSettingsSchema } from "./network-settings.js";
+import {
+  NetworkApplyInputSchema,
+  NetworkApplyStatusSchema,
+  NetworkEgressConfigSchema,
+  NetworkSettingsSchema,
+} from "./network-settings.js";
 import { MessageReactionSchema } from "./reactions.js";
 import { RoutineWatchSchema } from "./routine-watch.js";
 import { RoutineHistorySchema, RoutineRunCursorSchema, RunsListOutputSchema } from "./runs.js";
@@ -225,6 +230,8 @@ export const appContract = {
   },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
   network: {
+    applyStatus: oc.output(NetworkApplyStatusSchema),
+    apply: oc.input(NetworkApplyInputSchema).output(NetworkApplyStatusSchema),
     connection: oc.output(NetworkConnectionSchema),
     connect: oc.output(NetworkConnectionSchema),
     get: oc.output(NetworkSettingsSchema),

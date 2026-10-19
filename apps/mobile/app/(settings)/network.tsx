@@ -11,6 +11,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from
 import { glassHeaderOptions } from "../../components/glass-title";
 import { MenuPicker } from "../../components/menu-picker";
 import { NativeActionButton } from "../../components/native-action-button";
+import { NetworkApplySettings } from "../../components/network-apply-settings";
 import { NetworkConnectionSettings } from "../../components/network-connection-settings";
 import { SettingsGroup, SettingsRow, SettingsSwitch } from "../../components/settings-group";
 import { rpc } from "../../lib/api";
@@ -27,6 +28,7 @@ export default function NetworkSettingsScreen() {
   const [draft, setDraft] = useState<NetworkSettingsDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const submitting = useRef(false);
   useEffect(() => {
@@ -48,7 +50,7 @@ export default function NetworkSettingsScreen() {
   const config = draft ? networkConfigFromDraft(draft) : null;
   const dirty =
     state?.available && config && JSON.stringify(config) !== JSON.stringify(state.saved);
-  const disabled = busy || !state?.available || !state.writable;
+  const disabled = busy || applying || !state?.available || !state.writable;
   const patch = (value: Partial<NetworkSettingsDraft>) =>
     setDraft((previous) => (previous ? { ...previous, ...value } : null));
   const modes = [
@@ -190,9 +192,11 @@ export default function NetworkSettingsScreen() {
           {state.restartRequired ? (
             <View accessibilityRole="summary">
               <Text style={styles.label}>{t("Restart required")}</Text>
-              <Text style={styles.note}>
-                {t("Stop computers and restart the deployment to apply.")}
-              </Text>
+              <NetworkApplySettings
+                revision={state.revision}
+                onApplied={() => setAttempt((value) => value + 1)}
+                onBusy={setApplying}
+              />
             </View>
           ) : null}
         </>

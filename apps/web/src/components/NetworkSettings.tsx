@@ -19,6 +19,7 @@ import {
 import { useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
+import { NetworkApplySettings } from "./NetworkApplySettings";
 import { NetworkConnectionSettings } from "./NetworkConnectionSettings";
 
 export function NetworkSettingsSection() {
@@ -40,6 +41,7 @@ export function NetworkSettingsForm() {
   const [draft, setDraft] = useState<NetworkSettingsDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [applying, setApplying] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const submitting = useRef(false);
   const id = useId();
@@ -63,7 +65,7 @@ export function NetworkSettingsForm() {
   const config = draft ? networkConfigFromDraft(draft) : null;
   const dirty =
     state?.available && config && JSON.stringify(config) !== JSON.stringify(state.saved);
-  const disabled = busy || !state?.available || !state.writable;
+  const disabled = busy || applying || !state?.available || !state.writable;
   const patch = (value: Partial<NetworkSettingsDraft>) =>
     setDraft((previous) => (previous ? { ...previous, ...value } : null));
   async function save() {
@@ -203,9 +205,11 @@ export function NetworkSettingsForm() {
               <p className="font-medium">
                 <Trans>Restart required</Trans>
               </p>
-              <p>
-                <Trans>Stop computers and restart the deployment to apply.</Trans>
-              </p>
+              <NetworkApplySettings
+                revision={state.revision}
+                onApplied={() => setAttempt((value) => value + 1)}
+                onBusy={setApplying}
+              />
             </div>
           ) : null}
         </>

@@ -84,6 +84,7 @@ import {
   modelCredentialAuthKindsForSpace,
   modelCredentialDto,
   NetworkSettingsError,
+  networkApplyStatus,
   networkConnection,
   normalizeSecretDestination,
   PushSessionEndedError,
@@ -1097,6 +1098,26 @@ export function createRouter(deps: RouterDeps) {
       };
     }),
     network: {
+      applyStatus: authed.network.applyStatus.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkApplyStatus();
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not reach the network restart service",
+          });
+        }
+      }),
+      apply: authed.network.apply.handler(async ({ context, input }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkApplyStatus(input.revision);
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not reach the network restart service",
+          });
+        }
+      }),
       connection: authed.network.connection.handler(async ({ context }) => {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
         try {

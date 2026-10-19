@@ -640,6 +640,14 @@ msgstr "外观"
 msgid "Apply"
 msgstr "应用"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
 msgstr "审批边界"
@@ -1047,6 +1055,10 @@ msgstr "检查更新"
 msgid "Check in."
 msgstr "报到。"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "请检查 API 密钥或登录，然后重新测试。"
@@ -1440,6 +1452,10 @@ msgstr "无法添加"
 msgid "Could not add MCP server"
 msgstr "无法添加 MCP 服务器"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
 msgstr "无法批准此服务器"
@@ -1735,6 +1751,10 @@ msgstr "无法播放测试片段"
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "无法连接到模型服务器。"
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr ""
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -4714,8 +4734,12 @@ msgstr "步骤"
 msgid "Stop"
 msgstr "停止"
 
-#: src/components/NetworkSettings.tsx
+#: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers before applying."
 msgstr ""
 
 #: src/pages/Shell.tsx

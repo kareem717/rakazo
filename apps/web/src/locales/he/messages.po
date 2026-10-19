@@ -640,6 +640,14 @@ msgstr "מראה"
 msgid "Apply"
 msgstr "החלה"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr ""
+
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
 msgstr "גבולות אישור"
@@ -1047,6 +1055,10 @@ msgstr "בדיקת עדכונים"
 msgid "Check in."
 msgstr "לבדוק מה המצב."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "יש לבדוק את מפתח ה-API או את ההתחברות, ואז לבדוק שוב."
@@ -1440,6 +1452,10 @@ msgstr "לא ניתן להוסיף"
 msgid "Could not add MCP server"
 msgstr "לא ניתן להוסיף את שרת ה-MCP"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
 msgstr "לא ניתן לאשר את השרת הזה"
@@ -1735,6 +1751,10 @@ msgstr "לא ניתן להשמיע קטע בדיקה"
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "אין גישה לשרת המודל."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr ""
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -4714,8 +4734,12 @@ msgstr "שלבים"
 msgid "Stop"
 msgstr "עצירה"
 
-#: src/components/NetworkSettings.tsx
+#: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers before applying."
 msgstr ""
 
 #: src/pages/Shell.tsx

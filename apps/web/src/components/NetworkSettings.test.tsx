@@ -10,6 +10,8 @@ const calls = vi.hoisted(() => ({
   save: vi.fn(),
   connection: vi.fn(),
   connect: vi.fn(),
+  applyStatus: vi.fn(),
+  apply: vi.fn(),
 }));
 vi.mock("../lib/rpc", () => ({ rpc: { network: calls } }));
 vi.mock("@lingui/react/macro", () => ({
@@ -39,10 +41,18 @@ afterEach(() => vi.clearAllMocks());
 async function render(
   state: NetworkSettings = initial,
   connection: NetworkConnection = { available: false },
+  applyAvailable = false,
 ) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   calls.get.mockResolvedValue(state);
   calls.connection.mockResolvedValue(connection);
+  calls.applyStatus.mockResolvedValue({
+    available: applyAvailable,
+    phase: "idle",
+    operationId: null,
+    revision: null,
+    error: null,
+  });
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -88,6 +98,34 @@ it("saves the chosen scope and reports a pending restart", async () => {
     });
     expect(container.textContent).toContain("Restart required");
     expect(container.textContent).toContain("Stop computers and restart the deployment to apply.");
+  } finally {
+    await close();
+  }
+});
+it("applies a pending configuration and reloads only after the matching restart completes", async () => {
+  const { container, close } = await render(
+    { ...initial, restartRequired: true },
+    { available: false },
+    true,
+  );
+  try {
+    const completed = {
+      available: true,
+      phase: "succeeded",
+      operationId: "operation",
+      revision: initial.revision,
+      error: null,
+    };
+    calls.apply.mockResolvedValue({ ...completed, phase: "checking" });
+    calls.applyStatus.mockResolvedValue(completed);
+    calls.get.mockResolvedValue(initial);
+    await act(async () =>
+      Array.from(container.querySelectorAll("button"))
+        .find((node) => node.textContent === "Apply and restart")!
+        .click(),
+    );
+    expect(calls.apply).toHaveBeenCalledWith({ revision: initial.revision });
+    expect(container.textContent).not.toContain("Restart required");
   } finally {
     await close();
   }
