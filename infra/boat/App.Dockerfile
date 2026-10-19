@@ -22,6 +22,7 @@ COPY --chown=node:node infra/sandboxes/computer/rakazo-patchright-browser infra/
 COPY --chown=node:node packages/adapters/src/ /app/packages/adapters/src/
 COPY --chown=node:node apps/web/vite.config.ts /app/apps/web/vite.config.ts
 COPY --chown=node:node packages/core/src/ /app/packages/core/src/
+COPY --chown=node:node packages/core/package.json /app/packages/core/package.json
 RUN RAKAZO_ALLOW_DEV_SECRETS=1 pnpm exec tsx -e 'Promise.all([import("./apps/api/src/router.ts"), import("./packages/adapters/src/executor.ts")]).then(() => console.log("Runtime imports verified"))'
 RUN RAKAZO_ALLOW_DEV_SECRETS=1 pnpm --filter @rakazo/web build
 COPY --chown=node:node infra/sandboxes/supervisor/src/ /app/infra/sandboxes/supervisor/src/

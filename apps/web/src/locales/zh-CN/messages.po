@@ -1120,6 +1120,14 @@ msgstr ""
 msgid "Client secret"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
+msgstr ""
+
 #: src/components/ErrorBoundary.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/MessagingSettingsOverlay.tsx
@@ -1422,6 +1430,7 @@ msgstr "使用邮箱继续"
 msgid "Copied"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -2018,6 +2027,10 @@ msgstr "客户支持"
 msgid "Customize bot avatar"
 msgstr "自定义机器人头像"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "深色"
@@ -2559,6 +2572,10 @@ msgstr ""
 #. placeholder {0}: filters.dateRange.from
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
 msgstr ""
 
 #: src/pages/WindowChrome.tsx
@@ -3696,10 +3713,18 @@ msgstr "两次密码不一致"
 msgid "Past due"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "粘贴替换密钥"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3915,6 +3940,10 @@ msgstr "重建无法正常工作的电脑。"
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Recreating the computer"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
 msgstr ""
 
 #: src/App.tsx
@@ -4387,6 +4416,10 @@ msgstr "选择已连接的模型"
 msgid "Select a voice"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr ""
+
 #: src/pages/Shell.tsx
 msgid "Send"
 msgstr "发送"
@@ -4774,6 +4807,10 @@ msgstr ""
 msgid "Switching…"
 msgstr "正在切换…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "系统"
@@ -5090,6 +5127,7 @@ msgid "Unavailable"
 msgstr "不可用"
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "撤销"
 
@@ -5222,6 +5260,10 @@ msgstr ""
 
 #: src/components/NetworkSettings.tsx
 msgid "Use Tailscale"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx

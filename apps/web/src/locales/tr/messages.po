@@ -1120,6 +1120,14 @@ msgstr ""
 msgid "Client secret"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
+msgstr ""
+
 #: src/components/ErrorBoundary.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/MessagingSettingsOverlay.tsx
@@ -1422,6 +1430,7 @@ msgstr "E-posta ile devam et"
 msgid "Copied"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -2018,6 +2027,10 @@ msgstr ""
 msgid "Customize bot avatar"
 msgstr "Bot avatarını özelleştir"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "Koyu"
@@ -2559,6 +2572,10 @@ msgstr ""
 #. placeholder {0}: filters.dateRange.from
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
 msgstr ""
 
 #: src/pages/WindowChrome.tsx
@@ -3696,10 +3713,18 @@ msgstr "Parolalar eşleşmiyor"
 msgid "Past due"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "Yeni bir anahtar yapıştır"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3915,6 +3940,10 @@ msgstr "Çalışmayan bir bilgisayarı yeniden oluşturun."
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Recreating the computer"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
 msgstr ""
 
 #: src/App.tsx
@@ -4387,6 +4416,10 @@ msgstr "Bağlı bir model seçin"
 msgid "Select a voice"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr ""
+
 #: src/pages/Shell.tsx
 msgid "Send"
 msgstr "Gönder"
@@ -4774,6 +4807,10 @@ msgstr ""
 msgid "Switching…"
 msgstr "Geçiliyor…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "Sistem"
@@ -5090,6 +5127,7 @@ msgid "Unavailable"
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "Geri al"
 
@@ -5222,6 +5260,10 @@ msgstr ""
 
 #: src/components/NetworkSettings.tsx
 msgid "Use Tailscale"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx

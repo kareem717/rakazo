@@ -2,6 +2,9 @@
 import { act, StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { expect, it, vi } from "vitest";
+vi.mock("@lingui/react/macro", () => ({
+  useLingui: () => ({ t: (parts: TemplateStringsArray) => parts.join("") }),
+}));
 import { ScreenFrame } from "./ScreenFrame";
 
 it("recovers the current iframe only, including StrictMode's effect replay", async () => {

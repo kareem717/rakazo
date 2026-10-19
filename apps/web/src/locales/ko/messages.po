@@ -1120,6 +1120,14 @@ msgstr ""
 msgid "Client secret"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
+msgstr ""
+
 #: src/components/ErrorBoundary.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/MessagingSettingsOverlay.tsx
@@ -1422,6 +1430,7 @@ msgstr "이메일로 계속하기"
 msgid "Copied"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -2018,6 +2027,10 @@ msgstr "고객 지원"
 msgid "Customize bot avatar"
 msgstr "봇 아바타 맞춤설정"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "다크"
@@ -2559,6 +2572,10 @@ msgstr ""
 #. placeholder {0}: filters.dateRange.from
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
 msgstr ""
 
 #: src/pages/WindowChrome.tsx
@@ -3696,10 +3713,18 @@ msgstr "비밀번호가 일치하지 않습니다"
 msgid "Past due"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "새 API 키를 붙여넣으세요"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3915,6 +3940,10 @@ msgstr "작동하지 않는 컴퓨터를 다시 만듭니다."
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Recreating the computer"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
 msgstr ""
 
 #: src/App.tsx
@@ -4387,6 +4416,10 @@ msgstr "연결된 모델 선택"
 msgid "Select a voice"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr ""
+
 #: src/pages/Shell.tsx
 msgid "Send"
 msgstr "보내기"
@@ -4774,6 +4807,10 @@ msgstr ""
 msgid "Switching…"
 msgstr "전환 중…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "시스템"
@@ -5090,6 +5127,7 @@ msgid "Unavailable"
 msgstr "사용할 수 없음"
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "실행 취소"
 
@@ -5222,6 +5260,10 @@ msgstr ""
 
 #: src/components/NetworkSettings.tsx
 msgid "Use Tailscale"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx

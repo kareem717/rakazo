@@ -4198,6 +4198,7 @@ function SpaceShell() {
                     <DesktopKindEmptyState className="grid h-full place-items-center px-6 text-center text-sm text-muted-foreground/80" />
                   ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
                     <ScreenFrame
+                      key={active.id}
                       onReconnect={() => refreshComputerScreen(active.id, true)}
                       title={t`Bot screen preview`}
                       src={embeddedScreenUrl}
@@ -5209,6 +5210,8 @@ function SpaceShell() {
                 ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
                   <>
                     <ScreenFrame
+                      key={computerBot.id}
+                      interactive={hasControl && !recordingSkill}
                       onReconnect={() => refreshComputerScreen(computerBot.id, true)}
                       title={t`Bot screen`}
                       src={embeddedScreenUrl}
