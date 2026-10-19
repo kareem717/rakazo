@@ -3,6 +3,7 @@ import { randomUUID, timingSafeEqual } from "node:crypto";
 import { lookup } from "node:dns/promises";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import http from "node:http";
+import https from "node:https";
 import { isIP } from "node:net";
 import { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
@@ -178,7 +179,7 @@ async function bootstrapState(id, operation) {
   ).trim();
 }
 
-async function runGuardedBootstrap(id) {
+export async function runGuardedBootstrap(id) {
   const body = JSON.stringify({
     command: "sudo -n bash /home/user/.rakazo-network/bootstrap.sh",
     timeoutSeconds: 600,

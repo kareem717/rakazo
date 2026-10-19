@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import test from "node:test";
+import { EventEmitter } from "node:events";
+import https from "node:https";
+import test, { mock } from "node:test";
 import {
   assertModeTransition,
   clientConfig,
@@ -9,6 +11,7 @@ import {
   gatewayErrorStatus,
   protectedCreate,
   retryRead,
+  runGuardedBootstrap,
   shellQuote,
 } from "./controller.mjs";
 
@@ -213,4 +216,38 @@ test("bootstrap generation preserves mode and script as literal configuration", 
     execFileSync("bash", ["-c", script], { encoding: "utf8" }),
     "value'`printf expanded`",
   );
+});
+
+test("guarded bootstrap submits one command and reads its response without replay", async () => {
+  let calls = 0;
+  let payload;
+  const stub = mock.method(https, "request", (url, options, onResponse) => {
+    calls++;
+    assert.equal(new URL(url).pathname, "/api/v1/sandboxes/fake-computer/commands");
+    assert.equal(options.method, "POST");
+    const request = new EventEmitter();
+    request.destroy = (error) => request.emit("error", error);
+    request.end = (body) => {
+      payload = JSON.parse(body);
+      queueMicrotask(() => {
+        const response = new EventEmitter();
+        response.statusCode = 200;
+        onResponse(response);
+        response.emit("data", Buffer.from(JSON.stringify({ exitCode: 0 })));
+        response.emit("end");
+        request.emit("close");
+      });
+    };
+    return request;
+  });
+  try {
+    assert.deepEqual(await runGuardedBootstrap("fake-computer"), { exitCode: 0 });
+    assert.equal(calls, 1);
+    assert.deepEqual(payload, {
+      command: "sudo -n bash /home/user/.rakazo-network/bootstrap.sh",
+      timeoutSeconds: 600,
+    });
+  } finally {
+    stub.mock.restore();
+  }
 });
