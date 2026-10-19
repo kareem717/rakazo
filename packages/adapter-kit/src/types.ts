@@ -934,6 +934,8 @@ export type BrowserActStep =
       text: string;
       /** Refuse the step unless the page is on this origin when it is applied. */
       origin?: string;
+      /** Backend-only marker allowing a generated numeric MFA code. */
+      secretField?: "mfa";
     };
 
 export interface BrowserActRequest {

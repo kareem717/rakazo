@@ -332,6 +332,10 @@ msgstr "계정 ID"
 msgid "Account label"
 msgstr ""
 
+#: src/pages/shell/bot-credentials.tsx
+msgid "Account label (optional)"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Accounts"
 msgstr ""
@@ -615,6 +619,7 @@ msgstr "API가 다시 작동하지만 업데이트가 완료되지 않았습니�
 #: src/components/AskCard.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/lib/localized-provider-hint.ts
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -625,6 +630,10 @@ msgstr "API 키"
 #: src/pages/PluginsOverlay.tsx
 msgid "API key header"
 msgstr "API 키 헤더"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "API URL"
+msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
@@ -796,6 +805,11 @@ msgstr "백업 모델 순서"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Backup models saved."
 msgstr "백업 모델을 저장했습니다."
+
+#. placeholder {0}: bot.name
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Bank for {0}"
+msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Base URL"
@@ -1284,6 +1298,7 @@ msgid "Confirmations"
 msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1335,6 +1350,7 @@ msgstr "연결되었습니다. 다음 메시지부터 이 도구를 사용할 �
 
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1590,6 +1606,10 @@ msgstr "백업 모델을 불러오지 못했습니다."
 
 #: src/pages/BillingSettingsPanel.tsx
 msgid "Could not load billing"
+msgstr ""
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Could not load bots"
 msgstr ""
 
 #: src/pages/IntegrationSetup.tsx
@@ -2237,6 +2257,11 @@ msgstr "Bot 정보 수정"
 msgid "Email"
 msgstr "이메일"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "Email (optional)"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Email is not allowed to register"
 msgstr "이 이메일은 가입이 허용되지 않습니다"
@@ -2258,7 +2283,7 @@ msgid "Enter a password"
 msgstr "비밀번호를 입력하세요"
 
 #: src/pages/shell/bot-credentials.tsx
-msgid "Enter a username and password"
+msgid "Enter a username or email, a password, and a valid MFA secret if provided"
 msgstr ""
 
 #: src/lib/user-error.ts
@@ -3054,6 +3079,11 @@ msgstr "{peer}에게 메시지 보냄"
 msgid "Messaging"
 msgstr "메시징"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "MFA secret (optional)"
+msgstr ""
+
 #: src/lib/call-session.ts
 msgid "Microphone failed"
 msgstr "마이크를 사용할 수 없습니다."
@@ -3736,10 +3766,12 @@ msgstr "답변을 자동으로 읽기"
 msgid "Reasoning effort"
 msgstr "추론 강도"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall and write"
 msgstr ""
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
 msgstr ""
@@ -4344,6 +4376,10 @@ msgstr "모양"
 msgid "Shared"
 msgstr "함께 사용"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared bank"
+msgstr ""
+
 #: src/pages/shell/dialogs.tsx
 msgid "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all reply in the same thread."
 msgstr ""
@@ -4351,6 +4387,10 @@ msgstr ""
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared documents"
 msgstr "공유 문서"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared memory"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared skills"

@@ -103,7 +103,13 @@ export async function browserActFromTool(
         ? await options.resolveSecretFill(step)
         : { error: "Saved logins are unavailable here." };
       if ("error" in resolved) return { ok: false, completed: 0, error: resolved.error };
-      actions.push({ kind: "fill", ref: step.ref, text: resolved.text, origin: resolved.origin });
+      actions.push({
+        kind: "fill",
+        ref: step.ref,
+        text: resolved.text,
+        origin: resolved.origin,
+        ...(step.field === "mfa" ? { secretField: "mfa" as const } : {}),
+      });
     }
     const result = await browser.act(computer, { actions, signal: context.signal }, context);
     return redactConnectorPayload(formatBrowserResult(result), options.redactions?.() ?? []);
@@ -158,8 +164,8 @@ export function parseBrowserActions(value: unknown): BrowserActInput[] {
       const secret = String(action.secret ?? "").trim();
       const field = action.field;
       if (!secret) throw new Error("browser_act fill_secret requires secret");
-      if (field !== "username" && field !== "password") {
-        throw new Error("browser_act fill_secret field must be username or password");
+      if (field !== "username" && field !== "password" && field !== "email" && field !== "mfa") {
+        throw new Error("browser_act fill_secret field must be username, email, password, or mfa");
       }
       return { kind, ref, secret, field };
     }

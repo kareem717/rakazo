@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { AGENT_SECRET_NAME_PATTERN } from "./agent-secret-name.js";
 import { Id } from "./ids.js";
+import { parseTotpSecret } from "./totp.js";
 
 // An opaque reference handle: matched exactly by secret_request/forget_secret,
 // displayed in list_secrets. Never interpolated into shells, env, or URLs, so
@@ -35,7 +36,11 @@ export const BotSecretAuth = z.discriminatedUnion("type", [
   }),
   // A website sign-in. The username and password are both protected; the backend only types
   // them into pages on the saved origin and never sends them as HTTP credentials.
-  z.object({ type: z.literal("login") }),
+  z.object({
+    type: z.literal("login"),
+    label: z.string().trim().min(1).max(120).optional(),
+    hasMfa: z.boolean().optional(),
+  }),
   // A value exported to this bot's shell commands as an environment variable. It has no site.
   z.object({ type: z.literal("command") }),
 ]);
@@ -244,11 +249,28 @@ export function botSecretDestinationSchema(options?: { allowPrivateHttpOrigin?: 
 export const BotSecretDestination = botSecretDestinationSchema();
 export type BotSecretDestination = z.infer<typeof BotSecretDestination>;
 
-export const LoginSecretValue = z.object({
-  username: z.string().min(1).max(512),
-  password: z.string().min(1).max(4096),
-});
+export const LoginSecretValue = z
+  .object({
+    username: z.string().min(1).max(512).optional(),
+    email: z.email().max(512).optional(),
+    password: z.string().min(1).max(4096),
+    mfaSecret: z
+      .string()
+      .min(1)
+      .max(2048)
+      .refine((value) => {
+        try {
+          parseTotpSecret(value);
+          return true;
+        } catch {
+          return false;
+        }
+      }, "Invalid MFA secret. Use a Base32 setup key or a TOTP otpauth URI.")
+      .optional(),
+  })
+  .refine((value) => Boolean(value.username || value.email), "Enter a username or email");
 export type LoginSecretValue = z.infer<typeof LoginSecretValue>;
+export type LoginSecretDetails = Pick<LoginSecretValue, "email" | "mfaSecret">;
 
 export function encodeLoginSecret(value: LoginSecretValue): string {
   return JSON.stringify(LoginSecretValue.parse(value));

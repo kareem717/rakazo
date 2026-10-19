@@ -4,6 +4,7 @@ import type {
   AgentSkillCatalogEntry,
   Connection,
   ConnectionCatalogItem,
+  LoginSecretDetails,
   MessageBlock,
   MessageReaction,
   Routine,
@@ -1803,7 +1804,12 @@ function Thread({ sessionEpoch }: { sessionEpoch: number }) {
   }
 
   const answerMessage = useCallback(
-    async (message: MobileMessage, answer: string, username?: string) => {
+    async (
+      message: MobileMessage,
+      answer: string,
+      username?: string,
+      details?: LoginSecretDetails,
+    ) => {
       const targetBotId = botId;
       const targetGroupId = groupId;
       if (readOnly || (!targetBotId && !targetGroupId) || !message.runId) return;
@@ -1813,6 +1819,8 @@ function Thread({ sessionEpoch }: { sessionEpoch: number }) {
         messageId: message.id,
         answer,
         ...(username ? { username } : {}),
+        ...(details?.email ? { email: details.email } : {}),
+        ...(details?.mfaSecret ? { mfaSecret: details.mfaSecret } : {}),
       });
       if (isCurrentTarget(targetBotId, targetGroupId)) await refresh();
     },
@@ -2184,8 +2192,8 @@ function Thread({ sessionEpoch }: { sessionEpoch: number }) {
       select: (text) => rowActionsRef.current.select(text),
       speak: (message) => rowActionsRef.current.speak(message),
       react: (message, reaction) => rowActionsRef.current.react(message, reaction),
-      answer: (message, answer, username) =>
-        rowActionsRef.current.answer(message, answer, username),
+      answer: (message, answer, username, details) =>
+        rowActionsRef.current.answer(message, answer, username, details),
       openBot: (id, name) => rowActionsRef.current.openBot(id, name),
       openComputer: (id, name) => rowActionsRef.current.openComputer(id, name),
       previewMarkdown: (target) => rowActionsRef.current.previewMarkdown(target),
@@ -2932,7 +2940,12 @@ type MessageRowActions = {
   select: (text: string) => void;
   speak: (message: MobileMessage) => void;
   react: (message: MobileMessage, reaction: MessageReaction) => void;
-  answer: (message: MobileMessage, answer: string, username?: string) => Promise<void>;
+  answer: (
+    message: MobileMessage,
+    answer: string,
+    username?: string,
+    details?: LoginSecretDetails,
+  ) => Promise<void>;
   openBot: (id: string, name: string) => void;
   openComputer: (id: string, name: string) => void;
   previewMarkdown: (target: MarkdownArtifactPreviewTarget) => void;
@@ -3313,7 +3326,12 @@ const MessageBubble = memo(function MessageBubble({
   message: MobileMessage;
   members?: MobileSnapshot["members"];
   canAnswer: boolean;
-  onAnswer: (message: MobileMessage, answer: string, username?: string) => Promise<void>;
+  onAnswer: (
+    message: MobileMessage,
+    answer: string,
+    username?: string,
+    details?: LoginSecretDetails,
+  ) => Promise<void>;
   onOpenBot: (botId: string, name: string) => void;
   onOpenComputer: (botId: string, name: string) => void;
   onChoiceDismissed?: (question: string) => void;
@@ -3362,7 +3380,7 @@ const MessageBubble = memo(function MessageBubble({
           ask={ask}
           actionProps={actionProps}
           canAnswer={canAnswer}
-          onAnswer={(answer, username) => onAnswer(message, answer, username)}
+          onAnswer={(answer, username, details) => onAnswer(message, answer, username, details)}
         />
         {appConnectBlocks.map((block, index) => (
           <AppConnectCard
@@ -4133,20 +4151,23 @@ function AskBlock({
 }: {
   ask: Extract<MobileMessage["blocks"][number], { kind: "ask" }>;
   canAnswer: boolean;
-  onAnswer: (answer: string, username?: string) => Promise<void>;
+  onAnswer: (answer: string, username?: string, details?: LoginSecretDetails) => Promise<void>;
   actionProps: MessageActionProps;
 }) {
   const tokens = useMobileTokens();
   const { t } = useI18n();
   const [answer, setAnswer] = useState("");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [mfaSecret, setMfaSecret] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const answered = ask.status === "answered";
   const secretInput = isSecretAskBlock(ask);
   const loginInput = secretInput && ask.credential?.auth.type === "login";
   const incomplete =
-    (secretInput ? answer.length === 0 : !answer.trim()) || (loginInput && !username.trim());
+    (secretInput ? answer.length === 0 : !answer.trim()) ||
+    (loginInput && !username.trim() && !email.trim());
   const secretLabel =
     loginInput || ask.purpose === "password"
       ? t("Password")
@@ -4159,12 +4180,23 @@ function AskBlock({
     if (submitting) return;
     if (incomplete) return;
     const submitValue = secretInput ? answer : answer.trim();
-    const submitUsername = loginInput ? username.trim() : undefined;
+    const submitUsername = loginInput ? username.trim() || undefined : undefined;
+    const details = loginInput
+      ? {
+          ...(email.trim() ? { email: email.trim() } : {}),
+          ...(mfaSecret.trim() ? { mfaSecret: mfaSecret.trim() } : {}),
+        }
+      : undefined;
     setSubmitting(true);
     setError(null);
-    if (secretInput) setAnswer("");
+    if (secretInput) {
+      setAnswer("");
+      setUsername("");
+      setEmail("");
+      setMfaSecret("");
+    }
     try {
-      await onAnswer(submitValue, submitUsername);
+      await onAnswer(submitValue, submitUsername, details);
     } catch (cause) {
       setError(
         secretInput ? t("Could not send answer") : errorText(cause, t("Could not send answer")),
@@ -4238,6 +4270,42 @@ function AskBlock({
             onSubmitEditing={() => void submit()}
             style={[askInputStyles.field, { borderColor: tokens.border, color: tokens.foreground }]}
           />
+          {loginInput ? (
+            <>
+              <TextInput
+                accessibilityLabel={t("Email (optional)")}
+                placeholder={t("Email (optional)")}
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!submitting}
+                placeholderTextColor={tokens.mutedForeground}
+                style={[
+                  askInputStyles.field,
+                  { borderColor: tokens.border, color: tokens.foreground },
+                ]}
+              />
+              <TextInput
+                accessibilityLabel={t("MFA secret (optional)")}
+                placeholder={t("MFA secret (optional)")}
+                value={mfaSecret}
+                onChangeText={setMfaSecret}
+                secureTextEntry
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!submitting}
+                placeholderTextColor={tokens.mutedForeground}
+                style={[
+                  askInputStyles.field,
+                  { borderColor: tokens.border, color: tokens.foreground },
+                ]}
+              />
+            </>
+          ) : null}
           <NativeActionButton
             label={submitLabel}
             disabled={incomplete}

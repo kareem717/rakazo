@@ -332,6 +332,10 @@ msgstr "ID de compte"
 msgid "Account label"
 msgstr "Libellé du compte"
 
+#: src/pages/shell/bot-credentials.tsx
+msgid "Account label (optional)"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Accounts"
 msgstr "Comptes"
@@ -615,6 +619,7 @@ msgstr "L'API est de retour, mais la mise à jour n'est pas terminée. Vérifiez
 #: src/components/AskCard.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/lib/localized-provider-hint.ts
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -625,6 +630,10 @@ msgstr "Clé API"
 #: src/pages/PluginsOverlay.tsx
 msgid "API key header"
 msgstr "En-tête de clé API"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "API URL"
+msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
@@ -796,6 +805,11 @@ msgstr "Ordre des modèles de secours"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Backup models saved."
 msgstr "Modèles de secours enregistrés."
+
+#. placeholder {0}: bot.name
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Bank for {0}"
+msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Base URL"
@@ -1284,6 +1298,7 @@ msgid "Confirmations"
 msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1335,6 +1350,7 @@ msgstr "Connecté. Ses outils sont disponibles dès votre prochain message."
 
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1590,6 +1606,10 @@ msgstr "Impossible de charger les modèles de secours."
 
 #: src/pages/BillingSettingsPanel.tsx
 msgid "Could not load billing"
+msgstr ""
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Could not load bots"
 msgstr ""
 
 #: src/pages/IntegrationSetup.tsx
@@ -2237,6 +2257,11 @@ msgstr "Modifier le profil"
 msgid "Email"
 msgstr "E-mail"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "Email (optional)"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Email is not allowed to register"
 msgstr "Cette adresse e-mail ne peut pas s’inscrire"
@@ -2258,7 +2283,7 @@ msgid "Enter a password"
 msgstr "Saisissez un mot de passe"
 
 #: src/pages/shell/bot-credentials.tsx
-msgid "Enter a username and password"
+msgid "Enter a username or email, a password, and a valid MFA secret if provided"
 msgstr ""
 
 #: src/lib/user-error.ts
@@ -3054,6 +3079,11 @@ msgstr "A contacté {peer}"
 msgid "Messaging"
 msgstr "Messagerie"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "MFA secret (optional)"
+msgstr ""
+
 #: src/lib/call-session.ts
 msgid "Microphone failed"
 msgstr "Le microphone a échoué"
@@ -3736,10 +3766,12 @@ msgstr "Lire les réponses à voix haute"
 msgid "Reasoning effort"
 msgstr "Effort de raisonnement"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall and write"
 msgstr "Rappel et écriture"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
 msgstr "Rappel uniquement"
@@ -4344,6 +4376,10 @@ msgstr "Forme"
 msgid "Shared"
 msgstr "Partagé"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared bank"
+msgstr ""
+
 #: src/pages/shell/dialogs.tsx
 msgid "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all reply in the same thread."
 msgstr "Conversation partagée avec {GROUP_MEMBER_MIN} à {GROUP_MEMBER_MAX} bots. Ils répondent tous dans le même fil."
@@ -4351,6 +4387,10 @@ msgstr "Conversation partagée avec {GROUP_MEMBER_MIN} à {GROUP_MEMBER_MAX} bot
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared documents"
 msgstr "Documents partagés"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared memory"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared skills"

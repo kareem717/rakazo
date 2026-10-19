@@ -151,10 +151,13 @@ export function createRunSecretWriter(secretStore: SecretStore): RunSecretWriter
           });
         if (
           (ask.credential && run.userId !== input.answeredByUserId) ||
-          (ask.credential?.auth.type === "login") !== Boolean(input.username?.trim()) ||
+          (ask.credential?.auth.type === "login") !==
+            Boolean(input.username?.trim() || input.email?.trim() || input.mfaSecret?.trim()) ||
           (ask.credential?.auth.type === "login" &&
             !LoginSecretValue.safeParse({
-              username: input.username?.trim(),
+              username: input.username?.trim() || undefined,
+              email: input.email?.trim() || undefined,
+              mfaSecret: input.mfaSecret?.trim() || undefined,
               password: input.answer,
             }).success)
         )
@@ -165,7 +168,12 @@ export function createRunSecretWriter(secretStore: SecretStore): RunSecretWriter
           });
         const plaintext =
           ask.credential?.auth.type === "login"
-            ? encodeLoginSecret({ username: input.username?.trim() ?? "", password: input.answer })
+            ? encodeLoginSecret({
+                username: input.username?.trim() || undefined,
+                email: input.email?.trim() || undefined,
+                password: input.answer,
+                mfaSecret: input.mfaSecret?.trim() || undefined,
+              })
             : input.answer;
         const scope = { userId: run.userId, spaceId: input.spaceId, botId: run.botId };
         const prepared = ask.credential

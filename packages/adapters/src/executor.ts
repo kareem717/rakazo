@@ -8532,21 +8532,24 @@ function secretGuidance(disabled?: ReadonlySet<string>): string[] {
   const clauses: string[] = [];
   if (builtinOffered(disabled, "request_secret")) {
     const fill = builtinOffered(disabled, "browser_act")
-      ? "; fill it with browser_act fill_secret, which only works on the saved site"
+      ? "; fill it with browser_act fill_secret, which only works on the saved site (fields: username, email, password, mfa for a current one-time code)"
       : "";
     clauses.push(
       `Use request_secret with a credential destination to save reusable API credentials, or with auth type login when the user wants a website login saved${fill}. When your shell commands need a secret value, use request_secret with auth type command; it is exported as the environment variable that request_secret and list_secrets report.`,
     );
   }
   const uses: string[] = [];
-  if (builtinOffered(disabled, "list_secrets")) uses.push("list_secrets to discover saved names");
+  if (builtinOffered(disabled, "list_secrets"))
+    uses.push(
+      "list_secrets to choose among named accounts by site and account label; multiple accounts can share a site, and ambiguous choices require asking the user",
+    );
   if (builtinOffered(disabled, "secret_request")) {
     uses.push("secret_request to make authenticated requests without reading credentials");
   }
   if (builtinOffered(disabled, "forget_secret")) uses.push("forget_secret to revoke access");
   if (uses.length === 3) {
     clauses.push(
-      "Use list_secrets to discover saved names, secret_request to make authenticated requests without reading credentials, and forget_secret to revoke access.",
+      "Use list_secrets to choose among named accounts by site and account label; multiple accounts can share a site, and ambiguous choices require asking the user, secret_request to make authenticated requests without reading credentials, and forget_secret to revoke access.",
     );
   } else if (uses.length > 0) {
     clauses.push(`Use ${englishList(uses)}.`);

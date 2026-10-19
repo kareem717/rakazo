@@ -486,7 +486,7 @@ EVAL_HELPERS = r"""
       el.click();
       return { url: location.href, title: (document.title || "").slice(0, 200) };
     },
-    fill(ref, value, origin) {
+    fill(ref, value, origin, secretField) {
       // Checked in the same evaluation as the fill, so a navigation cannot slip in between.
       // Private-LAN plain HTTP is not a login target, even when the page origin matches.
       if (origin) {
@@ -503,7 +503,7 @@ EVAL_HELPERS = r"""
       if (!el) throw new Error(`Unknown element ref: ${ref}`);
       if (el.readOnly) throw new Error("Element is read-only");
       // A username is an input. Textareas, search boxes, and editable page content stay out.
-      if (origin && !(el instanceof HTMLInputElement && ["text", "email", "password", "tel"].includes(el.type))) {
+      if (origin && !(el instanceof HTMLInputElement && (["text", "email", "password", "tel"].includes(el.type) || (el.type === "number" && secretField === "mfa" && /^\d{6,8}$/.test(value))))) {
         throw new Error("A saved login can only be typed into a text, email, password, or telephone field.");
       }
       el.focus();
@@ -707,6 +707,10 @@ def act(client: CdpClient, session_id: str, actions: list[dict[str, Any]]) -> di
             step["kind"] != "fill" or not isinstance(step["origin"], str)
         ):
             raise RuntimeError("An origin applies only to fill")
+        if step.get("secretField") is not None and (
+            step.get("secretField") != "mfa" or step["kind"] != "fill" or not step.get("origin")
+        ):
+            raise RuntimeError("An MFA marker applies only to protected fill")
     ensure_helpers(client, session_id)
     completed = 0
     uncertain = False
@@ -727,6 +731,8 @@ def act(client: CdpClient, session_id: str, actions: list[dict[str, Any]]) -> di
                 arguments += ", " + json.dumps(step["text"])
             if step.get("origin"):
                 arguments += ", " + json.dumps(step["origin"])
+                if step.get("secretField"):
+                    arguments += ", " + json.dumps(step["secretField"])
             uncertain = True
             data = eval_json(client, session_id, f"window.__rakazoPageBrowser.{kind}({arguments})")
             if not isinstance(data, dict):

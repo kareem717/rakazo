@@ -97,3 +97,53 @@ async function expectNoLeakedInputValue(page: Page, value: string) {
   }, value);
   expect(leaked).toBe(false);
 }
+
+test("named accounts on one site support an optional MFA setup key", async ({ page }, testInfo) => {
+  const stamp = Date.now();
+  await signup(page, `login-accounts-${stamp}@rakazo.test`, "password12", "Login accounts");
+  await completeOnboarding(page);
+  const botName = `Login accounts ${stamp}`;
+  const botId = await createNamedBot(page, botName);
+  await page.locator("main").getByRole("button", { name: botName, exact: true }).click();
+  const settings = page.getByTestId("bot-settings");
+  await settings.getByTestId("bot-settings-advanced").evaluate((element) => {
+    (element as HTMLDetailsElement).open = true;
+  });
+  const credentials = settings.getByTestId("bot-credentials");
+  for (const name of ["work", "personal"]) {
+    await credentials.getByTestId("credential-add").click();
+    const form = credentials.getByTestId("credential-add-form");
+    await form.getByTestId("credential-name").fill(`portal-${name}`);
+    await form.getByTestId("credential-origin").fill("https://portal.example.test");
+    await form.getByTestId("credential-auth-type").selectOption("login");
+    await form.getByLabel("Account label (optional)").fill(name);
+    await form.getByTestId("credential-email").fill(`${name}@example.test`);
+    await form.getByTestId("credential-value").fill(SENTINEL);
+    await expect(form.getByTestId("credential-mfa")).toHaveAttribute("type", "password");
+    if (name === "work") await form.getByTestId("credential-mfa").fill("JBSWY3DPEHPK3PXP");
+    await form.getByTestId("credential-add-save").click();
+    await expect(form).toHaveCount(0);
+  }
+  const rows = credentials.getByTestId("bot-credential-row");
+  await expect(rows).toHaveCount(2);
+  await expect(rows.filter({ hasText: "portal-work" })).toContainText("MFA");
+  await expect(rows.filter({ hasText: "portal-personal" })).not.toContainText("MFA");
+  const listed = await rpc<Array<Record<string, unknown>>>(page, "botSecrets/list", { botId });
+  expect(listed).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        name: "portal-work",
+        auth: { type: "login", label: "work", hasMfa: true },
+      }),
+      expect.objectContaining({
+        name: "portal-personal",
+        auth: { type: "login", label: "personal" },
+      }),
+    ]),
+  );
+  for (const protectedValue of [SENTINEL, "JBSWY3DPEHPK3PXP", "work@example.test"]) {
+    expect(JSON.stringify(listed)).not.toContain(protectedValue);
+    await expectNoLeakedInputValue(page, protectedValue);
+  }
+  await captureScreenshot(page, testInfo, "bot-credentials-multiple-accounts-mfa");
+});

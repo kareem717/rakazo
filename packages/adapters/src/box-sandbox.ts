@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import {
@@ -18,6 +19,8 @@ import type {
   ComputerObservation,
   ComputerRef,
   ControlLeaseRef,
+  PageBrowserCommand,
+  PageBrowserResult,
   PortableFile,
   ProcessEvent,
   SandboxProvider,
@@ -330,6 +333,61 @@ export class BoxSandboxProvider implements SandboxProvider {
   }
   async act(computer: ComputerRef, request: ComputerActionRequest, context: AdapterContext) {
     return this.desktops.act(computer, request, context);
+  }
+
+  async pageBrowser(
+    computer: ComputerRef,
+    request: PageBrowserCommand,
+    context: AdapterContext,
+  ): Promise<PageBrowserResult> {
+    const display = await this.desktops.browserDisplay(computer, context);
+    const id = this.id(computer);
+    const directory = `/tmp/rakazo-page-${randomUUID()}`;
+    const setup = await this.runCommand(
+      id,
+      `umask 077; mkdir -- ${shellQuote(directory)}`,
+      undefined,
+      10_000,
+      context.signal,
+    );
+    if (setup.exitCode !== 0) throw new Error("Could not prepare protected browser input");
+    try {
+      // Protected values travel in a private file upload, never in shell arguments or history.
+      const helper = await readFile(
+        new URL("../../../infra/sandboxes/computer/rakazo-page-browser", import.meta.url),
+      );
+      for (const [name, content] of [
+        ["helper.py", helper],
+        ["args.json", Buffer.from(`${JSON.stringify(request)}\n`)],
+      ] as const) {
+        await this.client.writeFile(
+          {
+            boxId: id,
+            fileWriteRequest: {
+              path: `${directory}/${name}`,
+              content: content.toString("base64"),
+              encoding: "base64",
+            },
+          },
+          { signal: context.signal },
+        );
+      }
+      const command = `DISPLAY=${shellQuote(display)} RAKAZO_BROWSER_ARGS_STDIN=1 python3 ${shellQuote(`${directory}/helper.py`)} ${shellQuote(request.command)} < ${shellQuote(`${directory}/args.json`)}`;
+      const result = await this.runCommand(id, command, undefined, 30_000, context.signal);
+      if (result.timedOut || result.exitCode !== 0)
+        throw new Error("Page browser operation failed");
+      try {
+        const payload = JSON.parse(result.stdout) as PageBrowserResult;
+        if (typeof payload.ok !== "boolean") throw new Error();
+        return payload;
+      } catch {
+        throw new Error("Page browser returned an invalid response");
+      }
+    } finally {
+      await this.runCommand(id, `rm -rf -- ${shellQuote(directory)}`, undefined, 10_000).catch(
+        () => undefined,
+      );
+    }
   }
 
   async listFiles(

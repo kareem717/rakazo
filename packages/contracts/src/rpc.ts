@@ -468,6 +468,8 @@ export const appContract = {
           clientNonce: z.string().min(1).max(200).optional(),
           /** Only for a login card; `answer` carries its password. */
           username: z.string().min(1).max(512).optional(),
+          email: z.email().max(512).optional(),
+          mfaSecret: z.string().min(1).max(2048).optional(),
         }),
       )
       .output(z.object({ ok: z.literal(true) })),

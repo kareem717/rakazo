@@ -2,7 +2,7 @@
 
 Overlay for the images-based self-hosted deployment. Rakazo uses its native Box adapter, with a local controller that pins computers to a dedicated credential-free Boat environment and preserves create idempotency. Browser traffic uses a SOCKS proxy over SSH to a Tailscale peer. Shell commands, Docker, model calls, and snapshots retain normal networking.
 
-Build `App.Dockerfile` with the repository root as its build context and use that image for the application services. It includes the screen wake fix, large workspace uploads, and server-side private viewer authentication. Provider cookies stay inside the screen proxy; the app origin never receives them.
+Build `App.Dockerfile` with the repository root as its build context and use that image for the application services. It includes the screen wake fix, large workspace uploads, and server-side private viewer authentication. Provider cookies stay inside the screen proxy; the app origin never receives them. The image also includes protected browser fills on Boat, named website accounts, and optional TOTP MFA. Runtime imports are checked during the build to catch shared-package version mismatches.
 
 Copy these files into `boat-network/` alongside the images compose file, and save `compose.boat.yml` as `docker-compose.boat.yml`. Start Compose with both files. Set `SANDBOX_PROVIDER=box` and `BOX_API_URL=http://127.0.0.1:8788/api/box/v1`. Set `BOX_API_KEY` to the same scoped runtime key saved in `boat-network/state/boat-key`.
 

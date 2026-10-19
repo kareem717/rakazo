@@ -83,6 +83,11 @@ export class LinuxDesktop {
     return { env, key, layout, token: match[2]! };
   }
 
+  /** Resolve this execution's assigned browser display, using the same lease as screen tools. */
+  async browserDisplay(computer: ComputerRef, context: AdapterContext): Promise<string> {
+    return (await this.ensure(computer, context)).layout.display;
+  }
+
   async connectScreen(
     computer: ComputerRef,
     request: ScreenRequest,

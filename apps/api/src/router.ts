@@ -2614,6 +2614,8 @@ export function createRouter(deps: RouterDeps) {
           answer: input.answer,
           clientNonce: input.clientNonce,
           username: input.username,
+          email: input.email,
+          mfaSecret: input.mfaSecret,
         });
         if (!answered) {
           throw new ORPCError("CONFLICT", {

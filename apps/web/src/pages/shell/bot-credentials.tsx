@@ -17,8 +17,21 @@ type CredentialAuthType = ReadableCredentialAuth["type"];
 const fieldLabelClass = "mt-3 block text-[13px] text-muted-foreground";
 
 /** The stored value: a website login is saved as one encoded username and password pair. */
-function credentialPlaintext(type: CredentialAuthType, username: string, value: string) {
-  return type === "login" ? encodeLoginSecret({ username, password: value }) : value;
+function credentialPlaintext(
+  type: CredentialAuthType,
+  username: string,
+  value: string,
+  email?: string,
+  mfaSecret?: string,
+) {
+  return type === "login"
+    ? encodeLoginSecret({
+        ...(username ? { username } : {}),
+        password: value,
+        ...(email ? { email } : {}),
+        ...(mfaSecret ? { mfaSecret } : {}),
+      })
+    : value;
 }
 
 /** A command variable has no site, so its destination carries no origin. */
@@ -43,6 +56,9 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
   const [confirmingRemove, setConfirmingRemove] = useState<string | null>(null);
   // Protected fields: held only in component state and cleared on every submit or cancel.
   const [loginUsername, setLoginUsername] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [mfaSecret, setMfaSecret] = useState("");
+  const [accountLabel, setAccountLabel] = useState("");
   const [value, setValue] = useState("");
 
   useEffect(() => {
@@ -76,6 +92,8 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
   function clearProtectedFields() {
     setValue("");
     setLoginUsername("");
+    setLoginEmail("");
+    setMfaSecret("");
   }
 
   function authLabel(auth: ReadableCredentialAuth) {
@@ -95,7 +113,8 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
   function newAuth(): ReadableCredentialAuth {
     if (authType === "header") return { type: "header", name: headerName.trim() };
     if (authType === "basic") return { type: "basic", username: basicUsername.trim() };
-    if (authType === "login") return { type: "login" };
+    if (authType === "login")
+      return { type: "login", ...(accountLabel.trim() ? { label: accountLabel.trim() } : {}) };
     if (authType === "command") return { type: "command" };
     return { type: "bearer" };
   }
@@ -106,14 +125,16 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
     auth: ReadableCredentialAuth;
   }) {
     const username = loginUsername.trim();
+    const email = loginEmail.trim();
+    const mfa = mfaSecret.trim();
     const secretValue = value;
     clearProtectedFields();
     setError(null);
     let plaintext: string;
     try {
-      plaintext = credentialPlaintext(destination.auth.type, username, secretValue);
+      plaintext = credentialPlaintext(destination.auth.type, username, secretValue, email, mfa);
     } catch {
-      setError(t`Enter a username and password`);
+      setError(t`Enter a username or email, a password, and a valid MFA secret if provided`);
       return false;
     }
     setBusy(true);
@@ -142,6 +163,7 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
     setAuthType("bearer");
     setHeaderName("");
     setBasicUsername("");
+    setAccountLabel("");
   }
 
   async function submitReplace(secret: BotSecretMetadata) {
@@ -198,11 +220,41 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
           className="mt-1.5"
         />
       </label>
+      {type === "login" ? (
+        <>
+          <label htmlFor={`${ids}-${testIdPrefix}-email`} className={fieldLabelClass}>
+            <Trans>Email (optional)</Trans>
+            <Input
+              id={`${ids}-${testIdPrefix}-email`}
+              data-testid={`${testIdPrefix}-email`}
+              type="email"
+              autoComplete="off"
+              spellCheck={false}
+              value={loginEmail}
+              onChange={(event) => setLoginEmail(event.target.value)}
+              className="mt-1.5"
+            />
+          </label>
+          <label htmlFor={`${ids}-${testIdPrefix}-mfa`} className={fieldLabelClass}>
+            <Trans>MFA secret (optional)</Trans>
+            <Input
+              id={`${ids}-${testIdPrefix}-mfa`}
+              data-testid={`${testIdPrefix}-mfa`}
+              type="password"
+              autoComplete="new-password"
+              spellCheck={false}
+              value={mfaSecret}
+              onChange={(event) => setMfaSecret(event.target.value)}
+              className="mt-1.5"
+            />
+          </label>
+        </>
+      ) : null}
     </>
   );
 
   const valueReady = (type: CredentialAuthType) =>
-    value.length > 0 && (type !== "login" || loginUsername.trim().length > 0);
+    value.length > 0 && (type !== "login" || Boolean(loginUsername.trim() || loginEmail.trim()));
 
   const nameValid = BotSecretName.safeParse(name.trim()).success;
   // Shown live while a command variable is named, so a reserved name is caught before saving.
@@ -272,6 +324,10 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
                 ) : (
                   <div className="text-[12px] text-muted-foreground/70">
                     {authLabel(readableAuth)}
+                    {readableAuth.type === "login" && readableAuth.label
+                      ? ` · ${readableAuth.label}`
+                      : null}
+                    {readableAuth.type === "login" && readableAuth.hasMfa ? " · MFA" : null}
                     {readableAuth.type === "command"
                       ? ` · $${commandVariableName(secret.name)}`
                       : null}{" "}
@@ -402,7 +458,7 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
               maxLength={64}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              placeholder="github"
+              placeholder="github-work"
               className="mt-1.5"
             />
             <span className="mt-1 block text-[12px] text-muted-foreground/70">
@@ -482,6 +538,18 @@ export function BotCredentialsSection({ botId }: { botId: string }) {
                 spellCheck={false}
                 value={basicUsername}
                 onChange={(event) => setBasicUsername(event.target.value)}
+                className="mt-1.5"
+              />
+            </label>
+          ) : null}
+          {authType === "login" ? (
+            <label htmlFor={`${ids}-account-label`} className={fieldLabelClass}>
+              <Trans>Account label (optional)</Trans>
+              <Input
+                id={`${ids}-account-label`}
+                value={accountLabel}
+                onChange={(event) => setAccountLabel(event.target.value)}
+                maxLength={120}
                 className="mt-1.5"
               />
             </label>
