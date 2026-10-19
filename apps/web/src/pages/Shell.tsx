@@ -63,6 +63,7 @@ import {
   runThreadSubscription,
   SLASH_ACTIONS,
   searchHitThreadTarget,
+  sectionDestinations,
   serializeComposerPrompt,
   speechFromBlocks,
   timeSeparatorIds,
@@ -78,6 +79,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   GroupAvatar,
   InputGroup,
@@ -734,7 +738,10 @@ function SpaceShell() {
     { kind: "bot"; chat: Bot } | { kind: "group"; chat: Group } | null
   >(null);
   const [newSectionTarget, setNewSectionTarget] = useState<
-    { kind: "bot"; chat: Bot } | { kind: "group"; chat: Group } | null
+    | { kind: "bot"; chat: Bot }
+    | { kind: "group"; chat: Group }
+    | { kind: "section"; parentId: string; spaceId: string }
+    | null
   >(null);
   const [renameSectionTarget, setRenameSectionTarget] = useState<{
     section: BotSection;
@@ -3238,7 +3245,10 @@ function SpaceShell() {
                 />
               ) : null}
               {sidebarGroups.map((group) => {
-                const collapsed = Boolean(group.title) && collapsedSidebarSections.has(group.key);
+                if (group.ancestorKeys.some((key) => collapsedSidebarSections.has(key)) && !query)
+                  return null;
+                const collapsed =
+                  !query && Boolean(group.title) && collapsedSidebarSections.has(group.key);
                 const groupBotIds = group.bots.flatMap((item) =>
                   item.kind === "bot" ? [item.chat.id] : [],
                 );
@@ -3261,7 +3271,11 @@ function SpaceShell() {
                     : null;
                 const headerDropKey = `header:${group.key}`;
                 return (
-                  <div key={group.key} data-sidebar-group={group.key}>
+                  <div
+                    key={group.key}
+                    data-sidebar-group={group.key}
+                    style={group.depth ? { marginInlineStart: group.depth * 14 } : undefined}
+                  >
                     {group.title || hasSpaceActions ? (
                       // biome-ignore lint/a11y/useSemanticElements: groups sidebar controls, not form fields; Move to remains the keyboard alternative.
                       <div
@@ -4797,13 +4811,29 @@ function SpaceShell() {
 
         {newSectionTarget ? (
           <NewBotSectionDialog
-            bot={newSectionTarget.chat}
+            bot={newSectionTarget.kind === "section" ? undefined : newSectionTarget.chat}
+            sections={
+              newSectionTarget.kind === "section" &&
+              newSectionTarget.spaceId !== bootstrapMe?.spaceId
+                ? spaces.find((space) => space.id === newSectionTarget.spaceId)?.botSections
+                : botSections
+            }
+            defaultParentId={newSectionTarget.kind === "section" ? newSectionTarget.parentId : null}
             onCancel={() => setNewSectionTarget(null)}
-            onConfirm={async (name) => {
+            onConfirm={async (name, parentId) => {
               await rpc.botSections.create(
-                newSectionTarget.kind === "bot"
-                  ? { botId: newSectionTarget.chat.id, name }
-                  : { groupId: newSectionTarget.chat.id, name },
+                {
+                  name,
+                  parentId,
+                  ...(newSectionTarget.kind === "bot"
+                    ? { botId: newSectionTarget.chat.id }
+                    : newSectionTarget.kind === "group"
+                      ? { groupId: newSectionTarget.chat.id }
+                      : {}),
+                },
+                newSectionTarget.kind === "section"
+                  ? { context: { spaceId: newSectionTarget.spaceId } }
+                  : undefined,
               );
               setNewSectionTarget(null);
               await refreshBots();
@@ -4833,7 +4863,7 @@ function SpaceShell() {
           <DeleteItemDialog
             item={deleteSectionTarget.section}
             noun="section"
-            description={<Trans>Its bots and groups are kept and leave the section.</Trans>}
+            description={<Trans>Its chats are kept. Subsections move up one level.</Trans>}
             onCancel={() => setDeleteSectionTarget(null)}
             onConfirm={async () => {
               await rpc.botSections.remove(
@@ -4870,6 +4900,50 @@ function SpaceShell() {
               sideOffset={0}
               className="w-[220px]"
             >
+              <DropdownMenuItem
+                onClick={() => {
+                  setNewSectionTarget({
+                    kind: "section",
+                    parentId: sectionMenu.section.id,
+                    spaceId: sectionMenu.spaceId,
+                  });
+                  setSectionMenu(null);
+                }}
+              >{t`New subsection`}</DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>{t`Move to`}</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-[min(420px,calc(100vh-16px))] overflow-y-auto">
+                  {[
+                    { id: null, path: t`None` },
+                    ...sectionDestinations(
+                      sectionMenu.spaceId === bootstrapMe?.spaceId
+                        ? botSections
+                        : (spaces.find((space) => space.id === sectionMenu.spaceId)?.botSections ??
+                            []),
+                      sectionMenu.section.id,
+                    ),
+                  ].map((destination) => (
+                    <DropdownMenuItem
+                      key={destination.id ?? "root"}
+                      disabled={destination.id === (sectionMenu.section.parentId ?? null)}
+                      onClick={() => {
+                        void rpc.botSections
+                          .update(
+                            { sectionId: sectionMenu.section.id, parentId: destination.id },
+                            { context: { spaceId: sectionMenu.spaceId } },
+                          )
+                          .then(() => refreshBots())
+                          .catch((error) =>
+                            setSendError(errorText(error, t`Could not move section`)),
+                          );
+                        setSectionMenu(null);
+                      }}
+                    >
+                      {destination.path}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem
                 onClick={() => {
                   setRenameSectionTarget({

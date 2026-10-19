@@ -1,5 +1,6 @@
 import { useLingui } from "@lingui/react/macro";
 import type { Bot, BotSection } from "@rakazo/contracts";
+import { sectionTree } from "@rakazo/core";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,10 +97,10 @@ export function BotContextMenu({
             {t`Move to`}
           </DropdownMenuSubTrigger>
           <DropdownMenuSubContent className="max-h-[min(420px,calc(100vh-16px))] min-w-[180px] overflow-y-auto">
-            {sections.map((section) => (
+            {sectionTree(sections).map((section) => (
               <DropdownMenuItem key={section.id} onClick={() => onMoveToSection(section.id)}>
                 <Folder />
-                <span dir="auto">{section.name}</span>
+                <span dir="auto">{section.path}</span>
                 {bot.sectionId === section.id ? <Check className="ms-auto" /> : null}
               </DropdownMenuItem>
             ))}

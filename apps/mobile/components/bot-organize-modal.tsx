@@ -1,3 +1,4 @@
+import { sectionTree } from "@rakazo/core";
 import { useState } from "react";
 import {
   KeyboardAvoidingView,
@@ -133,10 +134,10 @@ export function BotOrganizeModal({
           ) : null}
           <Text style={styles.sectionLabel}>{t("Move to")}</Text>
           <ScrollView style={styles.sectionOptions} keyboardShouldPersistTaps="handled">
-            {sections.map((section) => (
+            {sectionTree(sections).map((section) => (
               <SectionOption
                 key={section.id}
-                label={section.name}
+                label={section.path}
                 selected={bot.sectionId === section.id}
                 disabled={saving || bot.sectionId === section.id}
                 onPress={() => void save(() => onUpdate({ sectionId: section.id }))}
