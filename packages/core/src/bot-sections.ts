@@ -2,9 +2,33 @@ export type BotListSection<T> = {
   key: string;
   title: string | null;
   bots: T[];
+  depth?: number;
+  ancestorIds?: string[];
 };
 
-type Section = { id: string; name: string };
+type Section = { id: string; name: string; parentId?: string | null };
+
+/** Stable depth-first section order, also safe for stale/orphaned cached data. */
+export function sectionTree<T extends Section>(sections: readonly T[]) {
+  const paths = new Map<string, { ids: string[]; names: string[] }>();
+  return nestRosterByParent(
+    sections.map((section) => ({ ...section, parentBotId: section.parentId })),
+  ).map(({ item, depth, parentId }) => {
+    const parent = parentId ? paths.get(parentId) : undefined;
+    const ancestorIds = parent?.ids ?? [];
+    const names = [...(parent?.names ?? []), item.name];
+    paths.set(item.id, { ids: [...ancestorIds, item.id], names });
+    return { ...item, depth, ancestorIds, path: names.join(" / ") };
+  });
+}
+
+/** Destinations exclude a section's entire subtree, preventing cyclic moves. */
+export function sectionDestinations<T extends Section>(sections: readonly T[], sectionId?: string) {
+  return sectionTree(sections).filter(
+    (section) =>
+      section.id !== sectionId && (!sectionId || !section.ancestorIds.includes(sectionId)),
+  );
+}
 type SectionedBot = { pinned: boolean; sectionId: string | null };
 
 export function groupBotsForSidebar<T extends SectionedBot>(
@@ -33,10 +57,22 @@ export function groupBotsForSidebar<T extends SectionedBot>(
   if (pinned.length > 0) {
     grouped.push({ key: "pinned", title: "Pinned", bots: pinned });
   }
-  for (const section of sections) {
-    const members = sectionMembers.get(section.id) ?? [];
-    if (members.length > 0 || options.includeEmptySections) {
-      grouped.push({ key: `section:${section.id}`, title: section.name, bots: members });
+  const tree = sectionTree(sections);
+  const visible = new Set<string>();
+  for (const section of tree) {
+    if (options.includeEmptySections || sectionMembers.has(section.id)) {
+      visible.add(section.id);
+      for (const ancestor of section.ancestorIds) visible.add(ancestor);
+    }
+  }
+  for (const section of tree) {
+    if (visible.has(section.id)) {
+      grouped.push({
+        key: `section:${section.id}`,
+        title: section.name,
+        bots: sectionMembers.get(section.id) ?? [],
+        ...(section.depth > 0 ? { depth: section.depth, ancestorIds: section.ancestorIds } : {}),
+      });
     }
   }
   if (unassigned.length > 0) {

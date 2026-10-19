@@ -206,6 +206,7 @@ import {
   findVoiceCredential,
   formatMessagingLinkCode,
   InstructionConflictError,
+  InvalidSectionParentError,
   InvalidSpaceNameError,
   IsolationError,
   issueMessagingLinkCode,
@@ -2225,15 +2226,25 @@ export function createRouter(deps: RouterDeps) {
         try {
           return await repos.updateBotSection(context.actor, input);
         } catch (error) {
+          if (error instanceof InvalidSectionParentError) {
+            throw new ORPCError("BAD_REQUEST", { message: error.message });
+          }
           if (error instanceof BotSectionNameConflictError) {
             throw new ORPCError("CONFLICT", { message: error.message });
           }
           throw error;
         }
       }),
-      remove: authed.botSections.remove.handler(async ({ context, input }) =>
-        repos.deleteBotSection(context.actor, input),
-      ),
+      remove: authed.botSections.remove.handler(async ({ context, input }) => {
+        try {
+          return await repos.deleteBotSection(context.actor, input);
+        } catch (error) {
+          if (error instanceof BotSectionNameConflictError) {
+            throw new ORPCError("CONFLICT", { message: error.message });
+          }
+          throw error;
+        }
+      }),
     },
     threads: {
       head: authed.threads.head.handler(async ({ context, input }) => {

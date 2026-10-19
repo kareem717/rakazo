@@ -8,7 +8,14 @@ export class IsolationError extends Error {
   }
 }
 
-/** Unique (spaceId, userId, name) collision when renaming a bot section. */
+export class InvalidSectionParentError extends Error {
+  constructor() {
+    super("A section cannot be nested inside itself or its subsections");
+    this.name = "InvalidSectionParentError";
+  }
+}
+
+/** A sibling section already has this name. */
 export class BotSectionNameConflictError extends Error {
   constructor(message = "Section name already used") {
     super(message);

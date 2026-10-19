@@ -473,8 +473,12 @@ model BotSection {
   updatedAt DateTime    @updatedAt
   bots      Bot[]
   groups    ChatGroup[]
+  parentId  String?
+  parent    BotSection? @relation("SectionChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  BotSection[] @relation("SectionChildren")
 
-  @@unique([spaceId, userId, name])
+  // Root and child sibling-name uniqueness are enforced by partial SQL indexes.
+  @@index([parentId])
   @@index([spaceId, userId, position, createdAt])
   @@map("bot_sections")
 }

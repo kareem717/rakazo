@@ -4,7 +4,7 @@ import { createDb } from "./client.js";
 import { createGroupRepos } from "./groups.js";
 import { provisionMessagingIdentity } from "./messaging.js";
 import { createRepos } from "./repos.js";
-import { IsolationError } from "./scope.js";
+import { BotSectionNameConflictError, InvalidSectionParentError, IsolationError } from "./scope.js";
 
 const databaseUrl = process.env.DATABASE_URL;
 const describePostgres =
@@ -128,5 +128,97 @@ describePostgres("deleteBotSection (PostgreSQL)", () => {
     expect((await prisma.bot.findUniqueOrThrow({ where: { id: strangerBot.id } })).sectionId).toBe(
       strangerSection.id,
     );
+  });
+
+  it("persists nested sections, permits repeated names in separate parents, and keeps chat membership on moves", async () => {
+    const repos = createRepos(prisma);
+    const actor = actorFor(owner);
+    const root = await repos.createBotSection(actor, { name: "Work" });
+    const other = await repos.createBotSection(actor, { name: "Home" });
+    const child = await repos.createBotSection(actor, { name: "Inbox", parentId: root.id });
+    const sibling = await repos.createBotSection(actor, { name: "Inbox", parentId: other.id });
+    expect(child.id).not.toBe(sibling.id);
+    const bot = await repos.createBot(actor, botInput("Nested"));
+    expect(
+      (await repos.createBotSection(actor, { name: "Inbox", parentId: root.id, botId: bot.id })).id,
+    ).toBe(child.id);
+    const leaf = await repos.createBotSection(actor, { name: "Replies", parentId: child.id });
+    await expect(
+      repos.updateBotSection(actor, { sectionId: root.id, parentId: leaf.id }),
+    ).rejects.toBeInstanceOf(InvalidSectionParentError);
+    await expect(
+      repos.updateBotSection(actor, { sectionId: child.id, parentId: child.id }),
+    ).rejects.toBeInstanceOf(InvalidSectionParentError);
+    await expect(
+      repos.updateBotSection(actor, { sectionId: child.id, parentId: other.id }),
+    ).rejects.toBeInstanceOf(BotSectionNameConflictError);
+    await repos.updateBotSection(actor, {
+      sectionId: child.id,
+      parentId: null,
+      name: "Team inbox",
+    });
+    expect((await prisma.bot.findUniqueOrThrow({ where: { id: bot.id } })).sectionId).toBe(
+      child.id,
+    );
+    expect((await repos.listBotSections(actor)).find((item) => item.id === leaf.id)?.parentId).toBe(
+      child.id,
+    );
+    await repos.deleteBotSection(actor, { sectionId: child.id });
+    expect(
+      (await prisma.botSection.findUniqueOrThrow({ where: { id: leaf.id } })).parentId,
+    ).toBeNull();
+    expect((await prisma.bot.findUniqueOrThrow({ where: { id: bot.id } })).sectionId).toBeNull();
+  });
+
+  it("rejects cross-owner and cross-space parents for creation and moves", async () => {
+    const repos = createRepos(prisma);
+    const actor = actorFor(owner);
+    const own = await repos.createBotSection(actor, { name: "Owned" });
+    const far = await repos.createBotSection(actorFor(stranger), { name: "Elsewhere" });
+    const neighbor = await prisma.botSection.create({
+      data: { userId: neighborId, spaceId: owner.spaceId, name: "Neighbor" },
+    });
+    for (const parentId of [far.id, neighbor.id, "missing"]) {
+      await expect(
+        repos.createBotSection(actor, { name: "Invalid", parentId }),
+      ).rejects.toBeInstanceOf(IsolationError);
+      await expect(
+        repos.updateBotSection(actor, { sectionId: own.id, parentId }),
+      ).rejects.toBeInstanceOf(IsolationError);
+    }
+    expect(
+      (await prisma.botSection.findUniqueOrThrow({ where: { id: own.id } })).parentId,
+    ).toBeNull();
+  });
+
+  it("serializes opposing concurrent moves so they cannot create a cycle", async () => {
+    const repos = createRepos(prisma);
+    const actor = actorFor(owner);
+    const a = await repos.createBotSection(actor, { name: "Concurrent A" });
+    const b = await repos.createBotSection(actor, { name: "Concurrent B" });
+    const result = await Promise.allSettled([
+      repos.updateBotSection(actor, { sectionId: a.id, parentId: b.id }),
+      repos.updateBotSection(actor, { sectionId: b.id, parentId: a.id }),
+    ]);
+    expect(result.filter((item) => item.status === "fulfilled")).toHaveLength(1);
+    const failed = result.find((item) => item.status === "rejected");
+    expect(failed && failed.status === "rejected" && failed.reason).toBeInstanceOf(
+      InvalidSectionParentError,
+    );
+  });
+
+  it("rolls back deletion when promoting a child would collide with a sibling", async () => {
+    const repos = createRepos(prisma);
+    const actor = actorFor(owner);
+    const parent = await repos.createBotSection(actor, { name: "Deletion parent" });
+    const child = await repos.createBotSection(actor, { name: "Conflict", parentId: parent.id });
+    await repos.createBotSection(actor, { name: "Conflict" });
+    await expect(repos.deleteBotSection(actor, { sectionId: parent.id })).rejects.toBeInstanceOf(
+      BotSectionNameConflictError,
+    );
+    expect((await prisma.botSection.findUniqueOrThrow({ where: { id: child.id } })).parentId).toBe(
+      parent.id,
+    );
+    expect(await prisma.botSection.findUnique({ where: { id: parent.id } })).not.toBeNull();
   });
 });

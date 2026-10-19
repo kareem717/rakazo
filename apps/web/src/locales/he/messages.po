@@ -1720,6 +1720,10 @@ msgstr ""
 msgid "Could not log out. Try again."
 msgstr "לא ניתן להתנתק. יש לנסות שוב."
 
+#: src/pages/Shell.tsx
+msgid "Could not move section"
+msgstr ""
+
 #: src/pages/BillingSettingsPanel.tsx
 #: src/pages/Paywall.tsx
 msgid "Could not open billing"
@@ -2815,8 +2819,8 @@ msgid "Isolated preview — no access to your account"
 msgstr "תצוגה מקדימה מבודדת — ללא גישה לחשבון"
 
 #: src/pages/Shell.tsx
-msgid "Its bots and groups are kept and leave the section."
-msgstr "הבוטים והקבוצות שבו יישמרו ויוצאו מהמקטע."
+msgid "Its chats are kept. Subsections move up one level."
+msgstr ""
 
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
@@ -3268,6 +3272,7 @@ msgid "Move them to your shared memory."
 msgstr "אפשר להעביר אותם לזיכרון המשותף."
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 msgid "Move to"
 msgstr "העברה אל"
 
@@ -3355,6 +3360,10 @@ msgstr "מיומנות חדשה"
 #: src/pages/shell/dialogs.tsx
 msgid "New space"
 msgstr "מרחב חדש"
+
+#: src/pages/Shell.tsx
+msgid "New subsection"
+msgstr ""
 
 #: src/pages/Board.tsx
 msgid "New ticket"
@@ -3488,6 +3497,11 @@ msgstr "ללא טריגר"
 
 #: src/components/VoicePicker.tsx
 msgid "No voices found"
+msgstr ""
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/dialogs.tsx
+msgid "None"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
@@ -3683,6 +3697,10 @@ msgstr "בעלים"
 #: src/pages/RoutineEditor.tsx
 msgid "PagerDuty incident"
 msgstr "תקרית PagerDuty"
+
+#: src/pages/shell/dialogs.tsx
+msgid "Parent section"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Park"

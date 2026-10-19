@@ -1,4 +1,4 @@
-import { groupBotsForSidebar } from "@rakazo/core";
+import { groupBotsForSidebar, sectionTree } from "@rakazo/core";
 
 type SidebarChat = {
   id: string;
@@ -17,7 +17,7 @@ type SidebarSpace<TBot extends SidebarChat, TGroup extends SidebarChat> = {
   canDelete?: boolean;
   bots: readonly TBot[];
   groups: readonly TGroup[];
-  botSections: readonly { id: string; name: string }[];
+  botSections: readonly { id: string; name: string; parentId?: string | null }[];
 };
 
 function spaceHeaderMenu(space: { canRename?: boolean; canDelete?: boolean }, hostsMenu: boolean) {
@@ -64,36 +64,36 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
         sectionId: item.chat.sectionId,
       })),
       space.botSections,
+      { includeEmptySections: !needle && visibleBots.length + visibleGroups.length > 0 },
     );
     // Keep destinations visible after their last bot is dragged out. Search
     // still hides empty lists, and spaces without sections keep their old layout.
     if (!needle && space.botSections.length > 0 && grouped.length > 0) {
-      for (const section of space.botSections) {
-        const key = `section:${section.id}`;
-        if (!grouped.some((group) => group.key === key)) {
-          grouped.push({ key, title: section.name, bots: [] });
-        }
-      }
       if (!grouped.some((group) => group.key === "unassigned")) {
         grouped.push({ key: "unassigned", title: "Unassigned", bots: [] });
       }
       const order = [
         "pinned",
-        ...space.botSections.map((section) => `section:${section.id}`),
+        ...sectionTree(space.botSections).map((section) => `section:${section.id}`),
         "unassigned",
       ];
       grouped.sort((a, b) => order.indexOf(a.key) - order.indexOf(b.key));
     }
     const sections = grouped.map((group, index) => ({
       ...group,
+      depth: group.depth ?? 0,
+      ancestorKeys: (group.ancestorIds ?? []).map((id) =>
+        showSpaceNames ? `space:${space.id}:section:${id}` : `section:${id}`,
+      ),
       sectionId: group.key.startsWith("section:") ? group.key.slice("section:".length) : null,
       key: showSpaceNames ? `space:${space.id}:${group.key}` : group.key,
-      title: showSpaceNames
-        ? group.title
-          ? `${space.name} · ${group.title}`
-          : space.name
-        : group.title,
-      showLock: showSpaceNames,
+      title:
+        showSpaceNames && !group.depth
+          ? group.title
+            ? `${space.name} · ${group.title}`
+            : space.name
+          : group.title,
+      showLock: showSpaceNames && !group.depth,
       emptySpaceId: undefined as string | undefined,
       spaceId: space.id,
       spaceName: space.name,
@@ -106,12 +106,17 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
     // renamed or deleted after their last chat leaves.
     const emptySections = needle
       ? []
-      : space.botSections.map((section) => ({
+      : sectionTree(space.botSections).map((section) => ({
+          depth: section.depth,
+          ancestorKeys: section.ancestorIds.map((id) =>
+            showSpaceNames ? `space:${space.id}:section:${id}` : `section:${id}`,
+          ),
           key: showSpaceNames ? `space:${space.id}:section:${section.id}` : `section:${section.id}`,
-          title: showSpaceNames ? `${space.name} · ${section.name}` : section.name,
+          title:
+            showSpaceNames && !section.depth ? `${space.name} · ${section.name}` : section.name,
           bots: [] as (typeof sections)[number]["bots"],
           sectionId: section.id as string | null,
-          showLock: showSpaceNames,
+          showLock: showSpaceNames && !section.depth,
           emptySpaceId: undefined as string | undefined,
           spaceId: space.id,
           spaceName: space.name,
@@ -127,6 +132,8 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
         key: showSpaceNames ? `space:${space.id}:empty` : `space:${space.id}:actions`,
         title: showSpaceNames ? space.name : null,
         bots: [],
+        depth: 0,
+        ancestorKeys: [] as string[],
         sectionId: null,
         showLock: showSpaceNames,
         emptySpaceId: showSpaceNames ? space.id : undefined,

@@ -19,6 +19,7 @@ import {
   scrollDisabled,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
+import { sectionTree } from "@rakazo/core";
 import { useState } from "react";
 import { PlatformColor, useWindowDimensions, View } from "react-native";
 import { useI18n } from "../lib/i18n";
@@ -133,10 +134,10 @@ export function InboxSwipeRow({
                   />
                 )}
                 <Menu label={t("Move to")} systemImage="folder">
-                  {sections.map((section) => (
+                  {sectionTree(sections).map((section) => (
                     <Toggle
                       key={section.id}
-                      label={section.name}
+                      label={section.path}
                       isOn={sectionId === section.id}
                       onIsOnChange={() => moveTo(section.id)}
                     />

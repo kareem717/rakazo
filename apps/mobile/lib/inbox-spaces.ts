@@ -25,8 +25,15 @@ export type InboxSpaceItem =
       depth: number;
       hasChildren: boolean;
     }
-  | { type: "group"; group: MobileGroup | SpaceGroup }
-  | { type: "heading"; key: string; title: string; space?: InboxSpace; sectionId?: string };
+  | { type: "group"; group: MobileGroup | SpaceGroup; depth?: number }
+  | {
+      type: "heading";
+      key: string;
+      title: string;
+      space?: InboxSpace;
+      sectionId?: string;
+      depth?: number;
+    };
 
 export function canDeleteInboxSpace(
   space: Pick<InboxSpace, "isDefault" | "hasContent" | "canDelete">,
@@ -43,6 +50,7 @@ export function spaceInboxItems(
   spaces: InboxSpace[],
   collapsedParentIds: ReadonlySet<string> = new Set(),
   editableSpaceId?: string,
+  collapsedSectionKeys: ReadonlySet<string> = new Set(),
 ): InboxSpaceItem[] {
   return spaces.flatMap((space): InboxSpaceItem[] => {
     const chats = [
@@ -69,26 +77,34 @@ export function spaceInboxItems(
     for (const group of groupBotsForSidebar(chats, space.botSections, {
       includeEmptySections: true,
     })) {
+      if (group.ancestorIds?.some((id) => collapsedSectionKeys.has(`${space.id}:section:${id}`)))
+        continue;
       if (group.title) {
         items.push({
           type: "heading",
           key: `${space.id}:${group.key}`,
           title: group.title,
+          ...(group.depth ? { depth: group.depth } : {}),
           ...(space.id === editableSpaceId && group.key.startsWith("section:")
             ? { sectionId: group.key.slice("section:".length) }
             : {}),
         });
       }
+      if (collapsedSectionKeys.has(`${space.id}:${group.key}`)) continue;
       for (const row of nestRosterByParent(group.bots, collapsedParentIds)) {
         if (row.item.type === "bot") {
           items.push({
             type: "bot",
             bot: row.item.bot,
-            depth: row.depth,
+            depth: row.depth + (group.depth ?? 0),
             hasChildren: row.hasChildren,
           });
         } else {
-          items.push({ type: "group", group: row.item.group });
+          items.push({
+            type: "group",
+            group: row.item.group,
+            ...(group.depth ? { depth: group.depth } : {}),
+          });
         }
       }
     }
