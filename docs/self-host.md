@@ -72,6 +72,15 @@ instead of this host proxy.
 If the installer, Compose downloads, or image pulls are blocked, use the
 [restricted-network guide](./self-host-restricted-network.md) for mirror settings and local files.
 
+### Optional network routing
+
+Normal networking is the default. The optional [Boat network overlay](../infra/boat/README.md)
+uses one versioned JSON config to select direct access, browser-only proxying, tools plus browser
+proxying, or full public egress through a Tailscale exit node. SSH and existing SOCKS servers
+are supported for selective scopes; Tailscale is optional there. API and worker share the
+same routing config across web, desktop and mobile clients. Other computer providers retain
+their existing networking.
+
 ### Bot computer resource ceilings
 
 Each Docker computer runs Xvfb, a window manager and a full Chromium driven by an agent that

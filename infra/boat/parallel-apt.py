@@ -7,7 +7,7 @@ import os
 import shlex
 import subprocess
 
-packages = ['xvfb', 'x11vnc', 'fluxbox', 'xterm', 'websockify', 'novnc', 'redsocks', 'unbound']
+packages = ['xvfb', 'x11vnc', 'fluxbox', 'xterm', 'websockify', 'novnc']
 plan = subprocess.check_output(['apt-get', '--print-uris', '--yes', '--download-only', '-o', 'Acquire::ForceHash=SHA256', 'install', *packages], text=True)
 downloads = []
 for line in plan.splitlines():

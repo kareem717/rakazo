@@ -1,19 +1,22 @@
 services:
   egress:
-    image: rakazo-egress:20261019
-    build: ./boat-network
+    image: rakazo/egress:local
+    build:
+      context: .
+      dockerfile: infra/boat/Dockerfile
     container_name: rakazo-egress
     restart: unless-stopped
     environment:
       BOAT_ENVIRONMENT: ${BOAT_ENVIRONMENT:-rakazo}
       BOAT_ENVIRONMENT_ID: ${BOAT_ENVIRONMENT_ID:?Set BOAT_ENVIRONMENT_ID}
       BOAT_WIREGUARD_ENDPOINT: ${BOAT_WIREGUARD_ENDPOINT:?Set BOAT_WIREGUARD_ENDPOINT}
-      BROWSER_PROXY_SSH_TARGET: ${BROWSER_PROXY_SSH_TARGET:?Set BROWSER_PROXY_SSH_TARGET}
+      RAKAZO_NETWORK_CONFIG: /config/network.json
     cap_add: [NET_ADMIN, NET_RAW]
     devices: [/dev/net/tun:/dev/net/tun]
     volumes:
-      - ./boat-network:/deployment:ro
+      - ./infra/boat:/deployment:ro
       - ./boat-network/state:/state
+      - ${RAKAZO_NETWORK_CONFIG_FILE:-./infra/boat/network.example.json}:/config/network.json:ro
     sysctls:
       net.ipv4.ip_forward: "1"
       net.ipv6.conf.all.forwarding: "1"
@@ -34,7 +37,9 @@ services:
       retries: 12
   api:
     environment:
-      TOOL_EGRESS_PROXY_URL: socks5://10.202.0.1:1080
+      RAKAZO_NETWORK_CONFIG: /config/network.json
+    volumes:
+      - ${RAKAZO_NETWORK_CONFIG_FILE:-./infra/boat/network.example.json}:/config/network.json:ro
     network_mode: service:egress
     networks: !reset []
     ports: !reset []
@@ -43,7 +48,9 @@ services:
         condition: service_healthy
   worker:
     environment:
-      TOOL_EGRESS_PROXY_URL: socks5://10.202.0.1:1080
+      RAKAZO_NETWORK_CONFIG: /config/network.json
+    volumes:
+      - ${RAKAZO_NETWORK_CONFIG_FILE:-./infra/boat/network.example.json}:/config/network.json:ro
     network_mode: service:egress
     networks: !reset []
     depends_on:

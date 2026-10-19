@@ -233,6 +233,55 @@ PROXY_ENV
   exec 8>&-
 }
 
+configure_egress() {
+  mode=${RAKAZO_EGRESS_MODE:-tools}
+  case "$mode" in direct|browser|tools|all) ;; *) exit 1 ;; esac
+  install -d -m 755 /etc/rakazo-network
+  printf '%s\n' "$mode" > /etc/rakazo-network/egress-mode
+  chmod 644 /etc/rakazo-network/egress-mode
+  printf '%s\n' "${RAKAZO_EGRESS_SCRIPT:?Missing egress enforcement script}" > /usr/local/lib/rakazo-network/egress.sh
+  chmod 700 /usr/local/lib/rakazo-network/egress.sh
+  for directory in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed /etc/opt/chrome/policies/managed; do
+    install -d -m 755 "$directory"
+    if [ "$mode" = browser ] || [ "$mode" = tools ]; then
+      printf '%s\n' '{"ProxySettings":{"ProxyMode":"fixed_servers","ProxyServer":"socks5://10.202.0.1:1080","ProxyBypassList":"localhost;127.0.0.1;[::1]"},"QuicAllowed":false,"WebRtcIPHandling":"disable_non_proxied_udp"}' > "$directory/rakazo-proxy.json"
+    else
+      printf '%s\n' '{"ProxySettings":{"ProxyMode":"direct"}}' > "$directory/rakazo-proxy.json"
+    fi
+    chmod 644 "$directory/rakazo-proxy.json"
+  done
+  if [ "$mode" = tools ]; then install_terminal_proxy; fi
+  if [ "$mode" = all ]; then
+    ordering='Before=rakazo-wireguard.service'
+  else
+    ordering='After=rakazo-wireguard.service'
+  fi
+  cat > /etc/systemd/system/rakazo-egress.service <<EGRESS_UNIT
+[Unit]
+Description=Enforce the configured computer egress policy
+After=network-online.target
+${ordering}
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/rakazo-network/egress.sh
+RemainAfterExit=yes
+[Install]
+WantedBy=multi-user.target
+EGRESS_UNIT
+  chmod 644 /etc/systemd/system/rakazo-egress.service
+  systemctl daemon-reload
+  systemctl enable rakazo-egress.service
+  systemctl restart rakazo-egress.service
+  /usr/local/lib/rakazo-network/egress.sh --check
+}
+
+if [ "${1:-}" = "--egress-only" ]; then
+  install -d -m 700 /usr/local/lib/rakazo-network
+  configure_egress
+  echo RAKAZO_EGRESS_READY
+  exit 0
+fi
+
 # Update a running computer without restarting its browser or provider daemon.
 if [ "${1:-}" = "--terminal-proxy-only" ]; then
   install_terminal_proxy
@@ -265,22 +314,14 @@ UNIT
 systemctl daemon-reload
 systemctl enable rakazo-wireguard.service
 systemctl restart rakazo-wireguard.service
-# Chromium policy applies to all managed desktop browser profiles.
-for directory in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed /etc/opt/chrome/policies/managed; do
- install -d -m 755 "$directory"
- cat > "$directory/rakazo-proxy.json" <<'POLICY'
-{"ProxySettings":{"ProxyMode":"fixed_servers","ProxyServer":"socks5://10.202.0.1:1080","ProxyBypassList":"localhost;127.0.0.1;[::1]"},"QuicAllowed":false,"WebRtcIPHandling":"disable_non_proxied_udp"}
-POLICY
- chmod 644 "$directory/rakazo-proxy.json"
-done
 if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
  sed -i 's|http://archive.ubuntu.com|https://archive.ubuntu.com|g; s|http://security.ubuntu.com|https://security.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources
 fi
 missing=false
-for tool in Xvfb x11vnc fluxbox xterm websockify redsocks unbound; do command -v "$tool" >/dev/null || missing=true; done
+for tool in Xvfb x11vnc fluxbox xterm websockify; do command -v "$tool" >/dev/null || missing=true; done
 [ -f /usr/share/novnc/vnc.html ] || missing=true
 if [ "$missing" = true ]; then timeout --kill-after=10s 480s python3 /home/user/.rakazo-network/desktop-install.py; fi
-install_terminal_proxy
+configure_egress
 rm -f /home/user/.rakazo-network/wireguard.conf
 printf '%s %s\n' "$operation" "$boot" > /home/user/.rakazo-network/bootstrap-complete
 echo RAKAZO_NETWORK_BOOTSTRAP_COMPLETE

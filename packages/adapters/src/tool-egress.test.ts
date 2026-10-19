@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createServer as createHttpServer } from "node:http";
 import type { AddressInfo, Socket } from "node:net";
 import { connect, createServer as createTcpServer } from "node:net";
@@ -176,6 +176,32 @@ async function fixture(tls = false) {
 }
 
 describe("tool egress", () => {
+  it("uses the selected tools config instead of a conflicting legacy proxy", async () => {
+    const peer = await fixture();
+    const directory = mkdtempSync(join(tmpdir(), "rakazo-network-config-"));
+    const file = join(directory, "network.json");
+    writeFileSync(
+      file,
+      JSON.stringify({
+        version: 1,
+        mode: "tools",
+        transport: { type: "socks5", url: peer.proxyUrl },
+      }),
+    );
+    vi.stubEnv("RAKAZO_NETWORK_CONFIG", file);
+    vi.stubEnv("TOOL_EGRESS_PROXY_URL", "socks5://127.0.0.1:1");
+    try {
+      const result = await fetchSafeWebText("http://tool.example.test/page", {
+        resolveHostname: resolve,
+      });
+      expect(result.body).toContain("Proxy response");
+      expect(peer.targets).toEqual([{ host: publicAddress, port: 80 }]);
+    } finally {
+      await peer.close();
+      rmSync(directory, { recursive: true, force: true });
+    }
+  });
+
   it("routes built-in web fetch and search through SOCKS using checked IPs and the original Host", async () => {
     const peer = await fixture();
     vi.stubEnv("TOOL_EGRESS_PROXY_URL", peer.proxyUrl);

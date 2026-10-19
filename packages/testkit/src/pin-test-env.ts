@@ -13,6 +13,7 @@ if (!process.env.VERIFY_PROVIDERS) {
   delete process.env.COMPOSIO_API_KEY;
   delete process.env.INTEGRATIONS_CATALOG_URL;
   delete process.env.TOOL_EGRESS_PROXY_URL;
+  delete process.env.RAKAZO_NETWORK_CONFIG;
   if (!process.env.VERIFY_DATABASE) {
     delete process.env.DATABASE_URL;
     delete process.env.REALTIME_DATABASE_URL;

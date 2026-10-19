@@ -3,6 +3,7 @@ import type { LookupFunction, Socket } from "node:net";
 import { isIP } from "node:net";
 import { SocksClient } from "socks";
 import { Agent, buildConnector } from "undici";
+import { toolEgressProxyUrl } from "./egress-config.js";
 import { createAddressCheckedLookup, isPrivateAddress } from "./network-address.js";
 import { dispatcherFetch } from "./undici-fetch.js";
 
@@ -21,7 +22,7 @@ const publicLookup = createAddressCheckedLookup(
  * that checked IP, not a hostname the proxy could resolve differently. */
 export function createToolAgent(
   lookup: LookupFunction = publicLookup,
-  proxyUrl = process.env.TOOL_EGRESS_PROXY_URL,
+  proxyUrl = toolEgressProxyUrl(),
 ): Agent {
   if (!proxyUrl) return new Agent({ connect: { lookup } });
   const proxy = parseToolProxy(proxyUrl);
@@ -121,7 +122,7 @@ let shared: { url: string; agent: Agent } | undefined;
 /** For fixed provider API URLs (SDKs and token requests). Unconfigured deployments
  * keep their original fetch. URL-controlled web/MCP calls use guarded agents. */
 export const connectorFetch: typeof globalThis.fetch = async (input, init) => {
-  const url = process.env.TOOL_EGRESS_PROXY_URL;
+  const url = toolEgressProxyUrl();
   if (!url) return globalThis.fetch(input, init);
   if (shared?.url !== url) {
     const previous = shared;

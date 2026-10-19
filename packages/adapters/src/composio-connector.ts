@@ -16,6 +16,7 @@ import {
   type ToolkitDirectoryEntry,
 } from "./composio-catalog-cache.js";
 import { DestinationEmulator } from "./destination-emulator.js";
+import { toolEgressProxyUrl } from "./egress-config.js";
 import { isVitestRuntime } from "./test-runtime.js";
 import { connectorFetch } from "./tool-egress.js";
 
@@ -701,7 +702,7 @@ export class ComposioConnector implements ComposioProvider {
 
   private sdk(): Composio {
     if (!this.client) {
-      const proxied = Boolean(process.env.TOOL_EGRESS_PROXY_URL);
+      const proxied = Boolean(toolEgressProxyUrl());
       this.client = new Composio({
         ...(this.apiKey ? { apiKey: this.apiKey } : {}),
         ...(proxied ? { allowTracking: false, disableVersionCheck: true } : {}),
