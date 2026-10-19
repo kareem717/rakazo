@@ -95,6 +95,20 @@ jobs:
         env:
           DATABASE_URL: postgres://rakazo:rakazo@127.0.0.1:5433/rakazo
       - run: pnpm test
+      - name: Check configurable network egress
+        run: node --test infra/boat/controller.test.mjs infra/boat/network-config.test.mjs
+
+  network-egress:
+    name: Linux network egress
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - run: docker build -f infra/boat/Dockerfile -t rakazo/egress:local .
+      - run: docker build -f infra/boat/NetworkTest.Dockerfile -t rakazo/egress-test:local .
+      - run: docker run --rm --privileged --network none rakazo/egress-test:local
 
   native-computer:
     name: Native computer (${{ matrix.os }})
