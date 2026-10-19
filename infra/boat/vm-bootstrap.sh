@@ -105,6 +105,25 @@ if [ "${1:-}" = "--remove" ]; then
  ip6tables -w -X RAKAZO_TERM_OUT6 2>/dev/null || true
  exit 0
 fi
+if [ "${1:-}" = "--check" ]; then
+ iptables -w -t nat -C OUTPUT -j RAKAZO_TERM_NAT
+ iptables -w -t nat -C RAKAZO_TERM_NAT -m cgroup --path "$terminal_group" -m conntrack --ctdir ORIGINAL -j RAKAZO_TERM_APP
+ iptables -w -t nat -C RAKAZO_TERM_APP -p tcp -j REDIRECT --to-ports 12345
+ iptables -w -t nat -C RAKAZO_TERM_APP -p udp --dport 53 -j REDIRECT --to-ports 1053
+ iptables -w -C OUTPUT -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT
+ iptables -w -C RAKAZO_TERM_OUT -p udp -j REJECT
+ ip6tables -w -C OUTPUT -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT6
+ ip6tables -w -C RAKAZO_TERM_OUT6 -j REJECT
+ for iface in rakazo0 wg0; do
+  if ip link show "$iface" >/dev/null 2>&1; then
+   mark=$(wg show "$iface" fwmark)
+   [ "$mark" != off ]
+   iptables -w -C RAKAZO_TERM_OUT -m mark --mark "$mark" -j RETURN
+   ip6tables -w -C RAKAZO_TERM_OUT6 -m mark --mark "$mark" -j RETURN
+  fi
+ done
+ exit 0
+fi
 # Match the SDK's command scopes, including sudo descendants. The provider daemon
 # lives in system.slice and retains its direct management connection.
 if [ ! -d "/sys/fs/cgroup/$terminal_group" ]; then
@@ -208,6 +227,8 @@ export NO_PROXY=localhost,127.0.0.1,::1,10.202.0.1
 export no_proxy="$NO_PROXY"
 PROXY_ENV
   chmod 644 /etc/profile.d/rakazo-terminal-proxy.sh
+  printf '2\n' > /etc/rakazo-terminal-proxy/version
+  chmod 644 /etc/rakazo-terminal-proxy/version
   flock -u 8
   exec 8>&-
 }

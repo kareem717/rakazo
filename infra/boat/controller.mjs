@@ -126,6 +126,19 @@ async function bootstrap(id) {
 
 export function shellQuote(value) { return "'" + value.replaceAll("'", "'\\''") + "'"; }
 
+/** Upgrade existing computers without restarting their browser. No cached VM
+ * metadata can substitute for checking the actual services and kernel rules. */
+export async function ensureTerminalProxy(run, readBootstrap = () => readFile('/deployment/vm-bootstrap.sh', 'utf8')) {
+  try {
+    await run('test "$(cat /etc/rakazo-terminal-proxy/version 2>/dev/null)" = 2 && systemctl is-active --quiet rakazo-terminal-tcp.service rakazo-terminal-dns.service rakazo-terminal-routes.service && sudo -n /usr/local/lib/rakazo-network/terminal-routes.sh --check', 20);
+    return false;
+  } catch { /* Missing, outdated, or resumed without kernel rules. */ }
+  const script = await readBootstrap();
+  await run('sudo -n bash -c ' + shellQuote(script) + ' -- --terminal-proxy-only', 600);
+  await run('sudo -n /usr/local/lib/rakazo-network/terminal-routes.sh --check', 20);
+  return true;
+}
+
 async function bootstrapOnce(id) {
   if (!await ready()) throw new Error('Mac mini browser proxy unavailable');
   const vm = state.vms[id];
@@ -142,9 +155,14 @@ async function bootstrapOnce(id) {
   await addPeer(vm);
   if (vm.phase === 'ready') {
     if (vm.networkVersion === 8) {
+      let browserReady = false;
       try {
-        await verify(id); return;
+        await verify(id); browserReady = true;
       } catch { /* Reapply the persistent kernel policy after resume. */ }
+      if (browserReady) {
+        await ensureTerminalProxy((script, timeout) => command(id, script, timeout));
+        return;
+      }
     }
     delete vm.bootstrapProcess; delete vm.bootstrapComplete; delete vm.bootstrapOperation;
     vm.phase = 'created'; await save();
@@ -188,6 +206,7 @@ async function bootstrapOnce(id) {
     vm.bootstrapComplete = true; vm.phase = 'bootstrapping'; await save();
   }
   await verify(id);
+  await ensureTerminalProxy((script, timeout) => command(id, script, timeout));
   vm.networkVersion = 8; vm.phase = 'ready'; vm.verifiedAt = new Date().toISOString(); await save();
   console.log(JSON.stringify({ event: 'vm.network.ready', id }));
 }
@@ -254,7 +273,7 @@ async function readBody(req) {
 async function handler(req, res) {
   const json = (status, value) => { res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); res.end(JSON.stringify(value)); };
   try {
-    if (req.url === '/health') return json(await ready() ? 200 : 503, { ready: await ready(), provider: 'boat', proxy: 'ssh-socks-browser-only' });
+    if (req.url === '/health') return json(await ready() ? 200 : 503, { ready: await ready(), provider: 'boat', proxy: 'ssh-socks' });
     if (!authorized(req.headers.authorization)) return json(401, { error: 'unauthorized' });
     if (!await ready()) return json(503, { error: 'Mac mini browser proxy unavailable' });
     const body = await readBody(req);

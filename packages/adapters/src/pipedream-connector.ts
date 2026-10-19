@@ -30,6 +30,7 @@ import {
   type RemoteTransportDependencies,
 } from "./remote-mcp.js";
 import { isVitestRuntime } from "./test-runtime.js";
+import { connectorFetch } from "./tool-egress.js";
 import { readBodyCapped, withAbort } from "./web-ssrf.js";
 
 const API_BASE = "https://api.pipedream.com";
@@ -466,7 +467,7 @@ export class PipedreamConnector implements ManagedConnectorProvider {
   ): Promise<T> {
     const token = await this.token();
     const requestAbort = combineSignals(signal, AbortSignal.timeout(REQUEST_TIMEOUT_MS));
-    const response = await (this.dependencies.fetch ?? globalThis.fetch)(`${API_BASE}${path}`, {
+    const response = await (this.dependencies.fetch ?? connectorFetch)(`${API_BASE}${path}`, {
       ...init,
       headers: {
         authorization: `Bearer ${token}`,
@@ -501,7 +502,7 @@ export class PipedreamConnector implements ManagedConnectorProvider {
 
   private async fetchToken(): Promise<string> {
     const requestAbort = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
-    const response = await (this.dependencies.fetch ?? globalThis.fetch)(
+    const response = await (this.dependencies.fetch ?? connectorFetch)(
       `${API_BASE}/v1/oauth/token`,
       {
         method: "POST",

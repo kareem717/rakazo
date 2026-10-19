@@ -18,6 +18,7 @@ import {
   type ResolveHostname,
   withPinnedDnsLookup,
 } from "./network-address.js";
+import { createToolAgent } from "./tool-egress.js";
 import { dispatcherFetch, fetchPairedWithDispatcher } from "./undici-fetch.js";
 
 const MAX_MCP_TOOLS = 250;
@@ -199,7 +200,7 @@ export function createSafeRemoteFetch(
   resolve: ResolveHostname = resolveHostname,
   policy: RemoteUrlPolicy = {},
 ): SafeRemoteFetch {
-  const dispatcher = new Agent({ connect: { lookup: createSafeLookup(resolve, policy) } });
+  const dispatcher = createToolAgent(createSafeLookup(resolve, policy));
   // Injected fetches are not given this Agent; they keep the original hostname
   // for TLS/SNI and pin TCP to the already-validated address through dns.lookup.
   const usePackageFetch = fetchPairedWithDispatcher(baseFetch) === dispatcherFetch;

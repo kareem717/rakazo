@@ -1,7 +1,7 @@
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { protectedCreate, clientConfig, retryRead, shellQuote, gatewayErrorStatus } from './controller.mjs';
+import { protectedCreate, clientConfig, retryRead, shellQuote, gatewayErrorStatus, ensureTerminalProxy } from './controller.mjs';
 
 test('provisioning forces the dedicated credential-free environment and removes unrelated injected variables', () => {
   assert.deepEqual(protectedCreate({ noEnv: false, environment: 'base', ttlSeconds: 7200, env: { RAKAZO_BOT_ID: 'fake-bot', SECRET: 'fake-value' } }), {
@@ -44,4 +44,28 @@ test('gateway preserves provider not-found so completed deletes reconcile succes
   assert.equal(gatewayErrorStatus({status:403}),403);
   assert.equal(gatewayErrorStatus(new Error('network failure')),503);
   assert.equal(gatewayErrorStatus({status:200}),503);
+});
+
+test('healthy existing terminal routing is checked without reinstalling', async () => {
+  const calls = [];
+  assert.equal(await ensureTerminalProxy(async (script) => calls.push(script), () => { throw new Error('unexpected upload'); }), false);
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /terminal-routes.sh --check/);
+});
+
+test('missing or stale terminal routing upgrades before returning a computer', async () => {
+  const calls = [];
+  assert.equal(await ensureTerminalProxy(async (script) => {
+    calls.push(script);
+    if (calls.length === 1) throw new Error('not installed');
+  }, async () => 'printf %s "$1"'), true);
+  assert.equal(calls.length, 3);
+  assert.match(calls[1], /-- --terminal-proxy-only$/);
+  assert.equal(execFileSync('sh', ['-c', calls[1].replace('sudo -n ', '')], { encoding: 'utf8' }), '--terminal-proxy-only');
+});
+
+test('failed terminal upgrade blocks readiness without replaying an uncertain install', async () => {
+  let calls = 0;
+  await assert.rejects(ensureTerminalProxy(async () => { calls++; throw new Error('unavailable'); }, async () => 'fake'), /unavailable/);
+  assert.equal(calls, 2);
 });
