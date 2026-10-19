@@ -3266,7 +3266,12 @@ export function createRouter(deps: RouterDeps) {
               "terminal",
             ),
           )
-          .catch((error: unknown) => clearGoneSandbox(deps, computer, error));
+          .catch((error: unknown) => {
+            if (isComputerScreenUnavailable(error)) {
+              throw new ORPCError("CONFLICT", { message: error.message });
+            }
+            return clearGoneSandbox(deps, computer, error);
+          });
         if (!session) return { url: null };
         await keepComputerAwake(deps, computer.id);
         return {
