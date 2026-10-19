@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { VoiceCatalogEntry, VoiceCredential, VoiceInfo, VoiceStatus } from "@rakazo/contracts";
+import type { VoiceCatalogEntry, VoiceCredential, VoiceStatus } from "@rakazo/contracts";
 import {
   DEFAULT_COMPATIBLE_STT_MODEL,
   DEFAULT_COMPATIBLE_TTS_MODEL,
@@ -14,11 +14,10 @@ import {
   Field,
   FieldLabel,
   Input,
-  NativeSelect,
-  NativeSelectOption,
 } from "@rakazo/ui-web";
 import { XIcon } from "lucide-react";
-import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
+import { VoicePicker } from "../components/VoicePicker";
 import { useBoundSpaceId, useSpaceRpc } from "../lib/space-rpc";
 import { errorText } from "../lib/user-error";
 
@@ -36,7 +35,6 @@ export function VoiceSettingsOverlay({
   const spaceId = useBoundSpaceId();
   const { t } = useLingui();
   const apiKeyId = useId();
-  const voiceSelectId = useId();
   const speechModelId = useId();
   const baseUrlId = useId();
   const ttsModelId = useId();
@@ -44,7 +42,6 @@ export function VoiceSettingsOverlay({
   const [catalog, setCatalog] = useState<VoiceCatalogEntry[]>([]);
   const [credentials, setCredentials] = useState<VoiceCredential[]>([]);
   const [status, setStatus] = useState<VoiceStatus | null>(null);
-  const [voices, setVoices] = useState<VoiceInfo[]>([]);
   const [provider, setProvider] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [voiceId, setVoiceId] = useState("");
@@ -87,13 +84,6 @@ export function VoiceSettingsOverlay({
     setBaseUrl(cred?.endpoint ?? "");
     setTtsModel(cred?.ttsModel ?? "");
     setSttModel(cred?.sttModel ?? "");
-    if (cred) {
-      const listed = await rpc.voice.voices({ provider: selected });
-      setVoices(listed);
-      if (!activeVoice && listed[0]) setVoiceId(listed[0].id);
-    } else {
-      setVoices([]);
-    }
   }
 
   useEffect(() => {
@@ -104,10 +94,6 @@ export function VoiceSettingsOverlay({
 
   const selected = catalog.find((entry) => entry.id === provider) ?? catalog[0];
   const credential = credentials.find((entry) => entry.provider === provider);
-  const voiceOptions = useMemo(
-    () => (voices.length ? voices : voiceId ? [{ id: voiceId, label: voiceId }] : []),
-    [voices, voiceId],
-  );
 
   const selfHosted = selected?.id === OPENAI_COMPATIBLE_PROVIDER_ID;
   const canConnect = selfHosted ? Boolean(baseUrl.trim()) : apiKey.trim().length >= 8;
@@ -159,6 +145,7 @@ export function VoiceSettingsOverlay({
   }
 
   async function chooseVoice(nextVoiceId: string) {
+    const previousVoiceId = voiceId;
     setVoiceId(nextVoiceId);
     if (!credential) return;
     markPending("voice");
@@ -167,6 +154,7 @@ export function VoiceSettingsOverlay({
       await rpc.voice.setVoice({ voiceId: nextVoiceId, provider: selected?.id });
       await refresh(selected?.id);
     } catch (err) {
+      setVoiceId(previousVoiceId);
       setError(errorText(err, t`Could not save that voice`));
     } finally {
       markPending(null);
@@ -393,25 +381,15 @@ export function VoiceSettingsOverlay({
 
               {credential ? (
                 <>
-                  <Field className="mt-6">
-                    <FieldLabel htmlFor={voiceSelectId}>
-                      <Trans>Voice</Trans>
-                    </FieldLabel>
-                    <NativeSelect
-                      id={voiceSelectId}
-                      className="w-full"
+                  <div className="mt-6">
+                    <VoicePicker
+                      key={selected.id}
+                      provider={selected.id}
                       value={voiceId}
                       disabled={busy}
-                      onChange={(event) => void chooseVoice(event.target.value)}
-                    >
-                      {voiceOptions.map((voice) => (
-                        <NativeSelectOption key={voice.id} value={voice.id}>
-                          {voice.label}
-                          {voice.description ? ` · ${voice.description}` : ""}
-                        </NativeSelectOption>
-                      ))}
-                    </NativeSelect>
-                  </Field>
+                      onChange={(value) => void chooseVoice(value)}
+                    />
+                  </div>
                   {selected.id === "fish-audio" ? (
                     <Field className="mt-6">
                       <FieldLabel htmlFor={speechModelId}>

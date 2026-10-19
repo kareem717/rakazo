@@ -9,6 +9,7 @@ import BotSettingsScreen from "../app/bot-settings";
 import { MenuPicker } from "../components/menu-picker";
 
 const mocks = vi.hoisted(() => ({
+  deviceEnabled: true,
   deviceVoices: vi.fn(),
   voiceForBot: vi.fn(),
   setVoiceForBot: vi.fn(),
@@ -39,7 +40,7 @@ vi.mock("./bot-voices", () => ({
   voiceForBot: mocks.voiceForBot,
   setVoiceForBot: mocks.setVoiceForBot,
 }));
-vi.mock("./device-voice", () => ({ loadDeviceVoiceEnabled: async () => true }));
+vi.mock("./device-voice", () => ({ loadDeviceVoiceEnabled: async () => mocks.deviceEnabled }));
 vi.mock("./voice", () => ({ stopVoicePlayback: mocks.stopVoicePlayback }));
 vi.mock("expo-speech", () => ({ stop: mocks.stop, speak: mocks.speak }));
 vi.mock("./api", () => ({
@@ -52,7 +53,16 @@ vi.mock("./api", () => ({
         title: "",
         computerMode: "team",
         fleetManagement: false,
+        voiceId: mocks.deviceEnabled ? null : "cloud-a",
+        voiceProvider: mocks.deviceEnabled ? null : "fish-audio",
       };
+    if (procedure === "voice/credentials" && !mocks.deviceEnabled)
+      return [{ provider: "fish-audio", isDefault: true }];
+    if (procedure === "voice/voices")
+      return [
+        { id: "cloud-a", label: "Cloud A" },
+        { id: "cloud-b", label: "Cloud B" },
+      ];
     if (procedure === "me") return {};
     return [];
   },
@@ -187,6 +197,7 @@ describe("bot settings device voice menu", () => {
   let container: HTMLDivElement;
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.deviceEnabled = true;
     vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
     mocks.deviceVoices.mockResolvedValue(offered);
     mocks.voiceForBot.mockResolvedValue("voice-a");
@@ -197,10 +208,43 @@ describe("bot settings device voice menu", () => {
   });
   afterEach(() => {
     act(() => root.unmount());
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
   const render = async () => act(async () => root.render(<BotSettingsScreen />));
   const menu = () => container.querySelector('[data-menu="Device voice"]');
+
+  it.each([
+    { label: "Cloud B", voiceId: "cloud-b", voiceProvider: "fish-audio" },
+    { label: "Space default", voiceId: null, voiceProvider: null },
+  ])(
+    "saves a hosted bot voice independently of device voices: $label",
+    async ({ label, voiceId, voiceProvider }) => {
+      vi.useFakeTimers();
+      mocks.deviceEnabled = false;
+      mocks.rpc.mockResolvedValue(undefined);
+      await render();
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      const hosted = container.querySelector('[data-menu="Voice"]')!;
+      expect(hosted).not.toBeNull();
+      const choice = [...hosted.querySelectorAll("button")].find(
+        (button) => button.textContent === label,
+      )!;
+      await act(async () => choice.click());
+      const save = [...container.querySelectorAll("button")].find(
+        (button) => button.textContent === "Save",
+      )!;
+      await act(async () => save.click());
+      expect(mocks.rpc).toHaveBeenCalledWith(
+        "bots/update",
+        expect.objectContaining({ botId: "bot-fixture", voiceId, voiceProvider }),
+      );
+      expect(mocks.setVoiceForBot).not.toHaveBeenCalled();
+      expect(mocks.speak).not.toHaveBeenCalled();
+    },
+  );
 
   it("persists fleet toggles immediately without adding them to unrelated saves", async () => {
     mocks.rpc.mockResolvedValue(undefined);

@@ -86,6 +86,49 @@ describe("BoxSandboxProvider", () => {
     ]);
   });
 
+  it("passes protected browser input through private uploads and cleans up on failure", async () => {
+    const fixture = boxFixture();
+    const original = fixture.command.getMockImplementation()!;
+    fixture.command.mockImplementation(async (request) => {
+      if (request.commandRequest.command.includes("RAKAZO_BROWSER_ARGS_STDIN"))
+        return finished({ stdout: JSON.stringify({ ok: true, completed: 1 }) });
+      return original(request);
+    });
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    const secret = "fake-protected-password";
+    await expect(
+      provider.pageBrowser(
+        computer,
+        {
+          command: "act",
+          actions: [{ kind: "fill", ref: "e1", text: secret, origin: "https://example.test" }],
+        },
+        context,
+      ),
+    ).resolves.toMatchObject({ ok: true, completed: 1 });
+    const commands = fixture.command.mock.calls
+      .map(([request]) => request.commandRequest.command)
+      .join("\n");
+    expect(commands).toContain("umask 077; mkdir");
+    const invocation = fixture.command.mock.calls.find(([request]) =>
+      request.commandRequest.command.includes("RAKAZO_BROWSER_ARGS_STDIN"),
+    )![0].commandRequest.command;
+    expect(parse(invocation).at(-1)).toContain("DISPLAY=':20'");
+    expect(commands).not.toContain(secret);
+    const upload = fixture.writeFile.mock.calls.find(([request]) =>
+      request.fileWriteRequest.path.endsWith("/args.json"),
+    );
+    expect(Buffer.from(upload![0].fileWriteRequest.content, "base64").toString()).toContain(secret);
+    expect(upload![0].fileWriteRequest.path).toMatch(/^\/tmp\/rakazo-page-/);
+    expect(commands).toContain("rm -rf --");
+    fixture.writeFile.mockRejectedValueOnce(new Error("Upload failed"));
+    await expect(provider.pageBrowser(computer, { command: "snapshot" }, context)).rejects.toThrow(
+      "Upload failed",
+    );
+    expect(fixture.command.mock.calls.at(-1)![0].commandRequest.command).toContain("rm -rf --");
+  });
+
   it("resumes archived boxes and replaces deleted references", async () => {
     const archived = boxFixture({ state: "archived" });
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, archived.client);
@@ -235,6 +278,39 @@ describe("BoxSandboxProvider", () => {
 
     await expect(provider.readFile(computer, "partial.bin", context)).rejects.toBe(aborted);
     expect(body.locked).toBe(false);
+  });
+
+  it("wakes an externally archived computer before opening its screen even after preparation was cached", async () => {
+    const fixture = boxFixture();
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    await provider.prepare(computer, context);
+    fixture.get.mockResolvedValueOnce(infoResponse("bx_testbox2", "archived"));
+    await expect(
+      provider.connectScreen(computer, { view: "stream", interactive: false }, context),
+    ).resolves.toHaveProperty("url");
+    expect(fixture.resume).toHaveBeenCalledTimes(1);
+  });
+
+  it("splits oversized restore files into bounded requests and atomically assembles them", async () => {
+    const fixture = boxFixture();
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    const content = Buffer.alloc(8 * 1024 * 1024, 0xa7);
+    await provider.writeFile(computer, { path: "large.bin", content }, context);
+    const chunks = fixture.writeFile.mock.calls
+      .map(([r]) => r.fileWriteRequest)
+      .filter((r) => r.path.includes(".rakazo-upload-"));
+    expect(chunks).toHaveLength(3);
+    expect(chunks.every((c) => c.content.length < 5 * 1024 * 1024)).toBe(true);
+    expect(Buffer.concat(chunks.map((c) => Buffer.from(c.content, "base64")))).toEqual(content);
+    expect(
+      fixture.command.mock.calls.some(
+        ([r]) =>
+          r.commandRequest.command.includes("mv -f --") &&
+          r.commandRequest.command.includes("large.bin"),
+      ),
+    ).toBe(true);
   });
 
   it("captures independent desktops and exposes protected ports", async () => {

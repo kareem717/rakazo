@@ -83,6 +83,11 @@ export class LinuxDesktop {
     return { env, key, layout, token: match[2]! };
   }
 
+  /** Resolve this execution's assigned browser display, using the same lease as screen tools. */
+  async browserDisplay(computer: ComputerRef, context: AdapterContext): Promise<string> {
+    return (await this.ensure(computer, context)).layout.display;
+  }
+
   async connectScreen(
     computer: ComputerRef,
     request: ScreenRequest,
@@ -109,6 +114,19 @@ export class LinuxDesktop {
 
   async connectTerminal(computer: ComputerRef, request: TerminalRequest, context: AdapterContext) {
     const screen = await this.ensure(computer, context);
+    // Taking control grants the backend lease before the screen transport is ready.
+    // A shell may open first, so publish the same fenced control token here too.
+    await this.run(
+      computer,
+      desktopControlCommand(
+        screen.key,
+        context.screenLeaseId,
+        screen.env,
+        true,
+        request.controlToken,
+      ),
+      context,
+    );
     const terminalToken = randomUUID();
     await this.run(
       computer,

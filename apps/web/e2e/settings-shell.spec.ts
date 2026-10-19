@@ -114,3 +114,50 @@ test("Honcho memory settings empty and filled", async ({ page }, testInfo) => {
   await expect(memory.getByRole("button", { name: "Connect", exact: true })).toBeEnabled();
   await captureScreenshot(page, testInfo, "memory-honcho-filled");
 });
+
+test("Hindsight memory settings map existing bot banks", async ({ page }, testInfo) => {
+  // This screen never submits credentials or contacts Hindsight.
+  const stamp = Date.now();
+  await signup(page, `memory-hindsight-${stamp}@rakazo.test`, "password12", "Memory settings");
+  await completeOnboarding(page);
+  const settings = await openUserSettings(page, "memory");
+  const memory = settings.getByTestId("memory-settings");
+  await memory.getByLabel("Provider").selectOption("hindsight");
+  const connect = memory.getByRole("button", { name: "Connect", exact: true });
+  await expect(connect).toBeDisabled();
+  await expect(memory.getByRole("button", { name: "Recall only", exact: true })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await memory.getByLabel("API URL", { exact: true }).fill("https://memory.example.test/api");
+  await memory.getByLabel("API key", { exact: true }).fill("hindsight-test-key");
+  await expect(connect).toBeDisabled();
+  await memory
+    .getByLabel(/^Bank for /)
+    .first()
+    .fill("profile-one");
+  await expect(connect).toBeEnabled();
+  await memory.locator("summary").filter({ hasText: "Shared memory" }).click();
+  await expect(memory.getByLabel("Shared bank", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "memory-hindsight-mapped");
+});
+
+test("Hindsight offers automatic retention after enabling writes", async ({ page }, testInfo) => {
+  await signup(
+    page,
+    `retention-settings-${Date.now()}@rakazo.test`,
+    "password12",
+    "Retention settings",
+  );
+  await completeOnboarding(page);
+  const settings = await openUserSettings(page, "memory");
+  const memory = settings.getByTestId("memory-settings");
+  await memory.getByLabel("Provider").selectOption("hindsight");
+  const retain = memory.getByRole("button", { name: "Retain new conversations", exact: true });
+  await expect(retain).toHaveCount(0);
+  await memory.getByRole("button", { name: "Recall and write", exact: true }).click();
+  await expect(retain).toHaveAttribute("aria-pressed", "false");
+  await retain.click();
+  await expect(retain).toHaveAttribute("aria-pressed", "true");
+  await captureScreenshot(page, testInfo, "hindsight-automatic-retention-settings");
+});

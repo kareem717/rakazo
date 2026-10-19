@@ -17,9 +17,11 @@ import { combineSignals, redactConnectorPayload } from "./connector-safety.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 import { createPrivateNetworkFetch, createSafeRemoteFetch } from "./remote-mcp.js";
 import { persistPreparedSecret } from "./secret-persistence.js";
+import { generateTotp } from "./totp.js";
 import { readBodyCapped, withAbort } from "./web-ssrf.js";
 
 export type BotSecretScope = { userId: string; spaceId: string; botId: string };
+const BOT_SECRET_LIMIT = 500;
 function scopeFields({ userId, spaceId, botId }: BotSecretScope): BotSecretScope {
   return { userId, spaceId, botId };
 }
@@ -101,6 +103,8 @@ function isCommandCredential(auth: unknown): boolean {
  * listed with the environment variable its shell commands read instead.
  */
 export function botSecretToolView(row: { name: string; origin: string; auth: unknown }) {
+  const parsed = BotSecretAuth.safeParse(row.auth);
+  row = { name: row.name, origin: row.origin, auth: parsed.success ? parsed.data : null };
   if (!isCommandCredential(row.auth)) return row;
   const variable = commandVariableName(row.name);
   const problem = commandVariableProblem(variable);
@@ -131,7 +135,7 @@ export async function loadBotCommandEnvironment(
     where: scopeFields(scope),
     select: { id: true, name: true, auth: true, ciphertext: true },
     orderBy: { name: "asc" },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
   const environment: Record<string, string> = {};
   for (const row of rows) {
@@ -190,7 +194,7 @@ export async function findCommandVariableConflict(
   const rows = await client.botSecret.findMany({
     where: { ...scopeFields(scope), name: { not: destination.name } },
     select: { name: true, auth: true },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
   return rows.find(
     (row) => isCommandCredential(row.auth) && commandVariableName(row.name) === variable,
@@ -357,7 +361,9 @@ export function sameSecretDestination(
   return (
     left.name === right.name &&
     left.origin === right.origin &&
-    JSON.stringify(left.auth) === JSON.stringify(right.auth)
+    (left.auth.type === "login" && right.auth.type === "login"
+      ? left.auth.label === right.auth.label
+      : JSON.stringify(left.auth) === JSON.stringify(right.auth))
   );
 }
 
@@ -379,8 +385,11 @@ export async function prepareBotSecret(input: {
   const { prisma, secretStore, scope, plaintext } = input;
   if (!plaintext || plaintext.length > 16_384) throw new Error("Invalid credential length");
   const destination = normalizeSecretDestination(input.destination);
-  if (destination.auth.type === "login") decodeLoginSecret(plaintext);
-  else if (destination.auth.type === "command") {
+  if (destination.auth.type === "login") {
+    const login = decodeLoginSecret(plaintext);
+    const { hasMfa: _previousMfa, ...auth } = destination.auth;
+    destination.auth = { ...auth, ...(login.mfaSecret ? { hasMfa: true } : {}) };
+  } else if (destination.auth.type === "command") {
     // NUL cannot be an environment value. An unpaired surrogate cannot be percent-encoded
     // later, and that throw would abort every subsequent shell command for this bot.
     if (plaintext.includes("\0") || percentEncoded(plaintext) === undefined) {
@@ -393,7 +402,7 @@ export async function prepareBotSecret(input: {
   function validate(row: typeof existing, count: number) {
     if (row && !sameSecretDestination(normalizeSecretDestination(row), destination))
       throw new Error("Remove the existing credential before changing its destination");
-    if (!row && count >= 100) throw new Error("Credential limit reached");
+    if (!row && count >= BOT_SECRET_LIMIT) throw new Error("Credential limit reached");
   }
   validate(existing, await prisma.botSecret.count({ where: scopeFields(scope) }));
   const id = existing?.id ?? randomBytes(12).toString("hex");
@@ -426,7 +435,13 @@ export async function prepareBotSecret(input: {
       if (current?.id !== existing?.id)
         throw Object.assign(new Error("Credential changed while saving; retry"), { code: "P2034" });
       if (current)
-        await tx.botSecret.update({ where: { id }, data: { ciphertext: stored.ciphertext } });
+        await tx.botSecret.update({
+          where: { id },
+          data: {
+            ciphertext: stored.ciphertext,
+            ...(destination.auth.type === "login" ? { auth: destination.auth } : {}),
+          },
+        });
       else
         await tx.botSecret.create({
           data: { id, ...scopeFields(scope), ...destination, ciphertext: stored.ciphertext },
@@ -452,7 +467,7 @@ export async function listBotSecrets(prisma: PrismaClient, scope: BotSecretScope
     where: scopeFields(scope),
     select: metadata,
     orderBy: { name: "asc" },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
   return rows.map(botSecretToolView);
 }
@@ -465,7 +480,7 @@ export function listBotSecretMetadata(prisma: PrismaClient, scope: BotSecretScop
     where: scopeFields(scope),
     select: ownerMetadata,
     orderBy: { name: "asc" },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
 }
 
@@ -582,7 +597,7 @@ export async function requestWithBotSecret(input: {
   }
 }
 
-export type LoginField = "username" | "password";
+export type LoginField = "username" | "email" | "password" | "mfa";
 const MIN_REDACTED_USERNAME = 6;
 
 /**
@@ -623,18 +638,33 @@ export async function resolveLoginFill(input: {
     return { error: "Website logins can only be filled on an HTTPS origin." };
   }
   const login = decodeLoginSecret(await input.secretStore.load(row.ciphertext, row.id));
+  if (input.field === "mfa" && !login.mfaSecret)
+    return {
+      error:
+        "This account has no saved MFA secret. Update the credential or request user takeover.",
+    };
+  const text =
+    input.field === "mfa"
+      ? generateTotp(login.mfaSecret!)
+      : input.field === "username"
+        ? (login.username ?? login.email)
+        : input.field === "email"
+          ? (login.email ?? (login.username?.includes("@") ? login.username : undefined))
+          : login.password;
+  if (!text) return { error: "This account has no saved email address." };
+  const protectedValues = [
+    login.password,
+    login.mfaSecret,
+    input.field === "mfa" ? text : undefined,
+    ...[login.username, login.email].filter(
+      (value) => value && value.length >= MIN_REDACTED_USERNAME,
+    ),
+  ].filter((value): value is string => Boolean(value));
   return {
-    text: login[input.field],
+    text,
     origin: destination.origin,
-    // Redaction is substring replacement, so a short username would mangle unrelated text.
     redactions: [
-      ...new Set(
-        [login.password, encodeURIComponent(login.password)].concat(
-          login.username.length >= MIN_REDACTED_USERNAME
-            ? [login.username, encodeURIComponent(login.username)]
-            : [],
-        ),
-      ),
+      ...new Set(protectedValues.flatMap((value) => [value, encodeURIComponent(value)])),
     ],
   };
 }

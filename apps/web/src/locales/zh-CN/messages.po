@@ -317,8 +317,8 @@ msgid "Account"
 msgstr "账户"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "账户默认"
+#~ msgid "Account default"
+#~ msgstr "账户默认"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -327,6 +327,10 @@ msgstr "账户 ID"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Account label"
+msgstr ""
+
+#: src/pages/shell/bot-credentials.tsx
+msgid "Account label (optional)"
 msgstr ""
 
 #: src/pages/PluginsOverlay.tsx
@@ -612,6 +616,7 @@ msgstr "API 已恢复，但更新未完成。请查看宿主日志。"
 #: src/components/AskCard.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/lib/localized-provider-hint.ts
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -622,6 +627,10 @@ msgstr "API 密钥"
 #: src/pages/PluginsOverlay.tsx
 msgid "API key header"
 msgstr "API 密钥请求头"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "API URL"
+msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
@@ -793,6 +802,11 @@ msgstr "备用模型顺序"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Backup models saved."
 msgstr "备用模型已保存。"
+
+#. placeholder {0}: bot.name
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Bank for {0}"
+msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Base URL"
@@ -1281,6 +1295,7 @@ msgid "Confirmations"
 msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1332,6 +1347,7 @@ msgstr "已连接，下一条消息起即可使用其工具。"
 
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1589,6 +1605,10 @@ msgstr "无法加载备用模型。"
 msgid "Could not load billing"
 msgstr ""
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Could not load bots"
+msgstr ""
+
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
 msgstr ""
@@ -1646,6 +1666,10 @@ msgstr "无法加载更新状态"
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not load voice settings"
 msgstr "无法加载语音设置"
+
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
 
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
@@ -2234,6 +2258,11 @@ msgstr "编辑资料"
 msgid "Email"
 msgstr "邮箱"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "Email (optional)"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Email is not allowed to register"
 msgstr "该邮箱不允许注册"
@@ -2255,7 +2284,7 @@ msgid "Enter a password"
 msgstr "请输入密码"
 
 #: src/pages/shell/bot-credentials.tsx
-msgid "Enter a username and password"
+msgid "Enter a username or email, a password, and a valid MFA secret if provided"
 msgstr ""
 
 #: src/lib/user-error.ts
@@ -3050,6 +3079,11 @@ msgstr "已发给 {peer}"
 msgid "Messaging"
 msgstr "消息"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "MFA secret (optional)"
+msgstr ""
+
 #: src/lib/call-session.ts
 msgid "Microphone failed"
 msgstr "麦克风失败"
@@ -3374,6 +3408,10 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "No trigger"
 msgstr "无触发器"
+
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
@@ -3732,10 +3770,12 @@ msgstr "朗读回复"
 msgid "Reasoning effort"
 msgstr "推理强度"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall and write"
 msgstr ""
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
 msgstr ""
@@ -4021,6 +4061,10 @@ msgstr "已恢复"
 msgid "Restoring your workspace"
 msgstr ""
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Retain new conversations"
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx
@@ -4231,6 +4275,14 @@ msgstr "搜索提供方"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4248,6 +4300,10 @@ msgstr "选择 Bot"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "选择已连接的模型"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4340,6 +4396,10 @@ msgstr "形状"
 msgid "Shared"
 msgstr "共享"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared bank"
+msgstr ""
+
 #: src/pages/shell/dialogs.tsx
 msgid "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all reply in the same thread."
 msgstr ""
@@ -4347,6 +4407,10 @@ msgstr ""
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared documents"
 msgstr "共享文档"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared memory"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared skills"
@@ -4487,6 +4551,7 @@ msgstr "空间已更改。重新打开“模型”以加载备用列表。"
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "空间已更改。重新打开“模型”以保存备用列表。"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "工作区默认"
@@ -5085,11 +5150,16 @@ msgstr ""
 msgid "View chat"
 msgstr "查看聊天"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "语音"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

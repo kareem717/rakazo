@@ -13,10 +13,47 @@ import {
   findDefaultModelCredential,
   findDefaultVoiceCredential,
   findModelCredential,
+  findVoiceCredential,
 } from "@rakazo/db";
 import type { RouterDeps } from "./router.js";
 import { resolveThreadTarget } from "./thread-target.js";
 import { voiceCredentialServer } from "./voice.js";
+
+async function reachableVoiceCredentials(
+  deps: RouterDeps,
+  actor: Actor,
+  botIds: string[] | undefined,
+  onlyDefault: boolean,
+) {
+  const [defaults, bots] = await Promise.all([
+    onlyDefault
+      ? findDefaultVoiceCredential(deps.prisma, actor).then((credential) =>
+          credential ? [{ credential }] : [],
+        )
+      : deps.prisma.spaceVoicePreference.findMany({
+          where: { userId: actor.userId, spaceId: actor.spaceId },
+          include: { credential: true },
+        }),
+    deps.prisma.bot.findMany({
+      where: {
+        userId: actor.userId,
+        spaceId: actor.spaceId,
+        archivedAt: null,
+        ...(botIds ? { id: { in: botIds } } : {}),
+      },
+      select: { voiceProvider: true, voiceId: true },
+    }),
+  ]);
+  const providers = [
+    ...new Set(
+      bots.filter((bot) => bot.voiceId && bot.voiceProvider).map((bot) => bot.voiceProvider!),
+    ),
+  ];
+  const assigned = await Promise.all(
+    providers.map((provider) => findVoiceCredential(deps.prisma, actor, provider)),
+  );
+  return [...defaults, ...assigned.flatMap((credential) => (credential ? [{ credential }] : []))];
+}
 
 export async function aiConsentStatus(
   deps: RouterDeps,
@@ -85,14 +122,7 @@ export async function aiConsentStatus(
         })
       : [],
     uses.includes("voice")
-      ? query.uses
-        ? findDefaultVoiceCredential(deps.prisma, actor).then((credential) =>
-            credential ? [{ credential }] : [],
-          )
-        : deps.prisma.spaceVoicePreference.findMany({
-            where: { userId: actor.userId, spaceId: actor.spaceId },
-            include: { credential: true },
-          })
+      ? reachableVoiceCredentials(deps, actor, botIds, Boolean(query.uses))
       : [],
     uses.includes("memory")
       ? deps.prisma.spaceMemoryConfig.findUnique({ where: { spaceId: actor.spaceId } })

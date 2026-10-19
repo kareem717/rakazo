@@ -1808,6 +1808,16 @@ describe("computer terminal and file transfer", () => {
     });
   });
 
+  it("returns a recoverable conflict when the terminal's screen lease is busy", async () => {
+    const { sandbox, prisma, call } = setup(controlled);
+    sandbox.connectTerminal.mockRejectedValueOnce(new ComputerScreenUnavailableError());
+    await expect(call("terminalUrl", {})).resolves.toMatchObject({
+      status: 409,
+      body: { json: { code: "CONFLICT", message: COMPUTER_SCREEN_UNAVAILABLE } },
+    });
+    expect(prisma.computer.updateMany).not.toHaveBeenCalled();
+  });
+
   it("clears the row when the provider reclaimed the sandbox before the terminal opened", async () => {
     const gone = setup(controlled);
     gone.sandbox.connectTerminal.mockRejectedValueOnce(

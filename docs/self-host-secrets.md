@@ -112,3 +112,24 @@ later" item.
 
 Stored credentials can use self-hosted Infisical while short-lived secrets stay
 encrypted in Postgres. See [Infisical setup, migration, and rollback](./infisical-secrets.md).
+
+## Saved website accounts
+
+In a bot’s settings, open Advanced → Credentials and choose Website login. Give each
+account a distinct name, such as `portal-work` and `portal-personal`, even when both
+use the same site. An optional account label helps the bot choose the account you
+request. Use the exact HTTPS sign-in origin; additional sites can have their own
+named credentials.
+
+Save a username or email, password, and optionally an MFA setup key (Base32 or a
+`otpauth://totp/` URI). The setup key is the persistent authenticator secret, not a
+six-digit code. Protected values are encrypted and cannot be read back. To change
+or remove an MFA key, replace that account’s saved login; leaving the MFA field
+empty removes its previous key.
+
+The bot lists account names, labels, sites, and whether MFA is available. It fills
+`username`, `email`, `password`, or `mfa` through `browser_act` with `fill_secret`;
+MFA codes are generated in the backend and are not returned to the model. Fills
+require the saved HTTPS origin. If the requested account is ambiguous, the bot
+asks which to use. CAPTCHA, passkeys, and MFA without a saved setup key still need
+user takeover.

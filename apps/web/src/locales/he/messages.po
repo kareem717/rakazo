@@ -317,8 +317,8 @@ msgid "Account"
 msgstr "חשבון"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "ברירת המחדל של החשבון"
+#~ msgid "Account default"
+#~ msgstr "ברירת המחדל של החשבון"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -328,6 +328,10 @@ msgstr "מזהה חשבון"
 #: src/pages/PluginsOverlay.tsx
 msgid "Account label"
 msgstr "תווית חשבון"
+
+#: src/pages/shell/bot-credentials.tsx
+msgid "Account label (optional)"
+msgstr ""
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Accounts"
@@ -612,6 +616,7 @@ msgstr "ה-API חזר לפעול, אבל העדכון לא הושלם. יש לב
 #: src/components/AskCard.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/lib/localized-provider-hint.ts
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -622,6 +627,10 @@ msgstr "מפתח API"
 #: src/pages/PluginsOverlay.tsx
 msgid "API key header"
 msgstr "header של מפתח API"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "API URL"
+msgstr ""
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
@@ -793,6 +802,11 @@ msgstr "סדר מודלי הגיבוי"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Backup models saved."
 msgstr "מודלי הגיבוי נשמרו."
+
+#. placeholder {0}: bot.name
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Bank for {0}"
+msgstr ""
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Base URL"
@@ -1281,6 +1295,7 @@ msgid "Confirmations"
 msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1332,6 +1347,7 @@ msgstr "מחובר. הכלים שלו יהיו זמינים החל מההודע�
 
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1589,6 +1605,10 @@ msgstr "לא ניתן לטעון את מודלי הגיבוי"
 msgid "Could not load billing"
 msgstr "לא ניתן לטעון את החיוב"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Could not load bots"
+msgstr ""
+
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
 msgstr "לא ניתן לטעון את הבוטים. יש לטעון מחדש כדי לנסות שוב."
@@ -1646,6 +1666,10 @@ msgstr "לא ניתן לטעון את סטטוס העדכון"
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not load voice settings"
 msgstr "לא ניתן לטעון את הגדרות הקול"
+
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
 
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
@@ -2234,6 +2258,11 @@ msgstr "עריכת פרופיל"
 msgid "Email"
 msgstr "אימייל"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "Email (optional)"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "Email is not allowed to register"
 msgstr "האימייל הזה לא מורשה להירשם"
@@ -2255,8 +2284,8 @@ msgid "Enter a password"
 msgstr "יש להזין סיסמה"
 
 #: src/pages/shell/bot-credentials.tsx
-msgid "Enter a username and password"
-msgstr "יש להזין שם משתמש וסיסמה"
+msgid "Enter a username or email, a password, and a valid MFA secret if provided"
+msgstr ""
 
 #: src/lib/user-error.ts
 msgid "Enter a valid email"
@@ -3050,6 +3079,11 @@ msgstr "נשלחה הודעה אל {peer}"
 msgid "Messaging"
 msgstr "הודעות"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "MFA secret (optional)"
+msgstr ""
+
 #: src/lib/call-session.ts
 msgid "Microphone failed"
 msgstr "המיקרופון נכשל"
@@ -3374,6 +3408,10 @@ msgstr "אין כלים זמינים."
 #: src/pages/RoutineEditor.tsx
 msgid "No trigger"
 msgstr "ללא טריגר"
+
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
@@ -3732,10 +3770,12 @@ msgstr "הקראת תשובות בקול"
 msgid "Reasoning effort"
 msgstr "רמת חשיבה"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall and write"
 msgstr "שליפה וכתיבה"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
 msgstr "שליפה בלבד"
@@ -4021,6 +4061,10 @@ msgstr "שוחזר"
 msgid "Restoring your workspace"
 msgstr "משחזר את סביבת העבודה"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Retain new conversations"
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx
@@ -4231,6 +4275,14 @@ msgstr "חיפוש ספקים"
 msgid "Search runs"
 msgstr "חיפוש הרצות"
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4248,6 +4300,10 @@ msgstr "בחירת בוט"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "בחירת מודל מחובר"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4340,6 +4396,10 @@ msgstr "צורה"
 msgid "Shared"
 msgstr "משותף"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared bank"
+msgstr ""
+
 #: src/pages/shell/dialogs.tsx
 msgid "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all reply in the same thread."
 msgstr "צ׳אט משותף עם {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} בוטים. כולם עונים באותו שרשור."
@@ -4347,6 +4407,10 @@ msgstr "צ׳אט משותף עם {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} בוטי�
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared documents"
 msgstr "מסמכים משותפים"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared memory"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared skills"
@@ -4487,6 +4551,7 @@ msgstr "המרחב השתנה. יש לפתוח מחדש את המודלים כד
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "המרחב השתנה. יש לפתוח מחדש את המודלים כדי לשמור את רשימת הגיבוי שלו."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "ברירת המחדל של המרחב"
@@ -5085,11 +5150,16 @@ msgstr "גרסה"
 msgid "View chat"
 msgstr "צפייה בצ׳אט"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "קול"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

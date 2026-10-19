@@ -196,7 +196,7 @@ describe("browser tools", () => {
     ).toEqual([{ kind: "fill_secret", ref: "e1", secret: "site_login", field: "password" }]);
     expect(() =>
       parseBrowserActions([{ kind: "fill_secret", ref: "e1", secret: "site_login", field: "pin" }]),
-    ).toThrow(/username or password/);
+    ).toThrow(/username, email, password, or mfa/);
     expect(() =>
       parseBrowserActions([{ kind: "fill_secret", ref: "e1", field: "password" }]),
     ).toThrow(/secret/);
@@ -223,8 +223,15 @@ describe("browser tools", () => {
       const ref = (name: string) => snap.elements.find((el) => el.name.includes(name))!.ref;
       return { email: ref("Email"), password: ref("Password") };
     }
-    const values = { username: "fake-user@example.test", password: "fake-password-1" };
-    const resolveSecretFill = async (step: { field: "username" | "password" }) => ({
+    const values = {
+      username: "fake-user@example.test",
+      password: "fake-password-1",
+      email: "fake-user@example.test",
+      mfa: "123456",
+    };
+    const resolveSecretFill = async (step: {
+      field: "username" | "password" | "email" | "mfa";
+    }) => ({
       text: values[step.field],
       origin: "https://login.example.test",
     });

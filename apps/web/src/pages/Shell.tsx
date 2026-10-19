@@ -12,6 +12,7 @@ import type {
   Connection,
   ConnectionCatalogItem,
   Group,
+  LoginSecretDetails,
   Me,
   MessageReaction,
   ProductEvent,
@@ -647,9 +648,10 @@ function SpaceShell() {
   const memoryProviderConfigRevision = useRef(0);
   const call = useCallSession();
   /** Calls a bot, or opens voice settings first when no voice is connected. */
-  const callBot = (bot: Bot) => {
+  const callBot = async (bot: Bot) => {
     if (!bootstrapMe?.phoneCallsEnabled) return;
-    if (!voiceStatus?.ready) {
+    const status = await rpc.voice.status({ botId: bot.id }).catch(() => null);
+    if (!status?.ready) {
       openSettings("voice");
       return;
     }
@@ -657,7 +659,7 @@ function SpaceShell() {
       botId: bot.id,
       botName: bot.name,
       botColor: bot.color,
-      transcribe: voiceStatus ? Boolean(voiceStatus.transcribe) : undefined,
+      transcribe: status.transcribe,
     });
   };
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
@@ -1404,10 +1406,19 @@ function SpaceShell() {
   }, []);
 
   useEffect(() => {
+    let current = true;
     void rpc.voice
-      .status()
-      .then(setVoiceStatus)
+      .status({ botId: active?.id })
+      .then((status) => {
+        if (current) setVoiceStatus(status);
+      })
       .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [active?.id, active?.voiceId, active?.voiceProvider]);
+
+  useEffect(() => {
     const unsubSpeech = speaker.subscribe((state) => {
       setSpeakingMessageId(state.status === "idle" ? null : (state.messageId ?? null));
     });
@@ -2242,7 +2253,12 @@ function SpaceShell() {
     if (botId) void jumpToMessageRef.current({ botId, messageId }).catch(() => undefined);
   }, []);
   const answerMessage = useCallback(
-    async (message: ThreadMessage, text: string, username?: string) => {
+    async (
+      message: ThreadMessage,
+      text: string,
+      username?: string,
+      details?: LoginSecretDetails,
+    ) => {
       const botId = activeBotId.current;
       const groupId = activeGroupId.current;
       if (!botId && !groupId) return;
@@ -2252,6 +2268,8 @@ function SpaceShell() {
         messageId: message.id,
         answer: text,
         ...(username ? { username } : {}),
+        ...(details?.email ? { email: details.email } : {}),
+        ...(details?.mfaSecret ? { mfaSecret: details.mfaSecret } : {}),
       });
       if (groupId && activeGroupId.current === groupId) {
         await refreshGroupThreadRef.current(groupId);
@@ -5012,7 +5030,10 @@ function SpaceShell() {
             onVoiceStatusMaybeChanged={async () => {
               try {
                 setVoiceStatus(
-                  await Promise.race([rpc.voice.status(), voiceStatusRefreshTimeout()]),
+                  await Promise.race([
+                    rpc.voice.status({ botId: active?.id }),
+                    voiceStatusRefreshTimeout(),
+                  ]),
                 );
               } catch {
                 // Prefer reopening Voice settings over starting a call with stale readiness.
@@ -5061,9 +5082,10 @@ function SpaceShell() {
           >
             <div
               data-testid="computer-chrome"
-              className="flex items-center justify-between gap-4 border-b border-sidebar-border px-[18px] py-3.5"
+              className="app-drag flex items-center justify-between gap-4 border-b border-sidebar-border px-[18px] py-3.5"
             >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="app-no-drag flex min-w-0 flex-1 items-center gap-3">
+                {desktopBridge() ? <WindowChrome /> : null}
                 <BotAvatar
                   color={computerBot.color}
                   identity={computerBot.id}
@@ -5095,7 +5117,7 @@ function SpaceShell() {
                   )
                 ) : null}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="app-no-drag flex items-center gap-3">
                 {composerRunning ? (
                   <Button
                     type="button"
@@ -5270,7 +5292,12 @@ const Transcript = memo(function Transcript({
   onCallBack?: () => void;
   onLoadOlder: () => void | Promise<void>;
   onOpenBot: (botId: string) => void;
-  onAnswer: (message: ThreadMessage, text: string, username?: string) => Promise<void>;
+  onAnswer: (
+    message: ThreadMessage,
+    text: string,
+    username?: string,
+    details?: LoginSecretDetails,
+  ) => Promise<void>;
   onReply: (message: ThreadMessage) => void;
   onQuote: (message: ThreadMessage, quote: string) => void;
   onReact: (message: ThreadMessage, reaction: MessageReaction) => Promise<void>;
@@ -7088,7 +7115,12 @@ const MessageView = memo(function MessageView({
   artifactTarget: ArtifactTarget;
   canAnswer: boolean;
   message: ThreadMessage;
-  onAnswer: (message: ThreadMessage, text: string, username?: string) => Promise<void>;
+  onAnswer: (
+    message: ThreadMessage,
+    text: string,
+    username?: string,
+    details?: LoginSecretDetails,
+  ) => Promise<void>;
   onOpenBot: (botId: string) => void;
   onOpenPeerMessages: (peer: { peerBotId: string; peerBotName: string }) => void;
   /** Set on a received marker whose peer run has folded replies. */
@@ -7518,7 +7550,7 @@ const MessageView = memo(function MessageView({
               key={i}
               block={block}
               canAnswer={canAnswer}
-              onAnswer={(text, username) => onAnswer(message, text, username)}
+              onAnswer={(text, username, details) => onAnswer(message, text, username, details)}
             />
           );
         }

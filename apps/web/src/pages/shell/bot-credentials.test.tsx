@@ -212,6 +212,36 @@ describe("BotCredentialsSection", () => {
     });
   });
 
+  it("saves an email-only login with MFA and clears protected inputs", async () => {
+    botSecrets.put.mockRejectedValue(new Error("Unavailable"));
+    await render();
+    await click("credential-add");
+    await type("credential-name", "portal-work");
+    await type("credential-origin", "https://portal.example.com");
+    await type("credential-auth-type", "login");
+    await type("credential-email", "fake-user@example.test");
+    await type("credential-mfa", "JBSWY3DPEHPK3PXP");
+    await type("credential-value", FAKE_VALUE);
+    await click("credential-add-save");
+    expect(botSecrets.put).toHaveBeenCalledWith({
+      botId: "bot-1",
+      destination: {
+        name: "portal-work",
+        origin: "https://portal.example.com",
+        auth: { type: "login" },
+      },
+      value: encodeLoginSecret({
+        email: "fake-user@example.test",
+        password: FAKE_VALUE,
+        mfaSecret: "JBSWY3DPEHPK3PXP",
+      }),
+    });
+    for (const field of ["credential-email", "credential-mfa", "credential-value"]) {
+      expect(byTestId<HTMLInputElement>(field).value).toBe("");
+    }
+    expect(container.innerHTML).not.toContain("JBSWY3DPEHPK3PXP");
+  });
+
   it("replaces a value on the same destination", async () => {
     botSecrets.put.mockResolvedValue(rows[2]);
     await render();

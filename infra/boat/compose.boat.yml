@@ -1,0 +1,64 @@
+services:
+  egress:
+    image: rakazo-egress:20261019
+    build: ./boat-network
+    container_name: rakazo-egress
+    restart: unless-stopped
+    environment:
+      BOAT_ENVIRONMENT: ${BOAT_ENVIRONMENT:-rakazo}
+      BOAT_ENVIRONMENT_ID: ${BOAT_ENVIRONMENT_ID:?Set BOAT_ENVIRONMENT_ID}
+      BOAT_WIREGUARD_ENDPOINT: ${BOAT_WIREGUARD_ENDPOINT:?Set BOAT_WIREGUARD_ENDPOINT}
+      BROWSER_PROXY_SSH_TARGET: ${BROWSER_PROXY_SSH_TARGET:?Set BROWSER_PROXY_SSH_TARGET}
+    cap_add: [NET_ADMIN, NET_RAW]
+    devices: [/dev/net/tun:/dev/net/tun]
+    volumes:
+      - ./boat-network:/deployment:ro
+      - ./boat-network/state:/state
+    sysctls:
+      net.ipv4.ip_forward: "1"
+      net.ipv6.conf.all.forwarding: "1"
+    dns: [1.1.1.1, 1.0.0.1]
+    ports:
+      - "127.0.0.1:3100:3100"
+      - "127.0.0.1:5173:5173"
+      - "${BOAT_BIND_IP:-0.0.0.0}:51871:51871/udp"
+    networks:
+      app:
+        aliases: [api, web, supervisor]
+      data: {}
+    healthcheck:
+      test: [CMD, curl, --fail, --silent, --max-time, "5", "http://127.0.0.1:8788/health"]
+      interval: 10s
+      timeout: 6s
+      start_period: 30s
+      retries: 12
+  api:
+    environment:
+      TOOL_EGRESS_PROXY_URL: socks5://10.202.0.1:1080
+    network_mode: service:egress
+    networks: !reset []
+    ports: !reset []
+    depends_on:
+      egress:
+        condition: service_healthy
+  worker:
+    environment:
+      TOOL_EGRESS_PROXY_URL: socks5://10.202.0.1:1080
+    network_mode: service:egress
+    networks: !reset []
+    depends_on:
+      egress:
+        condition: service_healthy
+  web:
+    network_mode: service:egress
+    networks: !reset []
+    ports: !reset []
+    depends_on:
+      egress:
+        condition: service_healthy
+  supervisor:
+    network_mode: service:egress
+    networks: !reset []
+    depends_on:
+      egress:
+        condition: service_healthy

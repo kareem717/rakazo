@@ -423,6 +423,7 @@ model Bot {
   computer          Computer?         @relation(fields: [computerId], references: [id], onDelete: SetNull)
   computerSwitching Boolean           @default(false)
   voiceId           String?
+  voiceProvider     String?
   autoSpeak         Boolean           @default(false)
   modelProvider     String?
   modelId           String?

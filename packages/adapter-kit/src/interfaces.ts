@@ -65,6 +65,7 @@ import type {
   SecretPutOptions,
   SecretRecord,
   SemanticMemoryCapabilities,
+  SemanticMemoryConversationRequest,
   SemanticMemoryForgetRequest,
   SemanticMemoryPurgeHistoryRequest,
   SemanticMemoryRecallRequest,
@@ -267,6 +268,11 @@ export interface SemanticMemoryProvider {
     request: SemanticMemoryPurgeHistoryRequest,
     context: AdapterContext,
   ): Promise<SemanticMemoryResponse>;
+  /** Optional automatic retention; implementations require explicit connection opt-in. */
+  retainConversation?(
+    request: SemanticMemoryConversationRequest,
+    context: AdapterContext,
+  ): Promise<SemanticMemoryResponse>;
   /** Optional durable forget. Providers without a forget verb omit this. */
   forget?(
     request: SemanticMemoryForgetRequest,
@@ -397,6 +403,8 @@ export interface VoiceProvider {
   describe(): AdapterDescriptor<VoiceCapabilities>;
   verify(apiKey: string, context: AdapterContext): Promise<VoiceVerifyResult>;
   listVoices(apiKey: string, context: AdapterContext): Promise<VoiceInfo[]>;
+  /** Search a provider's full library or resolve a pasted voice reference. */
+  searchVoices?(apiKey: string, query: string, context: AdapterContext): Promise<VoiceInfo[]>;
   synthesize(request: VoiceSynthesizeRequest, context: AdapterContext): Promise<SpeechClip>;
   transcribe?(request: VoiceTranscribeRequest, context: AdapterContext): Promise<{ text: string }>;
 }

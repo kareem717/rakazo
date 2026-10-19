@@ -43,7 +43,7 @@ function installPageHelper(url: string, html: string) {
         snapshot: () => {
           elements: Array<{ ref: string; name: string; role: string; value?: string }>;
         };
-        fill: (ref: string, value: string, origin?: string) => { url: string };
+        fill: (ref: string, value: string, origin?: string, secretField?: "mfa") => { url: string };
       };
     }
   ).__rakazoPageBrowser;
@@ -89,6 +89,17 @@ describe("live page helper saved-login fill", () => {
       );
     }
     expect(domWindow.document.body.textContent).not.toContain("leaked");
+  });
+
+  it("fills and masks a numeric MFA code only on the saved origin", () => {
+    const origin = "https://login.example.test";
+    const { domWindow, browser } = installPageHelper(`${origin}/signin`, html);
+    const pin = refFor("Pin", browser.snapshot().elements);
+    expect(() => browser.fill(pin, "123456", "https://other.example.test", "mfa")).toThrow(/site/);
+    expect(() => browser.fill(pin, "fake-password", origin, "mfa")).toThrow(/saved login/);
+    browser.fill(pin, "123456", origin, "mfa");
+    expect(fieldValue(domWindow, "Pin")).toBe("123456");
+    expect(JSON.stringify(browser.snapshot())).not.toContain("123456");
   });
 
   it("refuses a private-LAN HTTP origin in the same fill, even when the page matches", () => {

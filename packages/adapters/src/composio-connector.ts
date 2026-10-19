@@ -17,6 +17,7 @@ import {
 } from "./composio-catalog-cache.js";
 import { DestinationEmulator } from "./destination-emulator.js";
 import { isVitestRuntime } from "./test-runtime.js";
+import { connectorFetch } from "./tool-egress.js";
 
 type ComposioSession = Awaited<ReturnType<Composio["create"]>>;
 
@@ -699,7 +700,25 @@ export class ComposioConnector implements ComposioProvider {
   }
 
   private sdk(): Composio {
-    this.client ??= new Composio(this.apiKey ? { apiKey: this.apiKey } : undefined);
+    if (!this.client) {
+      const proxied = Boolean(process.env.TOOL_EGRESS_PROXY_URL);
+      this.client = new Composio({
+        ...(this.apiKey ? { apiKey: this.apiKey } : {}),
+        ...(proxied ? { allowTracking: false, disableVersionCheck: true } : {}),
+      });
+      if (proxied) {
+        // The wrapper does not expose custom fetch configuration. Its public
+        // client transport delegates to a configured clone, preserving SDK
+        // timeouts/retries and all models' existing references to this client.
+        const client = this.client.getClient();
+        const withOptions = client.withOptions.bind(client);
+        // SDK execution helpers clone the client to disable retries. Those
+        // siblings must inherit the same transport as the original client.
+        client.withOptions = (options) => withOptions({ ...options, fetch: connectorFetch });
+        const transport = client.withOptions({ fetch: connectorFetch });
+        client.fetchWithTimeout = transport.fetchWithTimeout.bind(transport);
+      }
+    }
     return this.client;
   }
 }

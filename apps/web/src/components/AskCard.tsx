@@ -1,7 +1,7 @@
 import { t } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { ChatMarkdown } from "@rakazo/chat-ui/web";
-import type { ThreadMessage } from "@rakazo/contracts";
+import type { LoginSecretDetails, ThreadMessage } from "@rakazo/contracts";
 import { BOT_INSTRUCTIONS_MAX_LENGTH, commandVariableName } from "@rakazo/contracts";
 import { isApprovalAskBlock, isSecretAskBlock, selectedAskActionLabel } from "@rakazo/core";
 import { Button, Input, Textarea } from "@rakazo/ui-web";
@@ -55,13 +55,15 @@ export function AskCard({
 }: {
   block: AskBlock;
   canAnswer: boolean;
-  onAnswer: (text: string, username?: string) => Promise<void>;
+  onAnswer: (text: string, username?: string, details?: LoginSecretDetails) => Promise<void>;
 }) {
   const { t } = useLingui();
   const [editing, setEditing] = useState(false);
   const [answer, setAnswer] = useState(block.instructionUpdate?.after ?? "");
   const [undone, setUndone] = useState(false);
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [mfaSecret, setMfaSecret] = useState("");
   const [pendingAction, setPendingAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const submitting = pendingAction !== null;
@@ -79,17 +81,25 @@ export function AskCard({
   async function submitAnswer(value: string) {
     if (submitting) return;
     if (secretInput ? value.length === 0 : !value.trim()) return;
-    const submitUsername = loginInput ? username.trim() : undefined;
-    if (loginInput && !submitUsername) return;
+    const submitUsername = loginInput ? username.trim() || undefined : undefined;
+    if (loginInput && !submitUsername && !email.trim()) return;
+    const details = loginInput
+      ? {
+          ...(email.trim() ? { email: email.trim() } : {}),
+          ...(mfaSecret.trim() ? { mfaSecret: mfaSecret.trim() } : {}),
+        }
+      : undefined;
     const submitValue = secretInput ? value : value.trim();
     setPendingAction(secretInput ? "submit" : submitValue);
     setError(null);
     if (secretInput) {
       setAnswer("");
       setUsername("");
+      setEmail("");
+      setMfaSecret("");
     }
     try {
-      await onAnswer(submitValue, submitUsername);
+      await onAnswer(submitValue, submitUsername, details);
     } catch (err) {
       // A secret answer's failure may echo the secret, so never show its message.
       setError(
@@ -278,10 +288,35 @@ export function AskCard({
             onChange={(event) => setAnswer(event.target.value)}
             placeholder={secretLabel}
           />
+          {loginInput ? (
+            <>
+              <Input
+                aria-label={t`Email (optional)`}
+                placeholder={t`Email (optional)`}
+                type="email"
+                autoComplete="off"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                disabled={submitting}
+              />
+              <Input
+                aria-label={t`MFA secret (optional)`}
+                placeholder={t`MFA secret (optional)`}
+                type="password"
+                autoComplete="new-password"
+                spellCheck={false}
+                value={mfaSecret}
+                onChange={(event) => setMfaSecret(event.target.value)}
+                disabled={submitting}
+              />
+            </>
+          ) : null}
           <Button
             type="submit"
             className="self-start"
-            disabled={answer.length === 0 || (loginInput && !username.trim()) || submitting}
+            disabled={
+              answer.length === 0 || (loginInput && !username.trim() && !email.trim()) || submitting
+            }
           >
             {submitting ? <Trans>Saving…</Trans> : <Trans>Save</Trans>}
           </Button>

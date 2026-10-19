@@ -172,7 +172,10 @@ export class PageBrowserSession {
           throw new Error("The page is not on the site this login was saved for.");
         }
         const inputType = el instanceof win.HTMLInputElement ? el.type : "";
-        if (!LOGIN_FILL_INPUT_TYPES.has(inputType)) {
+        if (
+          !LOGIN_FILL_INPUT_TYPES.has(inputType) &&
+          !(inputType === "number" && action.secretField === "mfa" && /^\d{6,8}$/.test(action.text))
+        ) {
           throw new Error(
             "A saved login can only be typed into a text, email, password, or telephone field.",
           );

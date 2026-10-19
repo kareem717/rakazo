@@ -389,6 +389,16 @@ export interface SemanticMemorySaveRequest {
   source: { kind: "durable" } | { kind: "history"; generation: number };
 }
 
+/** A completed run's visible conversation, separate from compaction generations. */
+export interface SemanticMemoryConversationRequest {
+  content: string;
+  part?: number;
+  scope: DurableMemoryScope;
+  botId: string;
+  runId: string;
+  createdAt: string;
+}
+
 export interface SemanticMemoryPurgeHistoryRequest {
   botId: string;
   generations: number[];
@@ -934,6 +944,8 @@ export type BrowserActStep =
       text: string;
       /** Refuse the step unless the page is on this origin when it is applied. */
       origin?: string;
+      /** Backend-only marker allowing a generated numeric MFA code. */
+      secretField?: "mfa";
     };
 
 export interface BrowserActRequest {

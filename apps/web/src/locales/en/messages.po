@@ -317,8 +317,8 @@ msgid "Account"
 msgstr "Account"
 
 #: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "Account default"
+#~ msgid "Account default"
+#~ msgstr "Account default"
 
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -328,6 +328,10 @@ msgstr "Account ID"
 #: src/pages/PluginsOverlay.tsx
 msgid "Account label"
 msgstr "Account label"
+
+#: src/pages/shell/bot-credentials.tsx
+msgid "Account label (optional)"
+msgstr "Account label (optional)"
 
 #: src/pages/PluginsOverlay.tsx
 msgid "Accounts"
@@ -612,6 +616,7 @@ msgstr "API is back, but the update did not finish. Check the host logs."
 #: src/components/AskCard.tsx
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/lib/localized-provider-hint.ts
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -622,6 +627,10 @@ msgstr "API key"
 #: src/pages/PluginsOverlay.tsx
 msgid "API key header"
 msgstr "API key header"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "API URL"
+msgstr "API URL"
 
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
@@ -793,6 +802,11 @@ msgstr "Backup models order"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Backup models saved."
 msgstr "Backup models saved."
+
+#. placeholder {0}: bot.name
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Bank for {0}"
+msgstr "Bank for {0}"
 
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
 msgid "Base URL"
@@ -1281,6 +1295,7 @@ msgid "Confirmations"
 msgstr "Confirmations"
 
 #: src/components/integrations/IntegrationSetup.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1332,6 +1347,7 @@ msgstr "Connected. Its tools are available from your next message."
 
 #: src/components/integrations/IntegrationSetup.tsx
 #: src/pages/McpServersOverlay.tsx
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/HonchoSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 #: src/pages/memory-providers/SupermemorySettingsForm.tsx
@@ -1589,6 +1605,10 @@ msgstr "Could not load backup models"
 msgid "Could not load billing"
 msgstr "Could not load billing"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Could not load bots"
+msgstr "Could not load bots"
+
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
 msgstr "Could not load bots. Reload to try again."
@@ -1646,6 +1666,10 @@ msgstr "Could not load update status"
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not load voice settings"
 msgstr "Could not load voice settings"
+
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr "Could not load voices"
 
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
@@ -2234,6 +2258,11 @@ msgstr "Edit Profile"
 msgid "Email"
 msgstr "Email"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "Email (optional)"
+msgstr "Email (optional)"
+
 #: src/lib/user-error.ts
 msgid "Email is not allowed to register"
 msgstr "Email is not allowed to register"
@@ -2255,8 +2284,8 @@ msgid "Enter a password"
 msgstr "Enter a password"
 
 #: src/pages/shell/bot-credentials.tsx
-msgid "Enter a username and password"
-msgstr "Enter a username and password"
+msgid "Enter a username or email, a password, and a valid MFA secret if provided"
+msgstr "Enter a username or email, a password, and a valid MFA secret if provided"
 
 #: src/lib/user-error.ts
 msgid "Enter a valid email"
@@ -3050,6 +3079,11 @@ msgstr "Messaged {peer}"
 msgid "Messaging"
 msgstr "Messaging"
 
+#: src/components/AskCard.tsx
+#: src/pages/shell/bot-credentials.tsx
+msgid "MFA secret (optional)"
+msgstr "MFA secret (optional)"
+
 #: src/lib/call-session.ts
 msgid "Microphone failed"
 msgstr "Microphone failed"
@@ -3374,6 +3408,10 @@ msgstr "No tools available."
 #: src/pages/RoutineEditor.tsx
 msgid "No trigger"
 msgstr "No trigger"
+
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr "No voices found"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
@@ -3732,10 +3770,12 @@ msgstr "Read replies aloud"
 msgid "Reasoning effort"
 msgstr "Reasoning effort"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall and write"
 msgstr "Recall and write"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
 #: src/pages/memory-providers/SerenitySettingsForm.tsx
 msgid "Recall only"
 msgstr "Recall only"
@@ -4021,6 +4061,10 @@ msgstr "Restored"
 msgid "Restoring your workspace"
 msgstr "Restoring your workspace"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Retain new conversations"
+msgstr "Retain new conversations"
+
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx
@@ -4231,6 +4275,14 @@ msgstr "Search providers"
 msgid "Search runs"
 msgstr "Search runs"
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr "Search voices"
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr "Search voices or paste a voice link"
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4248,6 +4300,10 @@ msgstr "Select a bot"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "Select a connected model"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr "Select a voice"
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4340,6 +4396,10 @@ msgstr "Shape"
 msgid "Shared"
 msgstr "Shared"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared bank"
+msgstr "Shared bank"
+
 #: src/pages/shell/dialogs.tsx
 msgid "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all reply in the same thread."
 msgstr "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all reply in the same thread."
@@ -4347,6 +4407,10 @@ msgstr "Shared chat with {GROUP_MEMBER_MIN}-{GROUP_MEMBER_MAX} bots. They all re
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared documents"
 msgstr "Shared documents"
+
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Shared memory"
+msgstr "Shared memory"
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Shared skills"
@@ -4487,6 +4551,7 @@ msgstr "Space changed. Reopen Models to load its backup list."
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "Space changed. Reopen Models to save its backup list."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "Space default"
@@ -5085,11 +5150,16 @@ msgstr "Version"
 msgid "View chat"
 msgstr "View chat"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "Voice"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr "Voice provider"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

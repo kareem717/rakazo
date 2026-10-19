@@ -2317,7 +2317,11 @@ describe("answerRunInput", () => {
       const prisma = {
         $transaction: vi.fn(async (callback: (client: typeof tx) => unknown) => callback(tx)),
       } as unknown as PrismaClient;
-      const answer = (username?: string, password = "fake-password-1") =>
+      const answer = (
+        username?: string,
+        password = "fake-password-1",
+        details: { email?: string; mfaSecret?: string } = {},
+      ) =>
         answerRunInput(
           prisma,
           {
@@ -2327,6 +2331,7 @@ describe("answerRunInput", () => {
             messageId: "message-1",
             answeredByUserId: "user-1",
             answer: password,
+            ...details,
             ...(username !== undefined ? { username } : {}),
           },
           new TestFanout(),
@@ -2350,6 +2355,29 @@ describe("answerRunInput", () => {
       const recorded = JSON.stringify([tx.event.create.mock.calls, tx.message.update.mock.calls]);
       expect(recorded).not.toContain("fake-user@example.test");
       expect(recorded).not.toContain("fake-password-1");
+    });
+
+    it("encrypts an email-only MFA login without recording its protected fields", async () => {
+      const { store, tx, answer } = loginFixture();
+      const details = { email: "fake-user@example.test", mfaSecret: "JBSWY3DPEHPK3PXP" };
+      await expect(answer(undefined, "fake-password-1", details)).resolves.toBe(true);
+      expect(store).toHaveBeenCalledWith(
+        expect.objectContaining({
+          plaintext: encodeLoginSecret({ ...details, password: "fake-password-1" }),
+        }),
+      );
+      const recorded = JSON.stringify([tx.event.create.mock.calls, tx.message.update.mock.calls]);
+      for (const value of [...Object.values(details), "fake-password-1"])
+        expect(recorded).not.toContain(value);
+    });
+
+    it("rejects an invalid MFA seed before storing or resuming", async () => {
+      const { store, tx, answer } = loginFixture();
+      await expect(
+        answer("fake-user", "fake-password-1", { mfaSecret: "invalid-seed" }),
+      ).resolves.toBe(false);
+      expect(store).not.toHaveBeenCalled();
+      expect(tx.run.updateMany).not.toHaveBeenCalled();
     });
 
     it.each(["", "   "])("requires a username (%j)", async (username) => {

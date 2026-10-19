@@ -1,13 +1,14 @@
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
 import { readBoundedResponseBytes } from "@rakazo/core";
-import { Agent } from "undici";
+import type { Agent } from "undici";
 import {
   createAddressCheckedLookup,
   isPrivateAddress,
   type ResolvedAddress,
   type ResolveHostname,
 } from "./network-address.js";
+import { createToolAgent } from "./tool-egress.js";
 import { fetchPairedWithDispatcher } from "./undici-fetch.js";
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -109,9 +110,7 @@ export async function fetchSafeWebBytes(
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const maxBytes = options.maxBytes ?? DEFAULT_MAX_BYTES;
   const baseFetch = fetchPairedWithDispatcher(options.fetch);
-  const dispatcher = new Agent({
-    connect: { lookup: createAddressCheckedLookup(resolve, assertPublicAddresses) },
-  });
+  const dispatcher = createToolAgent(createAddressCheckedLookup(resolve, assertPublicAddresses));
   // One deadline for the whole redirect chain + body read + cleanup, not per hop.
   const signal = combineSignals(options.signal, AbortSignal.timeout(timeoutMs));
   const cleanup =

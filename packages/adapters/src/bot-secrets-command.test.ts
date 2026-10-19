@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import type { BotSecretDestination } from "@rakazo/contracts";
+import { encodeLoginSecret } from "@rakazo/contracts";
 import { redactSecrets } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
@@ -9,6 +10,7 @@ import { redactAgentCommandResult } from "./agent-environment.js";
 import {
   commandCredentialRedactions,
   forgetBotSecret,
+  listBotSecretMetadata,
   listBotSecrets,
   loadBotCommandEnvironment,
   requestWithBotSecret,
@@ -102,6 +104,31 @@ function save(
 }
 
 describe("storing a command variable", () => {
+  it("keeps a large bot vault usable through its limit and allows replacement at capacity", async () => {
+    const db = fakeDatabase();
+    for (let index = 0; index < 499; index++) {
+      db.rows().push({
+        ...scope,
+        id: `login-${index}`,
+        name: `account_${String(index).padStart(3, "0")}`,
+        origin: "https://example.test",
+        auth: { type: "login" },
+        ciphertext: "fixture-existing-login",
+      });
+    }
+    await save(db, "account_499", "fake-value-499");
+    expect(await listBotSecrets(db.prisma, scope)).toHaveLength(500);
+    expect(await listBotSecretMetadata(db.prisma, scope)).toHaveLength(500);
+    const environment = await loadBotCommandEnvironment(db.prisma, secretStore, scope);
+    expect(environment.ACCOUNT_499).toBe("fake-value-499");
+    await expect(save(db, "overflow", "fake-extra")).rejects.toThrow("Credential limit reached");
+    await save(db, "account_499", "fake-replacement");
+    expect((await loadBotCommandEnvironment(db.prisma, secretStore, scope)).ACCOUNT_499).toBe(
+      "fake-replacement",
+    );
+    expect(await listBotSecrets(db.prisma, { ...scope, botId: "another-bot" })).toHaveLength(0);
+  });
+
   it("stores the value with no site and decrypts it back", async () => {
     const db = fakeDatabase();
     await save(db, "netbird-setup-key", "fake-setup-key-1");
@@ -496,5 +523,142 @@ describe("shell command environment", () => {
     expect(
       await loadBotCommandEnvironment(db.prisma, secretStore, { ...scope, userId: "user-2" }),
     ).toEqual({});
+  });
+});
+
+describe("multiple website accounts and MFA", () => {
+  it("stores separate named accounts on the same site and across sites without leaking values", async () => {
+    const db = fakeDatabase();
+    const origin = "https://login.example.test";
+    const seed = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+    await save(
+      db,
+      "work",
+      encodeLoginSecret({
+        username: "work-user",
+        email: "work@example.test",
+        password: "fake-work-password",
+        mfaSecret: seed,
+      }),
+      { origin, auth: { type: "login", label: "Sales workspace" } },
+    );
+    await save(
+      db,
+      "personal",
+      encodeLoginSecret({ email: "personal@example.test", password: "fake-personal-password" }),
+      { origin, auth: { type: "login", label: "Personal account" } },
+    );
+    await save(
+      db,
+      "another",
+      encodeLoginSecret({ username: "another", password: "fake-other-password" }),
+      { origin: "https://other.example.test", auth: { type: "login", label: "Other service" } },
+    );
+    await save(
+      db,
+      "work",
+      encodeLoginSecret({ username: "someone-else", password: "fake-private-password" }),
+      { origin, auth: { type: "login", label: "Another bot" } },
+      { ...scope, botId: "bot-other" },
+    );
+    const listed = await listBotSecrets(db.prisma, scope);
+    expect(listed).toHaveLength(3);
+    expect(listed).toContainEqual({
+      name: "work",
+      origin,
+      auth: { type: "login", label: "Sales workspace", hasMfa: true },
+    });
+    expect(listed).toContainEqual({
+      name: "personal",
+      origin,
+      auth: { type: "login", label: "Personal account" },
+    });
+    expect(JSON.stringify(listed)).not.toMatch(
+      /fake-work-password|work@example|GEZDGNBV|fake-private-password/,
+    );
+    expect(JSON.stringify(db.rows())).not.toContain(seed);
+    expect(
+      await resolveLoginFill({
+        prisma: db.prisma,
+        secretStore,
+        scope,
+        name: "personal",
+        field: "username",
+      }),
+    ).toMatchObject({ text: "personal@example.test", origin });
+    expect(
+      await resolveLoginFill({
+        prisma: db.prisma,
+        secretStore,
+        scope,
+        name: "work",
+        field: "email",
+      }),
+    ).toMatchObject({ text: "work@example.test", origin });
+    vi.useFakeTimers();
+    try {
+      vi.setSystemTime(59000);
+      const resolved = await resolveLoginFill({
+        prisma: db.prisma,
+        secretStore,
+        scope,
+        name: "work",
+        field: "mfa",
+      });
+      expect(resolved).toMatchObject({
+        text: "287082",
+        origin,
+        redactions: expect.arrayContaining([seed, "287082", "fake-work-password"]),
+      });
+      vi.setSystemTime(60000);
+      expect(
+        await resolveLoginFill({
+          prisma: db.prisma,
+          secretStore,
+          scope,
+          name: "work",
+          field: "mfa",
+        }),
+      ).not.toMatchObject({ text: "287082" });
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(
+      await resolveLoginFill({
+        prisma: db.prisma,
+        secretStore,
+        scope,
+        name: "personal",
+        field: "mfa",
+      }),
+    ).toMatchObject({ error: expect.stringContaining("no saved MFA") });
+  });
+  it("updates and removes MFA on one account without changing another account on the same site", async () => {
+    const db = fakeDatabase(),
+      origin = "https://login.example.test",
+      auth = { type: "login" as const, label: "Work" };
+    await save(db, "work", encodeLoginSecret({ username: "work", password: "fake-password" }), {
+      origin,
+      auth,
+    });
+    await save(
+      db,
+      "work",
+      encodeLoginSecret({
+        username: "work",
+        password: "fake-password",
+        mfaSecret: "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ",
+      }),
+      { origin, auth },
+    );
+    expect((await listBotSecrets(db.prisma, scope))[0]).toMatchObject({ auth: { hasMfa: true } });
+    await save(db, "work", encodeLoginSecret({ username: "work", password: "fake-password" }), {
+      origin,
+      auth,
+    });
+    expect((await listBotSecrets(db.prisma, scope))[0]).toMatchObject({
+      auth: { type: "login", label: "Work" },
+    });
+    expect((await listBotSecrets(db.prisma, scope))[0]?.auth).not.toHaveProperty("hasMfa");
   });
 });
