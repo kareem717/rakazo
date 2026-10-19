@@ -316,10 +316,6 @@ msgstr "액세스 토큰(선택 사항)"
 msgid "Account"
 msgstr "계정"
 
-#: src/pages/shell/bot-panel.tsx
-#~ msgid "Account default"
-#~ msgstr "계정 기본값"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -901,6 +897,10 @@ msgstr ""
 
 #: src/components/computer/ComputerWorkspace.tsx
 msgid "Browser"
+msgstr ""
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
 msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
@@ -4587,6 +4587,10 @@ msgstr "음성 모델"
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO를 일시적으로 사용할 수 없습니다. 다시 시도하세요."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"

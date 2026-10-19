@@ -316,10 +316,6 @@ msgstr "Jeton d'accès (optionnel)"
 msgid "Account"
 msgstr "Compte"
 
-#: src/pages/shell/bot-panel.tsx
-#~ msgid "Account default"
-#~ msgstr "Défaut du compte"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -901,6 +897,10 @@ msgstr "Parcourir les serveurs MCP"
 
 #: src/components/computer/ComputerWorkspace.tsx
 msgid "Browser"
+msgstr ""
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
 msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
@@ -4587,6 +4587,10 @@ msgstr "Modèle de parole"
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO est temporairement indisponible. Réessayez."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"

@@ -316,10 +316,6 @@ msgstr "טוקן גישה (אופציונלי)"
 msgid "Account"
 msgstr "חשבון"
 
-#: src/pages/shell/bot-panel.tsx
-#~ msgid "Account default"
-#~ msgstr "ברירת המחדל של החשבון"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -902,6 +898,10 @@ msgstr "עיון בשרתי MCP"
 #: src/components/computer/ComputerWorkspace.tsx
 msgid "Browser"
 msgstr "דפדפן"
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
+msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
 msgid "Built-in"
@@ -4587,6 +4587,10 @@ msgstr "מודל דיבור"
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO אינו זמין כרגע. אפשר לנסות שוב."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"

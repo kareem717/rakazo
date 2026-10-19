@@ -3007,7 +3007,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
   const contextStrategy = deps.contextStrategy ?? DEFAULT_CONTEXT_STRATEGY;
   const web = deps.web ?? createWebProvider();
   const mediaGeneration = deps.mediaGeneration ?? createMediaGenerationProvider();
-  const browser = deps.browser ?? createBrowserProvider(undefined, { sandbox: deps.sandbox });
+  const browser =
+    deps.browser ??
+    createBrowserProvider(undefined, {
+      sandbox: deps.sandbox,
+      resolveDriver: async () => {
+        const settings = await deps.prisma.deploymentSettings.findUnique({
+          where: { id: "default" },
+          select: { browserDriver: true },
+        });
+        return settings?.browserDriver === "patchright" ? "patchright" : "cdp";
+      },
+    });
   const cloudAgent = deps.cloudAgent;
   const resolveConnectedModel = async (
     scope: { userId: string; spaceId: string },

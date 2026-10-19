@@ -13,6 +13,7 @@ import type {
   PageBrowserResult,
   SandboxProvider,
 } from "@rakazo/adapter-kit";
+import type { BrowserDriver } from "@rakazo/contracts";
 import { FakeBrowserProvider, type FakeBrowserProviderOptions } from "./fake-browser.js";
 
 const DETACHED_MESSAGE =
@@ -38,17 +39,20 @@ export class ComputerBrowserProvider implements BrowserProvider {
   private readonly fake: FakeBrowserProvider;
   private readonly sandbox?: SandboxProvider;
   private readonly liveDriver?: LivePageBrowserDriver;
+  private readonly resolveDriver?: () => Promise<BrowserDriver>;
 
   constructor(
     options: FakeBrowserProviderOptions & {
       sandbox?: SandboxProvider;
       /** Test seam for the live CDP helper. */
       liveDriver?: LivePageBrowserDriver;
+      resolveDriver?: () => Promise<BrowserDriver>;
     } = {},
   ) {
-    const { sandbox, liveDriver, ...fakeOptions } = options;
+    const { sandbox, liveDriver, resolveDriver, ...fakeOptions } = options;
     this.sandbox = sandbox;
     this.liveDriver = liveDriver;
+    this.resolveDriver = resolveDriver;
     this.fake = new FakeBrowserProvider(fakeOptions);
   }
 
@@ -164,6 +168,8 @@ export class ComputerBrowserProvider implements BrowserProvider {
   ): Promise<LivePayload> {
     context.signal.throwIfAborted();
     try {
+      const driver = await this.resolveDriver?.();
+      if (driver === "patchright") request = { ...request, driver };
       const result = this.liveDriver
         ? await this.liveDriver(computer, request, context)
         : this.sandbox?.pageBrowser

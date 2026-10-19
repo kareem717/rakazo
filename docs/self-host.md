@@ -81,6 +81,16 @@ are supported for selective scopes; Tailscale is optional there. API and worker 
 same routing config across web, desktop and mobile clients. Other computer providers retain
 their existing networking.
 
+### Browser driver
+
+Deployment owners can choose **Settings → Computer → Browser driver → Standard / Patchright**. On mobile, the same choice is under **Account → Advanced**. The server stores one deployment-wide choice for current and future bots; Standard remains the default. It controls `browser_navigate`, `browser_snapshot`, and `browser_act`. Desktop input through `computer_act` remains available.
+
+Patchright attaches to the Chrome already on the bot's display, keeping its persistent profile, proxy policies, viewport, and screen viewer. Navigation and clicks use the Patchright SDK. Both drivers share origin checks, upload confinement, element references, and protected-field masking, including when switching drivers. An unavailable driver returns an explicit desktop fallback; it never silently changes the selected driver or retries an uncertain action.
+
+Box computers install the hash-locked Python driver in a dedicated virtual environment on first use. Installation does not change the system Python or download a second browser. The Docker computer image includes the optional driver; build with `--build-arg INSTALL_PATCHRIGHT=false` to omit it. Existing Docker computers need an updated image before selecting Patchright. Other computer providers retain their explicit desktop fallback when page browsing is unavailable.
+
+No hosted browser, API key, or CAPTCHA-solving service is required. Browser automation changes can reduce detection signals; a website may still require account verification or a human challenge.
+
 ### Bot computer resource ceilings
 
 Each Docker computer runs Xvfb, a window manager and a full Chromium driven by an agent that

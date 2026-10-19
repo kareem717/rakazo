@@ -1,6 +1,7 @@
 import type { AdapterContext, ComputerRef } from "@rakazo/adapter-kit";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createBrowserProvider, resolveBrowserProviderKind } from "./browser-provider-factory.js";
+import type { LivePageBrowserDriver } from "./computer-browser.js";
 import { ComputerBrowserProvider } from "./computer-browser.js";
 import { FakeBrowserProvider } from "./fake-browser.js";
 import { pageBrowserSessionKey } from "./page-browser-session.js";
@@ -47,6 +48,38 @@ describe("browser provider factory", () => {
 });
 
 describe("computer browser provider", () => {
+  it("resolves the saved driver for every operation and honors a change back to Standard", async () => {
+    const resolveDriver = vi
+      .fn<() => Promise<"cdp" | "patchright">>()
+      .mockResolvedValue("patchright");
+    const liveDriver = vi.fn<LivePageBrowserDriver>(async (_computer, request) => ({
+      ok: true,
+      url: "https://example.test",
+      title: "Fixture",
+      tree: "",
+      elements: [],
+      completed: request.command === "act" ? request.actions.length : undefined,
+    }));
+    const provider = new ComputerBrowserProvider({ resolveDriver, liveDriver });
+    const computer: ComputerRef = {
+      id: "computer",
+      botId: "bot",
+      providerRef: "computer",
+      kind: "box",
+    };
+    await provider.navigate(computer, { url: "https://example.test" }, baseContext);
+    await provider.snapshot(computer, {}, baseContext);
+    await provider.act(computer, { actions: [{ kind: "click", ref: "e1" }] }, baseContext);
+    expect(liveDriver.mock.calls.map((call) => call[1].driver)).toEqual([
+      "patchright",
+      "patchright",
+      "patchright",
+    ]);
+    resolveDriver.mockResolvedValue("cdp");
+    await provider.snapshot(computer, {}, baseContext);
+    expect(liveDriver.mock.calls.at(-1)?.[1].driver).toBeUndefined();
+  });
+
   it("falls back to computer_act when live Chrome is unavailable", async () => {
     const provider = new ComputerBrowserProvider({ pages });
     const computer: ComputerRef = {

@@ -316,10 +316,6 @@ msgstr "एक्सेस टोकन (वैकल्पिक)"
 msgid "Account"
 msgstr "खाता"
 
-#: src/pages/shell/bot-panel.tsx
-#~ msgid "Account default"
-#~ msgstr "खाता डिफ़ॉल्ट"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -901,6 +897,10 @@ msgstr ""
 
 #: src/components/computer/ComputerWorkspace.tsx
 msgid "Browser"
+msgstr ""
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
 msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
@@ -4587,6 +4587,10 @@ msgstr "वाक् मॉडल"
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO अस्थायी रूप से उपलब्ध नहीं है। फिर कोशिश करें।"
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"

@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { AppMark } from "../../components/app-mark";
 import { useAvatarStyle } from "../../components/avatar-style";
 import { BotAvatar } from "../../components/bot-avatar";
+import { BrowserDriverSettings } from "../../components/browser-driver-settings";
 import { NativeActionButton } from "../../components/native-action-button";
 import { NativeSegmentedControl } from "../../components/native-segmented-control";
 import { NativeSymbol } from "../../components/native-symbol";
@@ -530,6 +531,7 @@ export default function Account() {
               onChange={(checked) => void setRemoteImagesPreference(checked ? "on" : "off")}
             />
           ) : null}
+          {advancedOpen && me?.isDeploymentOwner ? <BrowserDriverSettings /> : null}
         </SettingsGroup>
 
         <View style={styles.section}>

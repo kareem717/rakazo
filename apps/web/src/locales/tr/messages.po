@@ -316,10 +316,6 @@ msgstr "Erişim token'ı (isteğe bağlı)"
 msgid "Account"
 msgstr "Hesap"
 
-#: src/pages/shell/bot-panel.tsx
-#~ msgid "Account default"
-#~ msgstr "Hesap varsayılanı"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -901,6 +897,10 @@ msgstr ""
 
 #: src/components/computer/ComputerWorkspace.tsx
 msgid "Browser"
+msgstr ""
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
 msgstr ""
 
 #: src/pages/KnowledgeSection.tsx
@@ -4587,6 +4587,10 @@ msgstr "Konuşma modeli"
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO geçici olarak kullanılamıyor. Yeniden deneyin."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"

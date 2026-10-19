@@ -13,6 +13,8 @@ This optional overlay connects Rakazo's native Box adapter to a local Boat contr
 
 `tools` rejects unsupported public UDP and direct IPv6 from command scopes. It preserves the provider management path. Backend models, memory and provider requests keep ordinary networking in this mode. Authorized private backend endpoints remain direct; their existing authorization and URL checks still apply. A hosted connector or extraction service makes its own onward requests from that service's network.
 
+The deployment-wide **Browser driver** setting also supports Patchright. Its optional adapter attaches to the same Chrome with default emulation overrides disabled, uses native browser input, and shares the protected DOM state with Standard. The Box adapter installs verified, pinned wheels in a separate user virtual environment before the first Patchright request on each computer. Existing and future computers use the saved choice automatically. Browser operations never install an unpinned package, replace the user's Chrome profile, or silently switch drivers after failure.
+
 `all` routes public TCP, UDP and both IP families from the application network namespace and managed computers through a Tailscale exit node. Local/private destinations, tunnel envelopes and replies to incoming management connections are exceptions. Docker image pulls on the host, other host processes, client devices and external services' onward requests are outside this namespace. The exit node must support the desired IP families. Failed tunnel traffic is rejected rather than falling back to the ordinary public route.
 
 This is deployment routing, not a sandbox security boundary against root commands. Administrators and privileged computer commands can alter kernel policy.
