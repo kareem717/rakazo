@@ -3,7 +3,6 @@ import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import {
   computerEgressPolicy,
-  egressProxyUrl,
   parseEgressConfig,
   readEgressConfig,
 } from "../../packages/adapters/src/egress-config.ts";
@@ -50,7 +49,6 @@ export function gatewayEnvironment(config) {
       EGRESS_EXIT_NODE: transport?.type === "tailscale-exit-node" ? transport.exitNode : "",
       EGRESS_PROXY_HOST: proxy?.hostname ?? "",
       EGRESS_PROXY_PORT: proxy?.port || "1080",
-      EGRESS_PROXY_URL: egressProxyUrl(config) ?? "",
     })
       .map(([key, value]) => `${key}=${quote(value)}`)
       .join("\n") + "\n"
