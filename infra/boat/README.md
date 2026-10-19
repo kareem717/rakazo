@@ -1,6 +1,6 @@
-# Boat computers with a browser-only SSH proxy
+# Boat computers with a browser and terminal SSH proxy
 
-Overlay for the images-based self-hosted deployment. Rakazo uses its native Box adapter, with a local controller that pins computers to a dedicated credential-free Boat environment and preserves create idempotency. Browser traffic uses a SOCKS proxy over SSH to a Tailscale peer. Shell commands, Docker, model calls, and snapshots retain normal networking.
+Overlay for the images-based self-hosted deployment. Rakazo uses its native Box adapter, with a local controller that pins computers to a dedicated credential-free Boat environment and preserves create idempotency. Browsers and bot terminal commands use a SOCKS proxy over SSH to a Tailscale peer. The provider management daemon, application services, model calls, Hindsight, snapshots, and Docker daemon networking retain normal networking.
 
 Build `App.Dockerfile` with the repository root as its build context and use that image for the application services. It includes the screen wake fix, large workspace uploads, and server-side private viewer authentication. Provider cookies stay inside the screen proxy; the app origin never receives them. The image also includes protected browser fills on Boat, named website accounts, and optional TOTP MFA. Runtime imports are checked during the build to catch shared-package version mismatches.
 
@@ -16,10 +16,16 @@ Set these deployment variables outside Git:
 
 Provision the persistent Tailscale state interactively before starting the gateway. Generate a dedicated SSH key at `state/proxy_ed25519`, authorize its public key on the egress machine, and pin that machine's SSH host key in `state/proxy_known_hosts`. Keep the state directory mode 700 and private files mode 600. The Docker build context excludes state.
 
-The guest WireGuard link routes only `10.202.0.1/32`; no default route or blanket firewall restriction is installed. The SOCKS listener binds that private address and is not published as a Docker port. Chrome/Chromium managed policies configure SOCKS, disable QUIC and restrict WebRTC UDP. Localhost stays direct. Browser access depends on the SSH proxy; other programs do not.
+The guest WireGuard link routes only `10.202.0.1/32`; no default route or blanket firewall restriction is installed. The SOCKS listener binds that private address and is not published as a Docker port. Chrome/Chromium managed policies configure SOCKS, disable QUIC and restrict WebRTC UDP. Localhost stays direct. Browser and terminal internet access depend on the SSH proxy.
 
 Network version 8 migrates archived computers on their next start, removing the earlier full-tunnel rules and provider snapshot override. Synchronous guarded bootstrap markers reconcile uncertain responses without duplicating writes or computers.
 
-Run `node --test infra/boat/controller.test.mjs` from the repository root. Deployment acceptance also requires checking a real browser's public IP, normal shell networking, and screen connection after resume.
+Terminal routing matches the provider's systemd user command scopes, including subprocesses run with `sudo`. Redsocks forwards public IPv4 TCP even when programs ignore proxy environment variables. A dedicated Unbound instance forwards terminal DNS through DNS-over-TLS over the same SOCKS connection. Loopback and private IPv4 services remain direct. Unsupported public UDP and direct IPv6 from command scopes are rejected; the proxy does not silently fall back to Boat egress. The provider daemon lives in a separate system cgroup and keeps its direct control connection.
+
+The bootstrap enables persistent proxy services for new computers. To update an existing running computer without restarting its browser or management agent, run the updated bootstrap there with `sudo bash vm-bootstrap.sh --terminal-proxy-only`. Startup checks resolve a test hostname through the actual DNS service before reporting readiness.
+
+For an intentional rollback, first run `/usr/local/lib/rakazo-network/terminal-routes.sh --remove` as root, then disable the three `rakazo-terminal-{tcp,dns,routes}` services and remove `/etc/profile.d/rakazo-terminal-proxy.sh`. Open a new terminal afterward. Stopping a proxy daemon alone deliberately leaves the routing in place to prevent direct fallback.
+
+Run `node --test infra/boat/controller.test.mjs` from the repository root and check the bootstrap and embedded route script with `bash -n`. Deployment acceptance also requires checking browser and terminal public IPs, proxy-independent Node/Python clients, a sudo child, localhost access, the direct management path, failure without fallback, and screen connection after resume.
 
 Do not commit state, keys, conversation exports, migration inventories, or live deployment receipts.
