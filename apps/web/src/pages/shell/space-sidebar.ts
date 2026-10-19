@@ -99,7 +99,41 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
       spaceName: space.name,
       ...spaceHeaderMenu(space, index === 0),
     }));
-    if (sections.length > 0) return sections;
+    if (sections.length > 0) {
+      if (space.botSections.length === 0) return sections;
+      // Space controls belong to a distinct root, never to the first section.
+      const rootKey = `space:${space.id}:heading`;
+      const unassigned = sections.find(
+        (group) => group.key === "unassigned" || group.key.endsWith(":unassigned"),
+      );
+      const root = {
+        ...sections[0]!,
+        key: rootKey,
+        title: space.name,
+        sectionId: null,
+        depth: 0,
+        ancestorKeys: [] as string[],
+        bots: unassigned?.bots ?? [],
+        showLock: true,
+        ...spaceHeaderMenu(space, true),
+      };
+      return [
+        root,
+        ...sections
+          .filter((group) => group !== unassigned)
+          .map((group) => ({
+            ...group,
+            title: group.sectionId
+              ? (space.botSections.find((section) => section.id === group.sectionId)?.name ??
+                group.title)
+              : (group.title?.replace(`${space.name} · `, "") ?? null),
+            depth: group.depth + 1,
+            ancestorKeys: [rootKey, ...group.ancestorKeys],
+            showLock: false,
+            ...spaceHeaderMenu(space, false),
+          })),
+      ];
+    }
     // Keep empty spaces selectable; chat clicks are the only switch control.
     if (needle && (space.bots.length > 0 || space.groups.length > 0)) return [];
     // Saved sections stay listed under the placeholder so they can still be
@@ -141,7 +175,19 @@ export function sidebarGroupsForSpaces<TBot extends SidebarChat, TGroup extends 
         spaceName: space.name,
         ...spaceHeaderMenu(space, true),
       },
-      ...emptySections,
+      ...emptySections.map((section) =>
+        showSpaceNames
+          ? {
+              ...section,
+              title:
+                space.botSections.find((item) => item.id === section.sectionId)?.name ??
+                section.title,
+              depth: section.depth + 1,
+              ancestorKeys: [`space:${space.id}:empty`, ...section.ancestorKeys],
+              showLock: false,
+            }
+          : section,
+      ),
     ];
   });
 }

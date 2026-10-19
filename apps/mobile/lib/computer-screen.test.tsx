@@ -13,6 +13,8 @@ const rpc = vi.hoisted(() => vi.fn());
 const textScale = vi.hoisted(() => ({ fontScale: 1 }));
 const appState = vi.hoisted(() => ({ listeners: new Set<(state: string) => void>() }));
 const screens = vi.hoisted(() => ({ mounts: 0 }));
+vi.mock("expo-clipboard", () => ({ getStringAsync: vi.fn(), setStringAsync: vi.fn() }));
+vi.mock("../components/computer-clipboard-menu", () => ({ ComputerClipboardMenu: () => null }));
 const picker = vi.hoisted(() => ({
   mounts: 0,
   props: undefined as

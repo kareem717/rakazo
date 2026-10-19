@@ -1132,6 +1132,14 @@ msgstr "Client ID"
 msgid "Client secret"
 msgstr "Client secret"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr "Clipboard"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
+msgstr "Clipboard text"
+
 #: src/components/ErrorBoundary.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/MessagingSettingsOverlay.tsx
@@ -1434,6 +1442,7 @@ msgstr "Continue with email"
 msgid "Copied"
 msgstr "Copied"
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -1443,6 +1452,10 @@ msgstr "Copy"
 #: src/components/ComputersUnavailableHint.tsx
 msgid "Copy .env example"
 msgstr "Copy .env example"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Copy selection"
+msgstr "Copy selection"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
@@ -2042,6 +2055,10 @@ msgstr "Customer support"
 msgid "Customize bot avatar"
 msgstr "Customize bot avatar"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr "Cut"
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "Dark"
@@ -2584,6 +2601,10 @@ msgstr "From"
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
 msgstr "From {0}"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
+msgstr "From device"
 
 #: src/pages/WindowChrome.tsx
 msgid "Fullscreen"
@@ -3734,10 +3755,18 @@ msgstr "Passwords do not match"
 msgid "Past due"
 msgstr "Past due"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr "Paste"
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "Paste a replacement key"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr "Paste text"
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3954,6 +3983,10 @@ msgstr "Recreate a computer that is not working."
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Recreating the computer"
 msgstr "Recreating the computer"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
+msgstr "Redo"
 
 #: src/App.tsx
 #: src/components/ErrorBoundary.tsx
@@ -4425,6 +4458,10 @@ msgstr "Select a connected model"
 msgid "Select a voice"
 msgstr "Select a voice"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr "Select all"
+
 #: src/pages/Shell.tsx
 msgid "Send"
 msgstr "Send"
@@ -4816,6 +4853,10 @@ msgstr "Switch bot"
 msgid "Switching…"
 msgstr "Switching…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr "Sync clipboard"
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "System"
@@ -5132,6 +5173,7 @@ msgid "Unavailable"
 msgstr "Unavailable"
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "Undo"
 
@@ -5265,6 +5307,10 @@ msgstr "Use Protected input for passwords."
 #: src/components/NetworkSettings.tsx
 msgid "Use Tailscale"
 msgstr "Use Tailscale"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
+msgstr "Use the text field to copy or paste."
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Use this model"

@@ -50,6 +50,7 @@ export * from "./run-error.js";
 export * from "./run-state.js";
 export * from "./sandbox-command.js";
 export * from "./screen-lease.js";
+export * from "./screen-controls.js";
 export { createScreenRecovery, screenConnectionState } from "./screen-recovery.js";
 export * from "./search.js";
 export * from "./secrets-guard.js";

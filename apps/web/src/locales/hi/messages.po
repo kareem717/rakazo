@@ -1132,6 +1132,14 @@ msgstr ""
 msgid "Client secret"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
+msgstr ""
+
 #: src/components/ErrorBoundary.tsx
 #: src/pages/KnowledgeSection.tsx
 #: src/pages/MessagingSettingsOverlay.tsx
@@ -1434,6 +1442,7 @@ msgstr "ईमेल से जारी रखें"
 msgid "Copied"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -1442,6 +1451,10 @@ msgstr "कॉपी करें"
 
 #: src/components/ComputersUnavailableHint.tsx
 msgid "Copy .env example"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Copy selection"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
@@ -2042,6 +2055,10 @@ msgstr ""
 msgid "Customize bot avatar"
 msgstr "बॉट अवतार अनुकूलित करें"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "डार्क"
@@ -2583,6 +2600,10 @@ msgstr ""
 #. placeholder {0}: filters.dateRange.from
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
 msgstr ""
 
 #: src/pages/WindowChrome.tsx
@@ -3734,10 +3755,18 @@ msgstr "पासवर्ड मेल नहीं खाते"
 msgid "Past due"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "बदलने के लिए नई कुंजी पेस्ट करें"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3953,6 +3982,10 @@ msgstr "काम न कर रहे कंप्यूटर को फिर
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Recreating the computer"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
 msgstr ""
 
 #: src/App.tsx
@@ -4425,6 +4458,10 @@ msgstr "जुड़ा मॉडल चुनें"
 msgid "Select a voice"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr ""
+
 #: src/pages/Shell.tsx
 msgid "Send"
 msgstr "भेजें"
@@ -4816,6 +4853,10 @@ msgstr ""
 msgid "Switching…"
 msgstr "बदला जा रहा है…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "सिस्टम"
@@ -5132,6 +5173,7 @@ msgid "Unavailable"
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "पूर्ववत करें"
 
@@ -5264,6 +5306,10 @@ msgstr ""
 
 #: src/components/NetworkSettings.tsx
 msgid "Use Tailscale"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
 msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
