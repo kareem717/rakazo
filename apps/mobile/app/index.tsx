@@ -1155,9 +1155,15 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
               accessibilityRole="button"
               accessibilityState={{ expanded: !collapsedSections.has(item.key) }}
               onPress={() => toggleSection(item.key)}
-              style={{ flex: 1 }}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
             >
-              <Text style={styles.sectionHeading}>{item.title}</Text>
+              <Text style={[styles.sectionHeading, { flex: 1 }]}>{item.title}</Text>
+              <NativeSymbol
+                ios={collapsedSections.has(item.key) ? "chevron.right" : "chevron.down"}
+                android={collapsedSections.has(item.key) ? "chevron-forward" : "chevron-down"}
+                size={12}
+                color={native.secondaryLabel}
+              />
             </Pressable>
             {item.sectionId && Platform.OS === "android" ? (
               // A plain button, like the create control: the Android menu trigger can collapse to

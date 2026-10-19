@@ -477,6 +477,7 @@ model BotSection {
   parent    BotSection? @relation("SectionChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children  BotSection[] @relation("SectionChildren")
 
+  // Root and child sibling-name uniqueness are enforced by partial SQL indexes.
   @@index([parentId])
   @@index([spaceId, userId, position, createdAt])
   @@map("bot_sections")
