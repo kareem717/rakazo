@@ -107,6 +107,7 @@ import {
   IntegrationProviderConfigSchema,
   IntegrationSetupStateSchema,
 } from "./integration-settings.js";
+import { NetworkEgressConfigSchema, NetworkSettingsSchema } from "./network-settings.js";
 import { MessageReactionSchema } from "./reactions.js";
 import { RoutineWatchSchema } from "./routine-watch.js";
 import { RoutineHistorySchema, RoutineRunCursorSchema, RunsListOutputSchema } from "./runs.js";
@@ -221,6 +222,12 @@ export const appContract = {
       .output(z.object({ ok: z.literal(true), activeSpaceId: Id })),
   },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
+  network: {
+    get: oc.output(NetworkSettingsSchema),
+    save: oc
+      .input(z.object({ config: NetworkEgressConfigSchema, revision: z.string().length(64) }))
+      .output(NetworkSettingsSchema),
+  },
   deployment: {
     get: oc.output(DeploymentSettingsSchema),
     update: oc

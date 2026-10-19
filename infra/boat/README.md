@@ -69,9 +69,28 @@ Validate a file with Node 22.22.2 or newer:
 RAKAZO_NETWORK_CONFIG=/absolute/private/network.json node infra/boat/network-config.mjs --check
 ```
 
-The backend reads `RAKAZO_NETWORK_CONFIG`; the overlay mounts the same file into API, worker and gateway. Config is read once per process: edit the file and recreate the deployment to apply it. `RAKAZO_NETWORK_CONFIG_FILE` selects the host file mounted by Compose. The checked-in example defaults to `direct`.
+The backend reads `RAKAZO_NETWORK_CONFIG`; the overlay mounts the same file into API, worker and gateway. Config is read once per process: edit the file and recreate the deployment to apply it. `RAKAZO_NETWORK_CONFIG_DIR` selects a dedicated host directory containing `network.json`. The API mounts only this directory writable; gateway and worker mount it read-only. Never mount the gateway state or SSH key directory writable into the API. Copy the checked-in `network.example.json` into this private directory to start with `direct`.
 
 Compatibility: when no new config is selected, the gateway still accepts `BROWSER_PROXY_SSH_TARGET` as the previous `tools` plus SSH/Tailscale setup; the backend still accepts `TOOL_EGRESS_PROXY_URL`. An explicit JSON config takes precedence over both. Remove those legacy settings when migrating.
+
+## Settings UI
+
+The deployment owner can open **Settings → General → Advanced → Network** on web or desktop,
+or **Settings → Advanced → Network** on mobile. The four routing scopes share the same
+validation and backend. Transport fields appear only when needed. **Save** stages the JSON;
+the UI shows **Restart required** while it differs from the running process configuration.
+Stop computers and recreate the entire deployment before using the new route. Saving never
+silently moves existing sockets to another route. Returning the saved config to its active
+value cancels the pending change.
+
+A file-only or read-only mount remains visible but cannot be edited. To enable editing, use
+only a dedicated config directory, mode 700 with `network.json` mode 600, writable by the API
+user. When migrating the older `RAKAZO_NETWORK_CONFIG_FILE` mount, copy that file into the new
+directory, set `RAKAZO_NETWORK_CONFIG_DIR`, and recreate all services together. The new Compose
+overlay requires this directory explicitly so an old file setting cannot silently select a
+direct default. A stale edit is rejected; reload before saving again. Concurrent writers use
+an exclusive lock. If a process dies while saving, inspect the private config and remove its
+`network.json.lock` after verifying no write is running, then reload.
 
 ## Deploy
 
@@ -85,7 +104,7 @@ Set these deployment variables:
 - `BOAT_ENVIRONMENT`: its name, default `rakazo`.
 - `BOAT_WIREGUARD_ENDPOINT`: a reachable gateway address and UDP port, such as `vpn.example.com:51871`.
 - `BOAT_BIND_IP`: optional listener address, default all interfaces.
-- `RAKAZO_NETWORK_CONFIG_FILE`: absolute path to the private JSON config.
+- `RAKAZO_NETWORK_CONFIG_DIR`: absolute path to a dedicated private directory containing `network.json`, owned by the application user (UID 1000 in the standard image).
 
 The controller forces the dedicated environment, refuses inherited credentials and preserves create idempotency. Allow inbound WireGuard UDP on the selected gateway port. Its SOCKS listener binds only `10.202.0.1:1080` and is never published as a Docker port.
 

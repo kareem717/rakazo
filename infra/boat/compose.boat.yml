@@ -16,7 +16,7 @@ services:
     volumes:
       - ./infra/boat:/deployment:ro
       - ./boat-network/state:/state
-      - ${RAKAZO_NETWORK_CONFIG_FILE:-./infra/boat/network.example.json}:/config/network.json:ro
+      - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
     sysctls:
       net.ipv4.ip_forward: "1"
       net.ipv6.conf.all.forwarding: "1"
@@ -39,7 +39,7 @@ services:
     environment:
       RAKAZO_NETWORK_CONFIG: /config/network.json
     volumes:
-      - ${RAKAZO_NETWORK_CONFIG_FILE:-./infra/boat/network.example.json}:/config/network.json:ro
+      - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:rw
     network_mode: service:egress
     networks: !reset []
     ports: !reset []
@@ -50,7 +50,7 @@ services:
     environment:
       RAKAZO_NETWORK_CONFIG: /config/network.json
     volumes:
-      - ${RAKAZO_NETWORK_CONFIG_FILE:-./infra/boat/network.example.json}:/config/network.json:ro
+      - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
     network_mode: service:egress
     networks: !reset []
     depends_on:

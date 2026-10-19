@@ -83,6 +83,7 @@ import {
   mapScratchpadItem,
   modelCredentialAuthKindsForSpace,
   modelCredentialDto,
+  NetworkSettingsError,
   normalizeSecretDestination,
   PushSessionEndedError,
   parseModelSecret,
@@ -100,6 +101,7 @@ import {
   probeOpenAiCompatibleModels,
   provisionComputer,
   queueComputerUpdate,
+  readNetworkSettings,
   releaseComputerExecutionLease,
   replaceComputer,
   resolveAutoReviewChecker,
@@ -109,6 +111,7 @@ import {
   revokeScreenControl,
   routineRunModelPin,
   sanitizeComposioError,
+  saveNetworkSettings,
   savePushToken,
   scheduleComputerControlExpiry,
   scheduleComputerSleep,
@@ -1092,6 +1095,32 @@ export function createRouter(deps: RouterDeps) {
         spaces: navigation.spaces,
       };
     }),
+    network: {
+      get: authed.network.get.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await readNetworkSettings();
+        } catch {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: "Could not read network settings",
+          });
+        }
+      }),
+      save: authed.network.save.handler(async ({ context, input }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await saveNetworkSettings(input);
+        } catch (error) {
+          if (error instanceof NetworkSettingsError)
+            throw new ORPCError(error.conflict ? "CONFLICT" : "BAD_REQUEST", {
+              message: error.message,
+            });
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: "Could not save network settings",
+          });
+        }
+      }),
+    },
     deployment: {
       get: authed.deployment.get.handler(async ({ context }) => {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");

@@ -27,3 +27,4 @@ verify-report
 # Private Boat gateway identities and runtime state never enter build contexts.
 boat-network/state
 infra/boat/state
+boat-network/network-config

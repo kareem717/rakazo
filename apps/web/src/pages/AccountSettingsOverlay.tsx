@@ -20,6 +20,7 @@ import { SuccessPop } from "../components/ai/primitives";
 import { ComputersUnavailableHint } from "../components/ComputersUnavailableHint";
 import { DesktopUpdateSection } from "../components/DesktopUpdates";
 import { ListboxSelect } from "../components/ListboxSelect";
+import { NetworkSettingsSection } from "../components/NetworkSettings";
 import { SoftwareUpdateSection } from "../components/SoftwareUpdateSection";
 import { authClient } from "../lib/auth";
 import {
@@ -381,6 +382,7 @@ export function GeneralSettingsPanels({
               <Trans>Load web images automatically</Trans>
             </Label>
           </div>
+          {isDeploymentOwner ? <NetworkSettingsSection /> : null}
         </div>
       </details>
     </div>

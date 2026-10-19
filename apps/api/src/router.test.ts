@@ -70,6 +70,33 @@ describe("account preferences", () => {
     return { update, updateMany, deps, actor, handler: new RPCHandler(createRouter(deps)) };
   }
 
+  it("restricts network configuration to the deployment owner", async () => {
+    const { deps, actor } = preferencesDeps("robot");
+    const read = vi.spyOn(adapters, "readNetworkSettings").mockResolvedValue({ available: false });
+    const save = vi.spyOn(adapters, "saveNetworkSettings").mockResolvedValue({ available: false });
+    try {
+      const member = createRouterClient(createRouter(deps), {
+        context: { actor: { ...actor, isDeploymentOwner: false } } as never,
+      });
+      await expect(member.network.get()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(
+        member.network.save({ config: { version: 1, mode: "direct" }, revision: "0".repeat(64) }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(read).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+      const owner = createRouterClient(createRouter(deps), { context: { actor } as never });
+      await expect(owner.network.get()).resolves.toEqual({ available: false });
+      await owner.network.save({
+        config: { version: 1, mode: "direct" },
+        revision: "0".repeat(64),
+      });
+      expect(save).toHaveBeenCalledOnce();
+    } finally {
+      read.mockRestore();
+      save.mockRestore();
+    }
+  });
+
   it("reports model credential store outages as service unavailable", async () => {
     const { deps, actor } = preferencesDeps("robot");
     Object.assign(deps.prisma, {

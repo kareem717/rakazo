@@ -516,6 +516,13 @@ export default function Account() {
             onPress={() => setAdvancedOpen((open) => !open)}
             title={t("Advanced")}
           />
+          {advancedOpen && me?.isDeploymentOwner ? (
+            <SettingsRow
+              title={t("Network")}
+              chevron="right"
+              onPress={() => router.push("/network")}
+            />
+          ) : null}
           {advancedOpen ? (
             <SettingsSwitch
               label={t("Stream replies")}
