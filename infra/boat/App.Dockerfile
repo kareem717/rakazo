@@ -6,5 +6,6 @@ COPY --chown=node:node apps/web/src/pages/memory-providers/ /app/apps/web/src/pa
 COPY --chown=node:node apps/web/vite.config.ts /app/apps/web/vite.config.ts
 COPY --chown=node:node apps/web/src/box-screen-auth.ts /app/apps/web/src/box-screen-auth.ts
 COPY --chown=node:node packages/core/src/node/screen-capability.ts /app/packages/core/src/node/screen-capability.ts
+COPY --chown=node:node apps/web/src/pages/Shell.tsx /app/apps/web/src/pages/Shell.tsx
 RUN RAKAZO_ALLOW_DEV_SECRETS=1 pnpm --filter @rakazo/web build
 USER node

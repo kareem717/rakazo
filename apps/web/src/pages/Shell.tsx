@@ -5061,9 +5061,10 @@ function SpaceShell() {
           >
             <div
               data-testid="computer-chrome"
-              className="flex items-center justify-between gap-4 border-b border-sidebar-border px-[18px] py-3.5"
+              className="app-drag flex items-center justify-between gap-4 border-b border-sidebar-border px-[18px] py-3.5"
             >
-              <div className="flex min-w-0 flex-1 items-center gap-3">
+              <div className="app-no-drag flex min-w-0 flex-1 items-center gap-3">
+                {desktopBridge() ? <WindowChrome /> : null}
                 <BotAvatar
                   color={computerBot.color}
                   identity={computerBot.id}
@@ -5095,7 +5096,7 @@ function SpaceShell() {
                   )
                 ) : null}
               </div>
-              <div className="flex items-center gap-3">
+              <div className="app-no-drag flex items-center gap-3">
                 {composerRunning ? (
                   <Button
                     type="button"
