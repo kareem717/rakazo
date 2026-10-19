@@ -279,6 +279,68 @@ describe("Hindsight memory provider", () => {
     ).toHaveLength(1);
   });
 
+  it("retains only opted-in new conversations and deduplicates retries with no extracted facts", async () => {
+    const f = fixture({ extracted: 0 });
+    const enabled = new HindsightMemoryProvider(
+      { ...config, retainConversationsFrom: "2026-10-19T00:00:00Z" },
+      f.network,
+    );
+    const request = {
+      botId: save.botId,
+      scope: "isolated" as const,
+      runId: "new-run",
+      createdAt: "2026-10-19T12:00:00Z",
+      content: "user: Hello\nassistant: Hello!",
+    };
+    const ctx = { ...context, runId: request.runId };
+    await expect(f.provider.retainConversation(request, ctx)).resolves.toMatchObject({ ok: true });
+    await expect(
+      enabled.retainConversation({ ...request, createdAt: "2026-10-18T00:00:00Z" }, ctx),
+    ).resolves.toMatchObject({ ok: true });
+    expect(f.fetch).not.toHaveBeenCalled();
+    await expect(
+      enabled.retainConversation(request, { ...ctx, botId: "other-bot" }),
+    ).resolves.toMatchObject({ ok: false });
+    await expect(enabled.retainConversation(request, ctx)).resolves.toMatchObject({ ok: true });
+    await expect(enabled.retainConversation(request, ctx)).resolves.toMatchObject({ ok: true });
+    expect(f.admissions).toHaveLength(1);
+    expect(f.admissions[0]).toMatchObject({
+      items: [
+        {
+          timestamp: request.createdAt,
+          metadata: { source: "rakazo", kind: "conversation", run_id: "new-run" },
+        },
+      ],
+    });
+  });
+
+  it("does not mistake a zero-fact document for a completed conversation operation", async () => {
+    const f = fixture({ status: "pending", extracted: 0 });
+    const provider = new HindsightMemoryProvider(
+      { ...config, retainConversationsFrom: "2026-10-19T00:00:00Z" },
+      f.network,
+    );
+    const request = {
+      botId: save.botId,
+      scope: "isolated" as const,
+      runId: "pending-run",
+      createdAt: "2026-10-19T12:00:00Z",
+      content: "user: Hello",
+    };
+    for (let i = 0; i < 2; i++) {
+      const abort = new AbortController();
+      const pending = provider.retainConversation(request, {
+        ...context,
+        runId: request.runId,
+        signal: abort.signal,
+      });
+      await vi.waitFor(() => expect(f.admissions).toHaveLength(1));
+      abort.abort();
+      await expect(pending).resolves.toMatchObject({ ok: false });
+    }
+    expect(f.admissions).toHaveLength(1);
+  });
+
   it("keeps recall-only connections and conversation compaction from writing or purging banks", async () => {
     const f = fixture();
     const provider = new HindsightMemoryProvider({ ...config, allowWrites: false }, f.network);
@@ -357,6 +419,29 @@ describe("Hindsight connection setup", () => {
       [`${settings.baseUrl}/v1/default/banks/profile-one/stats`, "GET"],
       [`${settings.baseUrl}/v1/default/banks/profile-two/stats`, "GET"],
     ]);
+  });
+
+  it("records a server-side start boundary when automatic retention is enabled", async () => {
+    const f = fixture();
+    const before = Date.now();
+    const result = await prepareHindsightConnection(
+      { ...settings, retainConversations: "true" },
+      { apiKey: config.apiKey },
+      f.network,
+    );
+    expect(Date.parse(result.settings.retainConversationsFrom!)).toBeGreaterThanOrEqual(before);
+    const again = await prepareHindsightConnection(
+      result.settings,
+      { apiKey: config.apiKey },
+      f.network,
+    );
+    expect(again.settings.retainConversationsFrom).toBe(result.settings.retainConversationsFrom);
+    const disabled = await prepareHindsightConnection(
+      { ...result.settings, retainConversations: "false" },
+      { apiKey: config.apiKey },
+      f.network,
+    );
+    expect(disabled.settings.retainConversationsFrom).toBeUndefined();
   });
 
   it("gates private endpoints before sending credentials", async () => {

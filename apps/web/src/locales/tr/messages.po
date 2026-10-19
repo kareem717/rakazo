@@ -4057,6 +4057,10 @@ msgstr "Geri yüklendi"
 msgid "Restoring your workspace"
 msgstr ""
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Retain new conversations"
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx

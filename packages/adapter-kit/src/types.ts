@@ -389,6 +389,16 @@ export interface SemanticMemorySaveRequest {
   source: { kind: "durable" } | { kind: "history"; generation: number };
 }
 
+/** A completed run's visible conversation, separate from compaction generations. */
+export interface SemanticMemoryConversationRequest {
+  content: string;
+  part?: number;
+  scope: DurableMemoryScope;
+  botId: string;
+  runId: string;
+  createdAt: string;
+}
+
 export interface SemanticMemoryPurgeHistoryRequest {
   botId: string;
   generations: number[];

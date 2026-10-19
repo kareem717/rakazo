@@ -65,6 +65,7 @@ import type {
   SecretPutOptions,
   SecretRecord,
   SemanticMemoryCapabilities,
+  SemanticMemoryConversationRequest,
   SemanticMemoryForgetRequest,
   SemanticMemoryPurgeHistoryRequest,
   SemanticMemoryRecallRequest,
@@ -265,6 +266,11 @@ export interface SemanticMemoryProvider {
   ): Promise<SemanticMemoryResponse>;
   purgeHistory(
     request: SemanticMemoryPurgeHistoryRequest,
+    context: AdapterContext,
+  ): Promise<SemanticMemoryResponse>;
+  /** Optional automatic retention; implementations require explicit connection opt-in. */
+  retainConversation?(
+    request: SemanticMemoryConversationRequest,
     context: AdapterContext,
   ): Promise<SemanticMemoryResponse>;
   /** Optional durable forget. Providers without a forget verb omit this. */

@@ -49,6 +49,7 @@ export interface PreparedMemoryProviderConnection {
 export interface ConfiguredMemoryProvider {
   provider: SemanticMemoryProvider;
   defaultScope: DurableMemoryScope;
+  conversationRetentionFrom?: string;
 }
 
 export interface MemoryProviderResolver {
@@ -216,6 +217,9 @@ export class SpaceMemoryProviderResolver implements MemoryProviderResolver {
     return {
       provider: createMemoryProvider(config.provider, settings, credentials),
       defaultScope: config.defaultMemoryScope === "shared" ? "shared" : "isolated",
+      ...(settings.allowWrites === "true" && settings.retainConversationsFrom
+        ? { conversationRetentionFrom: settings.retainConversationsFrom }
+        : {}),
     };
   }
 }

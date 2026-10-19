@@ -16,6 +16,7 @@ import { pollCloudAgent } from "./cloud-agent-poll.js";
 import { expireComputerControl } from "./computer-control.js";
 import { scheduleComputerSleep, sleepComputerIfIdle } from "./computer-idle.js";
 import { performComputerUpdate } from "./computer-update.js";
+import { retainRunConversation } from "./conversation-retention.js";
 import type { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
@@ -68,6 +69,8 @@ export function createBackgroundJobHandlers(deps: {
           await deliverMessaging();
         });
       }
+      // Retry the durable run job if retention fails. A completed run is never executed again.
+      await retainRunConversation(deps, payload.runId);
     },
     "messaging.deliver": async (payload) => {
       await deliverMessaging(payload.runId);

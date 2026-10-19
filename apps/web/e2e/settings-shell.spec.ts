@@ -141,3 +141,23 @@ test("Hindsight memory settings map existing bot banks", async ({ page }, testIn
   await expect(memory.getByLabel("Shared bank", { exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "memory-hindsight-mapped");
 });
+
+test("Hindsight offers automatic retention after enabling writes", async ({ page }, testInfo) => {
+  await signup(
+    page,
+    `retention-settings-${Date.now()}@rakazo.test`,
+    "password12",
+    "Retention settings",
+  );
+  await completeOnboarding(page);
+  const settings = await openUserSettings(page, "memory");
+  const memory = settings.getByTestId("memory-settings");
+  await memory.getByLabel("Provider").selectOption("hindsight");
+  const retain = memory.getByRole("button", { name: "Retain new conversations", exact: true });
+  await expect(retain).toHaveCount(0);
+  await memory.getByRole("button", { name: "Recall and write", exact: true }).click();
+  await expect(retain).toHaveAttribute("aria-pressed", "false");
+  await retain.click();
+  await expect(retain).toHaveAttribute("aria-pressed", "true");
+  await captureScreenshot(page, testInfo, "hindsight-automatic-retention-settings");
+});

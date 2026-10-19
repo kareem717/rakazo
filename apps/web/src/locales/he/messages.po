@@ -4057,6 +4057,10 @@ msgstr "שוחזר"
 msgid "Restoring your workspace"
 msgstr "משחזר את סביבת העבודה"
 
+#: src/pages/memory-providers/HindsightSettingsForm.tsx
+msgid "Retain new conversations"
+msgstr ""
+
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx

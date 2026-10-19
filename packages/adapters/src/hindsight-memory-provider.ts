@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import type {
   AdapterContext,
+  SemanticMemoryConversationRequest,
   SemanticMemoryForgetRequest,
   SemanticMemoryProvider,
   SemanticMemoryPurgeHistoryRequest,
@@ -44,6 +45,7 @@ interface HindsightConfig extends HindsightConnection {
   botBanks: Record<string, string>;
   sharedBankId?: string;
   allowWrites: boolean;
+  retainConversationsFrom?: string;
 }
 
 function parseConnection(
@@ -63,7 +65,17 @@ function parseConnection(
   if (sharedBankId) identifier.parse(sharedBankId);
   if (settings.allowWrites && !["true", "false"].includes(settings.allowWrites))
     throw new Error("allowWrites must be true or false.");
+  if (settings.retainConversations && !["true", "false"].includes(settings.retainConversations))
+    throw new Error("retainConversations must be true or false.");
+  const retention =
+    settings.retainConversations === "false"
+      ? undefined
+      : (settings.retainConversationsFrom ??
+        (settings.retainConversations === "true" ? new Date().toISOString() : undefined));
+  if (retention && !z.iso.datetime({ offset: true }).safeParse(retention).success)
+    throw new Error("A valid conversation retention start time is required.");
   return {
+    ...(retention ? { retainConversationsFrom: retention } : {}),
     baseUrl: normalizeHindsightUrl(settings.baseUrl ?? ""),
     apiKey,
     botBanks,
@@ -99,6 +111,9 @@ export async function prepareHindsightConnection(
       baseUrl: config.baseUrl,
       botBanks: JSON.stringify(config.botBanks),
       allowWrites: String(config.allowWrites),
+      ...(config.retainConversationsFrom
+        ? { retainConversationsFrom: config.retainConversationsFrom }
+        : {}),
       ...(config.sharedBankId ? { sharedBankId: config.sharedBankId } : {}),
       ...(config.endpointTrust ? { endpointTrust: config.endpointTrust } : {}),
     },
@@ -234,6 +249,34 @@ export class HindsightMemoryProvider implements SemanticMemoryProvider {
         ok: false,
         error: "Hindsight is recall only. Enable writing in Memory settings to save facts.",
       };
+    return this.saveDocument(request, context);
+  }
+
+  async retainConversation(
+    request: SemanticMemoryConversationRequest,
+    context: AdapterContext,
+  ): Promise<SemanticMemoryResponse> {
+    const since = this.config.retainConversationsFrom;
+    const createdAt = Date.parse(request.createdAt);
+    if (
+      !this.config.allowWrites ||
+      !Object.hasOwn(this.config.botBanks, request.botId) ||
+      !since ||
+      !Number.isFinite(Date.parse(since)) ||
+      !Number.isFinite(createdAt) ||
+      createdAt < Date.parse(since)
+    )
+      return { ok: true, value: undefined };
+    if (context.botId !== request.botId || context.runId !== request.runId)
+      return { ok: false, error: "Conversation retention scope mismatch." };
+    return this.saveDocument({ ...request, source: { kind: "durable" } }, context, request);
+  }
+
+  private async saveDocument(
+    request: SemanticMemorySaveRequest,
+    context: AdapterContext,
+    conversation?: SemanticMemoryConversationRequest,
+  ): Promise<SemanticMemoryResponse> {
     let receipt = "";
     try {
       const mapped = this.bank(request.botId);
@@ -246,11 +289,12 @@ export class HindsightMemoryProvider implements SemanticMemoryProvider {
       if (!content || Buffer.byteLength(content) > 32 * 1024)
         throw new HindsightRequestError("Hindsight facts must contain between 1 and 32768 bytes.");
       const prefix = namespace(context, request.botId, request.scope === "shared");
-      const documentId = `${prefix}${digest(content)}`;
+      const documentId = `${prefix}${digest(conversation ? `conversation:${conversation.runId}:${conversation.part ?? 0}` : content)}`;
       const hash = digest(JSON.stringify([bank, documentId, context.runId ?? context.operationId]));
       const operationId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20)}`;
       receipt = ` Operation: ${operationId}. Document: ${documentId}.`;
       const signal = combineSignals(context.signal, AbortSignal.timeout(120_000));
+      let existingConversation = false;
       try {
         const existing = documentSchema.parse(
           await this.request(bank, `documents/${documentId}`, signal),
@@ -260,13 +304,14 @@ export class HindsightMemoryProvider implements SemanticMemoryProvider {
           existing.bank_id !== bank ||
           existing.original_text !== content ||
           !existing.tags.includes(prefix) ||
-          existing.memory_unit_count === 0
+          (!conversation && existing.memory_unit_count === 0)
         ) {
           throw new HindsightRequestError(
             "An existing Hindsight source could not be verified. Reconcile it before saving again.",
           );
         }
-        return { ok: true, value: undefined };
+        if (!conversation) return { ok: true, value: undefined };
+        existingConversation = true;
       } catch (error) {
         if (!(error instanceof HindsightRequestError && error.status === 404)) throw error;
       }
@@ -282,6 +327,8 @@ export class HindsightMemoryProvider implements SemanticMemoryProvider {
         throw new HindsightRequestError("Hindsight returned a different operation.");
       // Some Hindsight versions return 200/not_found rather than HTTP 404.
       if (operation?.status === "not_found") operation = undefined;
+      if (!operation && existingConversation)
+        throw new HindsightRequestError("Existing conversation operation could not be verified.");
       if (!operation) {
         const admitted = z
           .object({
@@ -302,7 +349,17 @@ export class HindsightMemoryProvider implements SemanticMemoryProvider {
                     content,
                     document_id: documentId,
                     tags: [prefix],
-                    metadata: { source: "rakazo" },
+                    metadata: {
+                      source: "rakazo",
+                      ...(conversation ? { kind: "conversation", run_id: conversation.runId } : {}),
+                    },
+                    ...(conversation
+                      ? {
+                          timestamp: conversation.createdAt,
+                          context:
+                            "Completed conversation; user statements and assistant responses are attributed by role. Do not treat assistant suggestions as verified user facts.",
+                        }
+                      : {}),
                   },
                 ],
               },
@@ -332,7 +389,7 @@ export class HindsightMemoryProvider implements SemanticMemoryProvider {
         doc.id !== documentId ||
         doc.bank_id !== bank ||
         doc.original_text !== content ||
-        doc.memory_unit_count === 0 ||
+        (!conversation && doc.memory_unit_count === 0) ||
         !doc.tags.includes(prefix)
       ) {
         throw new HindsightRequestError(

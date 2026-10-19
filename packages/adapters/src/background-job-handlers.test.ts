@@ -9,11 +9,15 @@ import type { PrismaClient, ThreadEvents } from "@rakazo/db";
 import { createLogger, createTestSink, installLogger } from "@rakazo/logging";
 import { describe, expect, it, vi } from "vitest";
 import { createBackgroundJobHandlers } from "./background-job-handlers.js";
+import { retainRunConversation } from "./conversation-retention.js";
 import { createRunExecutor } from "./executor.js";
 import { compactHistory } from "./history-compaction.js";
 import { deliverMessagingOutbound, mirrorMessagingOutbound } from "./messaging-delivery.js";
 import type { EncryptedSecretStore } from "./secrets.js";
 
+vi.mock("./conversation-retention.js", () => ({
+  retainRunConversation: vi.fn(async () => undefined),
+}));
 vi.mock("./history-compaction.js", () => ({ compactHistory: vi.fn(async () => undefined) }));
 vi.mock("./messaging-delivery.js", () => ({
   deliverMessagingOutbound: vi.fn(async () => undefined),
@@ -47,6 +51,14 @@ describe("createBackgroundJobHandlers", () => {
     });
 
     await handlers["run.continue"]({ runId: "run-1" });
+    expect(retainRunConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prisma: expect.anything(),
+        memoryProviders: expect.anything(),
+        secretStore: expect.anything(),
+      }),
+      "run-1",
+    );
 
     expect(mirrorMessagingOutbound).toHaveBeenCalledWith(
       expect.objectContaining({ prisma: expect.anything(), messaging: expect.anything(), jobs }),
