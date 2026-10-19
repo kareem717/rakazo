@@ -649,6 +649,10 @@ msgstr "승인이 필요한 범위"
 msgid "Approve"
 msgstr "승인"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Approve this device in Tailscale."
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
 msgstr "이 서버를 승인하면 Bot이 제공되는 도구를 사용할 수 있습니다."
@@ -1335,6 +1339,10 @@ msgstr "MCP 서버 ‘{name}’ 연결"
 msgid "Connect OAuth"
 msgstr "OAuth 연결"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Connect Tailscale"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Connect Treg"
 msgstr "Treg 연결"
@@ -1393,6 +1401,10 @@ msgstr "계속"
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Continue in Background"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Continue in Tailscale"
 msgstr ""
 
 #. placeholder {0}: reset.sso.name
@@ -1488,6 +1500,10 @@ msgstr "음성 서비스에 연결하지 못했습니다."
 
 #: src/pages/Shell.tsx
 msgid "Could not connect to the computer screen"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Could not connect to the network gateway"
 msgstr ""
 
 #: src/components/AccountAccess.tsx
@@ -2492,6 +2508,10 @@ msgstr "모델 찾기"
 #: src/pages/Onboarding.tsx
 msgid "Finding…"
 msgstr "찾는 중…"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Finish connecting in Tailscale."
+msgstr ""
 
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx
@@ -3510,6 +3530,10 @@ msgstr "OAuth 연결 실패"
 msgid "OAuth expired"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Offline"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "On a schedule"
 msgstr "일정에 따라"
@@ -3899,6 +3923,10 @@ msgstr ""
 msgid "Refresh"
 msgstr "새로고침"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Refresh connection"
+msgstr ""
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Refresh view"
 msgstr "화면 새로고침"
@@ -4116,6 +4144,10 @@ msgstr ""
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "다시 시도"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Retry connection"
+msgstr ""
 
 #: src/App.tsx
 #: src/pages/PeerMessagesOverlay.tsx
@@ -4746,8 +4778,21 @@ msgstr "전환 중…"
 msgid "System"
 msgstr "시스템"
 
+#. placeholder {0}: connection.tailnet
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connected · {0}"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connection is managed on the server."
+msgstr ""
+
 #: src/components/NetworkSettings.tsx
 msgid "Tailscale exit node"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale is not connected."
 msgstr ""
 
 #: src/pages/Shell.tsx

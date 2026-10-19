@@ -18,6 +18,7 @@ export * from "./markdown-text.js";
 export * from "./mcp.js";
 export * from "./model-backups.js";
 export * from "./model-provider.js";
+export * from "./network-connection.js";
 export * from "./network-egress.js";
 export * from "./network-settings.js";
 export * from "./network-settings-form.js";

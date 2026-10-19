@@ -649,6 +649,10 @@ msgstr "Границы одобрения"
 msgid "Approve"
 msgstr "Утвердить"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Approve this device in Tailscale."
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
 msgstr "Одобрите этот сервер, чтобы ваш агент мог использовать его инструменты."
@@ -1335,6 +1339,10 @@ msgstr "Подключите MCP-сервер «{name}»"
 msgid "Connect OAuth"
 msgstr "Подключить OAuth"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Connect Tailscale"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Connect Treg"
 msgstr "Подключить Treg"
@@ -1394,6 +1402,10 @@ msgstr "Продолжить"
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Continue in Background"
 msgstr "Продолжить в фоне"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Continue in Tailscale"
+msgstr ""
 
 #. placeholder {0}: reset.sso.name
 #: src/pages/Auth.tsx
@@ -1489,6 +1501,10 @@ msgstr "Не удалось подключить этого голосового
 #: src/pages/Shell.tsx
 msgid "Could not connect to the computer screen"
 msgstr "Не удалось подключиться к экрану компьютера"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Could not connect to the network gateway"
+msgstr ""
 
 #: src/components/AccountAccess.tsx
 #: src/lib/account-security.ts
@@ -2492,6 +2508,10 @@ msgstr "Найти модели"
 #: src/pages/Onboarding.tsx
 msgid "Finding…"
 msgstr "Поиск…"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Finish connecting in Tailscale."
+msgstr ""
 
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx
@@ -3510,6 +3530,10 @@ msgstr "Соединение OAuth не удалось"
 msgid "OAuth expired"
 msgstr "Срок действия OAuth истек"
 
+#: src/components/NetworkSettings.tsx
+msgid "Offline"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "On a schedule"
 msgstr "По расписанию"
@@ -3899,6 +3923,10 @@ msgstr "Повторное создание компьютера"
 msgid "Refresh"
 msgstr "Обновить"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Refresh connection"
+msgstr ""
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Refresh view"
 msgstr "Обновить экран"
@@ -4116,6 +4144,10 @@ msgstr ""
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "Повторить"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Retry connection"
+msgstr ""
 
 #: src/App.tsx
 #: src/pages/PeerMessagesOverlay.tsx
@@ -4746,8 +4778,21 @@ msgstr "Переключение…"
 msgid "System"
 msgstr "Системная"
 
+#. placeholder {0}: connection.tailnet
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connected · {0}"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connection is managed on the server."
+msgstr ""
+
 #: src/components/NetworkSettings.tsx
 msgid "Tailscale exit node"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale is not connected."
 msgstr ""
 
 #: src/pages/Shell.tsx

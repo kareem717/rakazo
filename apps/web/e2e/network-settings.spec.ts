@@ -28,6 +28,21 @@ test("owner configures network scope with transport fields and pending restart",
     revision,
     restartRequired: JSON.stringify(saved) !== JSON.stringify(current),
   });
+  let connection = {
+    available: true,
+    provider: "tailscale",
+    state: "needs-login",
+    tailnet: null as string | null,
+    authUrl: null as string | null,
+    exitNodes: [] as { name: string; value: string; online: boolean }[],
+  };
+  await page.route("**/rpc/network/connection", (route) =>
+    route.fulfill({ json: { json: connection } }),
+  );
+  await page.route("**/rpc/network/connect", (route) => {
+    connection = { ...connection, authUrl: "https://login.tailscale.com/a/abc123" };
+    return route.fulfill({ json: { json: connection } });
+  });
   await page.route("**/rpc/network/get", (route) => route.fulfill({ json: { json: state() } }));
   await page.route("**/rpc/network/save", async (route) => {
     const input = route.request().postDataJSON().json;
@@ -45,6 +60,21 @@ test("owner configures network scope with transport fields and pending restart",
     .filter({ hasText: /^Network$/ })
     .click();
   const form = settings.getByTestId("network-settings");
+  await form.getByRole("button", { name: "Connect Tailscale", exact: true }).click();
+  await expect(form.getByRole("link", { name: "Continue in Tailscale" })).toHaveAttribute(
+    "href",
+    "https://login.tailscale.com/a/abc123",
+  );
+  await captureScreenshot(page, testInfo, "network-settings-authorization");
+  connection = {
+    ...connection,
+    state: "connected",
+    tailnet: "example.test",
+    authUrl: null,
+    exitNodes: [{ name: "exit.example.ts.net", value: "exit.example.ts.net", online: true }],
+  };
+  await form.getByRole("button", { name: "Refresh connection" }).click();
+  await expect(form.getByTestId("network-connection")).toContainText("example.test");
   await expect(form.getByLabel("SSH target", { exact: true })).toHaveValue(
     "proxy@egress.example.test",
   );

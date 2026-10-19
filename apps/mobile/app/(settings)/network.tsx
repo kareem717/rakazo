@@ -1,4 +1,9 @@
-import type { EgressMode, NetworkSettings, NetworkSettingsDraft } from "@rakazo/contracts";
+import type {
+  EgressMode,
+  NetworkConnection,
+  NetworkSettings,
+  NetworkSettingsDraft,
+} from "@rakazo/contracts";
 import { networkConfigFromDraft, networkSettingsDraft } from "@rakazo/contracts";
 import { Stack } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -6,6 +11,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, Text, TextInput, View } from
 import { glassHeaderOptions } from "../../components/glass-title";
 import { MenuPicker } from "../../components/menu-picker";
 import { NativeActionButton } from "../../components/native-action-button";
+import { NetworkConnectionSettings } from "../../components/network-connection-settings";
 import { SettingsGroup, SettingsRow, SettingsSwitch } from "../../components/settings-group";
 import { rpc } from "../../lib/api";
 import { mobileTokens } from "../../lib/appearance";
@@ -17,6 +23,7 @@ export default function NetworkSettingsScreen() {
   const { t } = useI18n();
   const styles = useThemedStyles(createStyles);
   const [state, setState] = useState<NetworkSettings | null>(null);
+  const [connection, setConnection] = useState<NetworkConnection | null>(null);
   const [draft, setDraft] = useState<NetworkSettingsDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -96,6 +103,12 @@ export default function NetworkSettingsScreen() {
       <Stack.Screen options={glassHeaderOptions(t("Network"))} />
       {state?.available && draft ? (
         <>
+          {draft.mode === "all" ||
+          ((draft.mode === "browser" || draft.mode === "tools") &&
+            draft.transport === "ssh" &&
+            draft.tailscale) ? (
+            <NetworkConnectionSettings onChange={setConnection} />
+          ) : null}
           <SettingsGroup>
             {disabled ? (
               <SettingsRow
@@ -143,9 +156,22 @@ export default function NetworkSettingsScreen() {
                 )}
               </>
             ) : null}
-            {draft.mode === "all"
-              ? field(t("Tailscale exit node"), "exitNode", "exit.example.ts.net")
-              : null}
+            {draft.mode === "all" ? (
+              <>
+                {connection?.available && connection.exitNodes.length && !disabled ? (
+                  <MenuPicker
+                    label={t("Available exit nodes")}
+                    choices={connection.exitNodes.map((node) => ({
+                      key: node.value,
+                      label: `${node.name}${node.online ? "" : ` (${t("Offline")})`}`,
+                    }))}
+                    value={draft.exitNode}
+                    onChange={(exitNode) => patch({ exitNode })}
+                  />
+                ) : null}
+                {field(t("Tailscale exit node"), "exitNode", "exit.example.ts.net")}
+              </>
+            ) : null}
           </SettingsGroup>
           {draft.mode === "all" ? (
             <Text style={styles.note}>

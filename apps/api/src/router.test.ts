@@ -74,11 +74,17 @@ describe("account preferences", () => {
     const { deps, actor } = preferencesDeps("robot");
     const read = vi.spyOn(adapters, "readNetworkSettings").mockResolvedValue({ available: false });
     const save = vi.spyOn(adapters, "saveNetworkSettings").mockResolvedValue({ available: false });
+    const connection = vi
+      .spyOn(adapters, "networkConnection")
+      .mockResolvedValue({ available: false });
     try {
       const member = createRouterClient(createRouter(deps), {
         context: { actor: { ...actor, isDeploymentOwner: false } } as never,
       });
       await expect(member.network.get()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.connection()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.connect()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(connection).not.toHaveBeenCalled();
       await expect(
         member.network.save({ config: { version: 1, mode: "direct" }, revision: "0".repeat(64) }),
       ).rejects.toMatchObject({ code: "FORBIDDEN" });
@@ -86,6 +92,9 @@ describe("account preferences", () => {
       expect(save).not.toHaveBeenCalled();
       const owner = createRouterClient(createRouter(deps), { context: { actor } as never });
       await expect(owner.network.get()).resolves.toEqual({ available: false });
+      await expect(owner.network.connection()).resolves.toEqual({ available: false });
+      await owner.network.connect();
+      expect(connection).toHaveBeenLastCalledWith(true);
       await owner.network.save({
         config: { version: 1, mode: "direct" },
         revision: "0".repeat(64),
@@ -94,6 +103,7 @@ describe("account preferences", () => {
     } finally {
       read.mockRestore();
       save.mockRestore();
+      connection.mockRestore();
     }
   });
 

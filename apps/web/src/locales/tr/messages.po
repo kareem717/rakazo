@@ -649,6 +649,10 @@ msgstr "Onay sınırları"
 msgid "Approve"
 msgstr "Onayla"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Approve this device in Tailscale."
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
 msgstr "Agent'ının bu sunucunun araçlarını kullanabilmesi için sunucuyu onayla."
@@ -1335,6 +1339,10 @@ msgstr "“{name}” MCP sunucusunu bağla"
 msgid "Connect OAuth"
 msgstr "OAuth ile bağlan"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Connect Tailscale"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Connect Treg"
 msgstr "Treg'i bağla"
@@ -1393,6 +1401,10 @@ msgstr "Devam"
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Continue in Background"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Continue in Tailscale"
 msgstr ""
 
 #. placeholder {0}: reset.sso.name
@@ -1488,6 +1500,10 @@ msgstr "Bu ses sağlayıcısı bağlanamadı"
 
 #: src/pages/Shell.tsx
 msgid "Could not connect to the computer screen"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Could not connect to the network gateway"
 msgstr ""
 
 #: src/components/AccountAccess.tsx
@@ -2492,6 +2508,10 @@ msgstr "Model bul"
 #: src/pages/Onboarding.tsx
 msgid "Finding…"
 msgstr "Aranıyor…"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Finish connecting in Tailscale."
+msgstr ""
 
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx
@@ -3510,6 +3530,10 @@ msgstr "OAuth bağlantısı başarısız"
 msgid "OAuth expired"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Offline"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "On a schedule"
 msgstr ""
@@ -3899,6 +3923,10 @@ msgstr ""
 msgid "Refresh"
 msgstr "Yenile"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Refresh connection"
+msgstr ""
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Refresh view"
 msgstr ""
@@ -4116,6 +4144,10 @@ msgstr ""
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "Yeniden dene"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Retry connection"
+msgstr ""
 
 #: src/App.tsx
 #: src/pages/PeerMessagesOverlay.tsx
@@ -4746,8 +4778,21 @@ msgstr "Geçiliyor…"
 msgid "System"
 msgstr "Sistem"
 
+#. placeholder {0}: connection.tailnet
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connected · {0}"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connection is managed on the server."
+msgstr ""
+
 #: src/components/NetworkSettings.tsx
 msgid "Tailscale exit node"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale is not connected."
 msgstr ""
 
 #: src/pages/Shell.tsx

@@ -14,6 +14,7 @@ services:
     cap_add: [NET_ADMIN, NET_RAW]
     devices: [/dev/net/tun:/dev/net/tun]
     volumes:
+      - network-control:/control
       - ./infra/boat:/deployment:ro
       - ./boat-network/state:/state
       - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
@@ -30,7 +31,7 @@ services:
         aliases: [api, web, supervisor]
       data: {}
     healthcheck:
-      test: [CMD, curl, --fail, --silent, --max-time, "5", "http://127.0.0.1:8788/health"]
+      test: [CMD, curl, --fail, --silent, --max-time, "5", --unix-socket, /control/network.sock, "http://network-control/health"]
       interval: 10s
       timeout: 6s
       start_period: 30s
@@ -38,7 +39,9 @@ services:
   api:
     environment:
       RAKAZO_NETWORK_CONFIG: /config/network.json
+      RAKAZO_NETWORK_CONTROL_SOCKET: /network-control/network.sock
     volumes:
+      - network-control:/network-control:ro
       - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:rw
     network_mode: service:egress
     networks: !reset []
@@ -69,3 +72,6 @@ services:
     depends_on:
       egress:
         condition: service_healthy
+
+volumes:
+  network-control:

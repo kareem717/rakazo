@@ -110,7 +110,11 @@ Set these deployment variables:
 
 The controller forces the dedicated environment, refuses inherited credentials and preserves create idempotency. Allow inbound WireGuard UDP on the selected gateway port. Its SOCKS listener binds only `10.202.0.1:1080` and is never published as a Docker port.
 
-Keep `boat-network/state` mode 700 and its files mode 600. For SSH, generate a dedicated `state/proxy_ed25519`, authorize its public key on the egress machine and pin that machine's verified SSH host key in `state/proxy_known_hosts`. For transports using Tailscale, authorize the gateway interactively using `tailscale login` inside its container; its identity persists under `state/tailscale`. Neither guest enrollment keys nor Tailscale in every computer are required.
+Keep `boat-network/state` mode 700 and its files mode 600. For SSH, generate a dedicated `state/proxy_ed25519`, authorize its public key on the egress machine and pin that machine's verified SSH host key in `state/proxy_known_hosts`.
+
+For Tailscale, open the owner's Network settings and choose **Connect Tailscale**, then **Continue in Tailscale** to authorize the gateway in your browser. The connection refreshes while authorization or device approval is pending. Connected setups show their tailnet and offer advertised exit nodes as input suggestions. Advertising an exit node still requires approval in Tailscale; an SSH-only proxy host is not automatically an exit node. The existing connection is preserved when Connect is retried. Identity persists under `state/tailscale`; no password or auth key is entered into Rakazo. CLI enrollment inside the gateway remains available.
+
+The gateway exposes only status and interactive enrollment through a dedicated Unix socket volume. Only the API mounts that volume, read-only, at `RAKAZO_NETWORK_CONTROL_SOCKET`. It cannot access the raw Tailscale socket, daemon state or Docker socket. Without this mount, connection management stays server-managed. The gateway health check checks enrollment-service availability so owners can sign in before a route exists. Computer provisioning still requires a verified egress route and full routing continues to reject public traffic when the exit node is unavailable. Neither guest enrollment keys nor Tailscale in every computer are required.
 
 Run Compose from the repository root with an images Compose file prepared there by the installer. Explicitly set the project directory so overlay paths resolve against the checkout:
 

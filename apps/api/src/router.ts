@@ -84,6 +84,7 @@ import {
   modelCredentialAuthKindsForSpace,
   modelCredentialDto,
   NetworkSettingsError,
+  networkConnection,
   normalizeSecretDestination,
   PushSessionEndedError,
   parseModelSecret,
@@ -1096,6 +1097,26 @@ export function createRouter(deps: RouterDeps) {
       };
     }),
     network: {
+      connection: authed.network.connection.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkConnection();
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not connect to the network gateway",
+          });
+        }
+      }),
+      connect: authed.network.connect.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkConnection(true);
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not connect to the network gateway",
+          });
+        }
+      }),
       get: authed.network.get.handler(async ({ context }) => {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
         try {

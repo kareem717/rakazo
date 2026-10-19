@@ -1,11 +1,16 @@
 // @vitest-environment jsdom
-import type { NetworkSettings } from "@rakazo/contracts";
+import type { NetworkConnection, NetworkSettings } from "@rakazo/contracts";
 import type { ReactNode } from "react";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { afterEach, expect, it, vi } from "vitest";
 
-const calls = vi.hoisted(() => ({ get: vi.fn(), save: vi.fn() }));
+const calls = vi.hoisted(() => ({
+  get: vi.fn(),
+  save: vi.fn(),
+  connection: vi.fn(),
+  connect: vi.fn(),
+}));
 vi.mock("../lib/rpc", () => ({ rpc: { network: calls } }));
 vi.mock("@lingui/react/macro", () => ({
   useLingui: () => ({ t: (parts: TemplateStringsArray) => parts.join("") }),
@@ -31,9 +36,13 @@ const initial: NetworkSettings = {
   restartRequired: false,
 };
 afterEach(() => vi.clearAllMocks());
-async function render(state: NetworkSettings = initial) {
+async function render(
+  state: NetworkSettings = initial,
+  connection: NetworkConnection = { available: false },
+) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   calls.get.mockResolvedValue(state);
+  calls.connection.mockResolvedValue(connection);
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -92,7 +101,53 @@ it("shows only the fields required by the selected transport", async () => {
     expect(container.textContent).not.toContain("Use Tailscale");
     await act(async () => select(container, "Routing", "all"));
     expect(container.textContent).toContain("Tailscale exit node");
-    expect(container.querySelector("button")?.disabled).toBe(true);
+    expect(
+      Array.from(container.querySelectorAll("button")).find((node) => node.textContent === "Save")
+        ?.disabled,
+    ).toBe(true);
+  } finally {
+    await close();
+  }
+});
+it("authorizes with a device link and refreshes the connected network and exit choices", async () => {
+  const disconnected: NetworkConnection = {
+    available: true,
+    provider: "tailscale",
+    state: "needs-login",
+    tailnet: null,
+    authUrl: null,
+    exitNodes: [],
+  };
+  calls.connect.mockResolvedValue({
+    ...disconnected,
+    authUrl: "https://login.tailscale.com/a/abc123",
+  });
+  const { container, close } = await render(initial, disconnected);
+  try {
+    const button = (text: string) =>
+      Array.from(container.querySelectorAll("button")).find((node) => node.textContent === text)!;
+    expect(container.textContent).toContain("Tailscale is not connected.");
+    await act(async () => button("Connect Tailscale").click());
+    expect(calls.connect).toHaveBeenCalledOnce();
+    const link = container.querySelector<HTMLAnchorElement>("a");
+    expect(link?.href).toBe("https://login.tailscale.com/a/abc123");
+    expect(link?.rel).toBe("noopener noreferrer");
+    expect(container.textContent).toContain("Finish connecting in Tailscale.");
+    calls.connection.mockResolvedValue({
+      ...disconnected,
+      state: "connected",
+      tailnet: "example.test",
+      exitNodes: [{ name: "exit.example.ts.net", value: "exit.example.ts.net", online: true }],
+    });
+    await act(async () => button("Refresh connection").click());
+    expect(container.textContent).toContain("Tailscale connected");
+    expect(container.textContent).toContain("example.test");
+    expect(container.querySelector("a")).toBeNull();
+    await act(async () => select(container, "Routing", "all"));
+    expect(container.querySelector("datalist option")?.getAttribute("value")).toBe(
+      "exit.example.ts.net",
+    );
+    expect(calls.connect).toHaveBeenCalledOnce();
   } finally {
     await close();
   }

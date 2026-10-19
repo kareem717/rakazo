@@ -1,5 +1,10 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { EgressMode, NetworkSettings, NetworkSettingsDraft } from "@rakazo/contracts";
+import type {
+  EgressMode,
+  NetworkConnection,
+  NetworkSettings,
+  NetworkSettingsDraft,
+} from "@rakazo/contracts";
 import { networkConfigFromDraft, networkSettingsDraft } from "@rakazo/contracts";
 import {
   Button,
@@ -14,6 +19,7 @@ import {
 import { useEffect, useId, useRef, useState } from "react";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
+import { NetworkConnectionSettings } from "./NetworkConnectionSettings";
 
 export function NetworkSettingsSection() {
   const [open, setOpen] = useState(false);
@@ -30,6 +36,7 @@ export function NetworkSettingsSection() {
 export function NetworkSettingsForm() {
   const { t } = useLingui();
   const [state, setState] = useState<NetworkSettings | null>(null);
+  const [connection, setConnection] = useState<NetworkConnection | null>(null);
   const [draft, setDraft] = useState<NetworkSettingsDraft | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -87,6 +94,7 @@ export function NetworkSettingsForm() {
           disabled={disabled}
           autoComplete="off"
           spellCheck={false}
+          list={key === "exitNode" ? `${id}-exit-nodes` : undefined}
         />
       </Field>
     );
@@ -119,6 +127,12 @@ export function NetworkSettingsForm() {
               </NativeSelectOption>
             </NativeSelect>
           </Field>
+          {draft.mode === "all" ||
+          ((draft.mode === "browser" || draft.mode === "tools") &&
+            draft.transport === "ssh" &&
+            draft.tailscale) ? (
+            <NetworkConnectionSettings onChange={setConnection} />
+          ) : null}
           {draft.mode === "browser" || draft.mode === "tools" ? (
             <>
               <Field>
@@ -158,6 +172,16 @@ export function NetworkSettingsForm() {
           {draft.mode === "all" ? (
             <>
               {textField(t`Tailscale exit node`, "exitNode", "exit.example.ts.net")}
+              <datalist id={`${id}-exit-nodes`}>
+                {connection?.available
+                  ? connection.exitNodes.map((node) => (
+                      <option key={node.value} value={node.value}>
+                        {node.name}
+                        {node.online ? "" : ` (${t`Offline`})`}
+                      </option>
+                    ))
+                  : null}
+              </datalist>
               <p className="text-[13px] text-muted-foreground">
                 <Trans>
                   App and computer traffic uses the exit node. Local traffic stays direct.

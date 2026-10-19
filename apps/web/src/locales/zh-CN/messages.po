@@ -649,6 +649,10 @@ msgstr "审批边界"
 msgid "Approve"
 msgstr "批准"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Approve this device in Tailscale."
+msgstr ""
+
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
 msgstr "批准此服务器后，Agent 才能使用它的工具。"
@@ -1335,6 +1339,10 @@ msgstr "连接 MCP 服务器“{name}”"
 msgid "Connect OAuth"
 msgstr "连接 OAuth"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Connect Tailscale"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Connect Treg"
 msgstr "连接 Treg"
@@ -1393,6 +1401,10 @@ msgstr "继续"
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Continue in Background"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Continue in Tailscale"
 msgstr ""
 
 #. placeholder {0}: reset.sso.name
@@ -1488,6 +1500,10 @@ msgstr "无法连接此语音提供方"
 
 #: src/pages/Shell.tsx
 msgid "Could not connect to the computer screen"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Could not connect to the network gateway"
 msgstr ""
 
 #: src/components/AccountAccess.tsx
@@ -2492,6 +2508,10 @@ msgstr "查找模型"
 #: src/pages/Onboarding.tsx
 msgid "Finding…"
 msgstr "正在查找…"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Finish connecting in Tailscale."
+msgstr ""
 
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx
@@ -3510,6 +3530,10 @@ msgstr "OAuth 连接失败"
 msgid "OAuth expired"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Offline"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "On a schedule"
 msgstr "按计划"
@@ -3899,6 +3923,10 @@ msgstr ""
 msgid "Refresh"
 msgstr "刷新"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Refresh connection"
+msgstr ""
+
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Refresh view"
 msgstr ""
@@ -4116,6 +4144,10 @@ msgstr ""
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "重试"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Retry connection"
+msgstr ""
 
 #: src/App.tsx
 #: src/pages/PeerMessagesOverlay.tsx
@@ -4746,8 +4778,21 @@ msgstr "正在切换…"
 msgid "System"
 msgstr "系统"
 
+#. placeholder {0}: connection.tailnet
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connected · {0}"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connection is managed on the server."
+msgstr ""
+
 #: src/components/NetworkSettings.tsx
 msgid "Tailscale exit node"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale is not connected."
 msgstr ""
 
 #: src/pages/Shell.tsx

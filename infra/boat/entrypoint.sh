@@ -7,21 +7,25 @@ node /deployment/network-config.mjs /state/egress.env
 export EGRESS_MODE
 node /deployment/controller.mjs --check-network-transition
 /bin/sh /deployment/gateway-network.sh
-daemon=""; controller=""; proxy=""; dns=""
-trap 'kill ${daemon:+"$daemon"} ${controller:+"$controller"} ${proxy:+"$proxy"} ${dns:+"$dns"} 2>/dev/null || true' EXIT TERM INT
+daemon=""; controller=""; proxy=""; dns=""; control=""; configure=""
+trap 'kill ${daemon:+"$daemon"} ${controller:+"$controller"} ${proxy:+"$proxy"} ${dns:+"$dns"} ${control:+"$control"} ${configure:+"$configure"} 2>/dev/null || true' EXIT TERM INT
 
-if [ "$EGRESS_USE_TAILSCALE" = true ]; then
-  mkdir -p /state/tailscale /var/run/tailscale
-  tailscaled --state=/state/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock > /state/tailscaled.log 2>&1 &
-  daemon=$!
-  while [ ! -S /var/run/tailscale/tailscaled.sock ]; do kill -0 "$daemon"; sleep 1; done
-  allow_lan=false
-  [ -z "$EGRESS_EXIT_NODE" ] || allow_lan=true
+# Keep enrollment available even before a Tailscale route is selected.
+mkdir -p /state/tailscale /var/run/tailscale
+tailscaled --state=/state/tailscale/tailscaled.state --socket=/var/run/tailscale/tailscaled.sock > /state/tailscaled.log 2>&1 &
+daemon=$!
+while [ ! -S /var/run/tailscale/tailscaled.sock ]; do kill -0 "$daemon"; sleep 1; done
+allow_lan=false
+[ -z "$EGRESS_EXIT_NODE" ] || allow_lan=true
+node /deployment/tailscale-control.mjs &
+control=$!
+(
   until tailscale set --hostname=rakazo-egress --accept-dns=false --netfilter-mode=off --exit-node="$EGRESS_EXIT_NODE" --exit-node-allow-lan-access="$allow_lan"; do
     kill -0 "$daemon"
     sleep 2
   done
-fi
+) > /state/tailscale-configure.log 2>&1 &
+configure=$!
 
 case "$EGRESS_TRANSPORT" in
   ssh)
@@ -47,10 +51,18 @@ case "$EGRESS_TRANSPORT" in
   *) exit 1 ;;
 esac
 
-node /deployment/controller.mjs &
+(
+  # Enrollment remains reachable while the full route is unavailable. The
+  # firewall is already closed; never let provisioning bypass its readiness check.
+  if [ "$EGRESS_MODE" = all ]; then
+    until ip -4 route get 1.1.1.1 | grep -q 'dev tailscale0'; do sleep 2; done
+  fi
+  exec node /deployment/controller.mjs
+) &
 controller=$!
 while kill -0 "$controller" 2>/dev/null; do
   [ -z "$daemon" ] || kill -0 "$daemon"
+  [ -z "$control" ] || kill -0 "$control"
   [ -z "$proxy" ] || kill -0 "$proxy"
   [ -z "$dns" ] || kill -0 "$dns"
   sleep 5
