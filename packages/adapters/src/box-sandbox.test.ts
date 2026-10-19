@@ -237,6 +237,18 @@ describe("BoxSandboxProvider", () => {
     expect(body.locked).toBe(false);
   });
 
+  it("wakes an externally archived computer before opening its screen even after preparation was cached", async () => {
+    const fixture = boxFixture();
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    await provider.prepare(computer, context);
+    fixture.get.mockResolvedValueOnce(infoResponse("bx_testbox2", "archived"));
+    await expect(
+      provider.connectScreen(computer, { view: "stream", interactive: false }, context),
+    ).resolves.toHaveProperty("url");
+    expect(fixture.resume).toHaveBeenCalledTimes(1);
+  });
+
   it("captures independent desktops and exposes protected ports", async () => {
     const fixture = boxFixture();
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);

@@ -302,6 +302,8 @@ export class BoxSandboxProvider implements SandboxProvider {
     request: ScreenRequest,
     context: AdapterContext,
   ): Promise<ScreenSession> {
+    await this.ensureRunnable(this.id(computer), context);
+    await this.prepare(computer, context);
     return this.desktops.connectScreen(computer, request, context);
   }
   async connectTerminal(computer: ComputerRef, request: TerminalRequest, context: AdapterContext) {

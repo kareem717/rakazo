@@ -142,6 +142,32 @@ Docker Desktop, rootless Docker, and `firewall-backend: nftables` are unsupporte
 `SANDBOX_SCREEN_NETWORK=internal` topology shares one network instead of per-bot bridges,
 so the mode does not apply there.
 
+## Hindsight memory
+
+In Settings → Memory, select Hindsight and enter the API URL (for example,
+`https://memory.example.com/api`) and a key authorized for your existing banks.
+Map each Rakazo bot to its matching profile's bank ID. Unmapped bots cannot use
+Hindsight; connecting probes the mapped banks without creating banks or memories.
+Private endpoints require the deployment owner, and HTTPS is required except on loopback.
+
+Recall only is the default. Recall and write enables durable fact saves and deletion
+of this adapter's own documents. Saves use deterministic document IDs and caller-supplied
+operation IDs, wait for ingestion and child operations to complete, and verify the
+source text and extracted memory count before reporting success. This confirms
+ingestion, not subsequent consolidation or search indexing. If a save fails with
+an operation and document ID, reconcile those records before retrying an uncertain write.
+
+Existing Hermes memories are recalled directly, without importing or rewriting them.
+Forgetting removes the document and its extracted facts only when the document belongs
+to this Rakazo user, space, and bot (or explicit shared scope); Hermes documents are
+preserved. Conversation compaction stays in Rakazo and is not ingested into these banks.
+
+Shared memory requires an explicit shared bank under Shared memory. Shared recall
+reads the mapped bot bank and that shared bank, without pooling other profile banks.
+Configure the connection through web or Electron settings. Mobile has no provider
+configuration screen yet; its bot runs use the same server-side connection. API keys
+use the existing encrypted credential store and are not returned to clients.
+
 ## Docker Compose (single machine)
 
 1. Copy `.env.example` to `.env` and set `POSTGRES_PASSWORD` (`openssl rand -hex 16`), plus `BETTER_AUTH_SECRET`, `ENCRYPTION_KEY`, and `SCREEN_PROXY_SECRET` to independent long random strings (32+ characters; 64 hex for `ENCRYPTION_KEY`). Docker sandboxes also need a dedicated `SANDBOX_SUPERVISOR_TOKEN`. Keep existing `ENCRYPTION_KEY` values so stored credentials stay decryptable.
