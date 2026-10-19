@@ -1441,6 +1441,10 @@ msgstr "복사"
 msgid "Copy .env example"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Copy selection"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "추가하지 못했습니다."

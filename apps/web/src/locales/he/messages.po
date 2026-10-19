@@ -1441,6 +1441,10 @@ msgstr "העתקה"
 msgid "Copy .env example"
 msgstr "העתקת דוגמת .env"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Copy selection"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "לא ניתן להוסיף"
