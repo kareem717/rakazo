@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { groupBotsForSidebar, nestRosterByParent, reorderBotTo } from "./bot-sections.js";
+import {
+  groupBotsForSidebar,
+  nestRosterByParent,
+  reorderBotTo,
+  sectionDestinations,
+  sectionTree,
+} from "./bot-sections.js";
 
 const sections = [
   { id: "work", name: "Work" },
@@ -117,5 +123,44 @@ describe("nestRosterByParent", () => {
       { id: "b", parentBotId: "a" },
     ]);
     expect(rows.map((row) => row.item.id).sort()).toEqual(["a", "b"]);
+  });
+});
+
+describe("nested sections", () => {
+  const tree = [
+    { id: "child", name: "Inbox", parentId: "root" },
+    { id: "other", name: "Other" },
+    { id: "root", name: "Work" },
+    { id: "leaf", name: "Replies", parentId: "child" },
+  ];
+  it("orders children after their parent even when the source is out of order", () => {
+    expect(sectionTree(tree).map((item) => [item.id, item.depth, item.path])).toEqual([
+      ["other", 0, "Other"],
+      ["root", 0, "Work"],
+      ["child", 1, "Work / Inbox"],
+      ["leaf", 2, "Work / Inbox / Replies"],
+    ]);
+  });
+  it("retains empty ancestors of populated subsections without duplicating chats", () => {
+    const groups = groupBotsForSidebar([{ pinned: false, sectionId: "leaf" }], tree);
+    expect(groups.map((item) => item.key)).toEqual([
+      "section:root",
+      "section:child",
+      "section:leaf",
+    ]);
+    expect(groups.map((item) => item.bots.length)).toEqual([0, 0, 1]);
+    expect(groups[2]).toMatchObject({ depth: 2, ancestorIds: ["root", "child"] });
+  });
+  it("excludes an entire subtree from move destinations", () => {
+    expect(sectionDestinations(tree, "root").map((item) => item.id)).toEqual(["other"]);
+    expect(sectionDestinations(tree, "child").map((item) => item.id)).toEqual(["other", "root"]);
+  });
+  it("surfaces stale or cyclic cached sections once each", () => {
+    const rows = sectionTree([
+      { id: "a", name: "A", parentId: "b" },
+      { id: "b", name: "B", parentId: "a" },
+      { id: "c", name: "C", parentId: "gone" },
+    ]);
+    expect(rows.map((item) => item.id).sort()).toEqual(["a", "b", "c"]);
   });
 });

@@ -368,8 +368,27 @@ export const appContract = {
   },
   botSections: {
     list: oc.output(z.array(BotSectionSchema)),
-    create: oc.input(threadTarget.safeExtend({ name: BotSectionName })).output(BotSectionSchema),
-    update: oc.input(z.object({ sectionId: Id, name: BotSectionName })).output(BotSectionSchema),
+    create: oc
+      .input(
+        z
+          .object({
+            botId: Id.optional(),
+            groupId: Id.optional(),
+            name: BotSectionName,
+            parentId: Id.nullable().optional(),
+          })
+          .refine((input) => !(input.botId && input.groupId), "Choose one chat"),
+      )
+      .output(BotSectionSchema),
+    update: oc
+      .input(
+        z.object({
+          sectionId: Id,
+          name: BotSectionName.optional(),
+          parentId: Id.nullable().optional(),
+        }),
+      )
+      .output(BotSectionSchema),
     remove: oc.input(z.object({ sectionId: Id })).output(
       z.object({
         id: Id,

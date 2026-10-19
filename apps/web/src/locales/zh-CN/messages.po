@@ -1727,6 +1727,10 @@ msgstr ""
 msgid "Could not log out. Try again."
 msgstr "无法退出登录。请重试。"
 
+#: src/pages/Shell.tsx
+msgid "Could not move section"
+msgstr ""
+
 #: src/pages/BillingSettingsPanel.tsx
 #: src/pages/Paywall.tsx
 msgid "Could not open billing"
@@ -2818,8 +2822,8 @@ msgid "Isolated preview — no access to your account"
 msgstr ""
 
 #: src/pages/Shell.tsx
-msgid "Its bots and groups are kept and leave the section."
-msgstr "其中的 Bot 和群组会保留，并移出该分组。"
+msgid "Its chats are kept. Subsections move up one level."
+msgstr ""
 
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
@@ -3271,6 +3275,7 @@ msgid "Move them to your shared memory."
 msgstr "把它们移到共享记忆。"
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 msgid "Move to"
 msgstr "移动到"
 
@@ -3358,6 +3363,10 @@ msgstr "新建技能"
 #: src/pages/shell/dialogs.tsx
 msgid "New space"
 msgstr "新建工作区"
+
+#: src/pages/Shell.tsx
+msgid "New subsection"
+msgstr ""
 
 #: src/pages/Board.tsx
 msgid "New ticket"
@@ -3491,6 +3500,11 @@ msgstr "无触发器"
 
 #: src/components/VoicePicker.tsx
 msgid "No voices found"
+msgstr ""
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/dialogs.tsx
+msgid "None"
 msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
@@ -3686,6 +3700,10 @@ msgstr ""
 #: src/pages/RoutineEditor.tsx
 msgid "PagerDuty incident"
 msgstr "PagerDuty 事件"
+
+#: src/pages/shell/dialogs.tsx
+msgid "Parent section"
+msgstr ""
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Park"

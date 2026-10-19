@@ -8,7 +8,7 @@ function chat(id: string, name: string) {
     title: "",
     preview: "",
     pinned: false,
-    sectionId: null,
+    sectionId: null as string | null,
     parentBotId: null,
   };
 }
@@ -171,4 +171,18 @@ describe("commitSpaceRename", () => {
     expect(apply).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
   });
+});
+
+it("keeps nested destinations and ancestor collapse keys in the same space", () => {
+  const input = {
+    ...space("work", "Work"),
+    bots: [{ ...chat("a", "Alpha"), sectionId: "child" }],
+    botSections: [
+      { id: "child", name: "Inbox", parentId: "parent" },
+      { id: "parent", name: "Projects" },
+    ],
+  };
+  const groups = sidebarGroupsForSpaces([input, space("personal", "Personal")], "Alpha");
+  expect(groups.map((group) => group.sectionId)).toEqual(["parent", "child"]);
+  expect(groups[1]).toMatchObject({ depth: 1, ancestorKeys: ["space:work:section:parent"] });
 });

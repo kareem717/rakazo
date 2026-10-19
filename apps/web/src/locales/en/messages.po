@@ -1727,6 +1727,10 @@ msgstr "Could not load voices"
 msgid "Could not log out. Try again."
 msgstr "Could not log out. Try again."
 
+#: src/pages/Shell.tsx
+msgid "Could not move section"
+msgstr "Could not move section"
+
 #: src/pages/BillingSettingsPanel.tsx
 #: src/pages/Paywall.tsx
 msgid "Could not open billing"
@@ -2818,8 +2822,8 @@ msgid "Isolated preview — no access to your account"
 msgstr "Isolated preview — no access to your account"
 
 #: src/pages/Shell.tsx
-msgid "Its bots and groups are kept and leave the section."
-msgstr "Its bots and groups are kept and leave the section."
+msgid "Its chats are kept. Subsections move up one level."
+msgstr "Its chats are kept. Subsections move up one level."
 
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
@@ -3271,6 +3275,7 @@ msgid "Move them to your shared memory."
 msgstr "Move them to your shared memory."
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 msgid "Move to"
 msgstr "Move to"
 
@@ -3358,6 +3363,10 @@ msgstr "New skill"
 #: src/pages/shell/dialogs.tsx
 msgid "New space"
 msgstr "New space"
+
+#: src/pages/Shell.tsx
+msgid "New subsection"
+msgstr "New subsection"
 
 #: src/pages/Board.tsx
 msgid "New ticket"
@@ -3492,6 +3501,11 @@ msgstr "No trigger"
 #: src/components/VoicePicker.tsx
 msgid "No voices found"
 msgstr "No voices found"
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/dialogs.tsx
+msgid "None"
+msgstr "None"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
@@ -3686,6 +3700,10 @@ msgstr "Owner"
 #: src/pages/RoutineEditor.tsx
 msgid "PagerDuty incident"
 msgstr "PagerDuty incident"
+
+#: src/pages/shell/dialogs.tsx
+msgid "Parent section"
+msgstr "Parent section"
 
 #: src/pages/ScratchpadSection.tsx
 msgid "Park"
