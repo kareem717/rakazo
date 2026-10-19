@@ -303,7 +303,9 @@ describe("BoxSandboxProvider", () => {
       .filter((r) => r.path.includes(".rakazo-upload-"));
     expect(chunks).toHaveLength(3);
     expect(chunks.every((c) => c.content.length < 5 * 1024 * 1024)).toBe(true);
-    expect(Buffer.concat(chunks.map((c) => Buffer.from(c.content, "base64")))).toEqual(content);
+    expect(Buffer.concat(chunks.map((c) => Buffer.from(c.content, "base64"))).equals(content)).toBe(
+      true,
+    );
     expect(
       fixture.command.mock.calls.some(
         ([r]) =>
