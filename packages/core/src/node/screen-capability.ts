@@ -75,9 +75,8 @@ export function sealScreenCapability(
     autoconnect: "true",
     resize: "scale",
     view_only: policy === "control" ? "false" : "true",
-    // noVNC can resolve paths relative to its document directory. An absolute
-    // path prevents it from repeating the capability prefix.
-    path: target.pathname === "/embed.html" ? "websockify" : `${prefix}/websockify`,
+    // Stock noVNC prepends a slash to this server-root path itself.
+    path: target.pathname === "/embed.html" ? "websockify" : `${prefix.slice(1)}/websockify`,
   }).toString();
   return result.toString();
 }

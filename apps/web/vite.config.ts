@@ -18,6 +18,7 @@ import type { PreviewServer, ViteDevServer } from "vite";
 import { defineConfig, loadEnv } from "vite";
 import { resolveScreenProxySecret } from "../../packages/core/src/secrets-guard.ts";
 import { createServiceLogger } from "../../packages/logging/src/env.ts";
+import { boxScreenAuth } from "./src/box-screen-auth.js";
 import { collectNovncHtml, MAX_NOVNC_HTML_BYTES } from "./src/novnc-html.js";
 import {
   resolveNovncTarget,
@@ -96,8 +97,17 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
       res.end("Invalid or expired screen capability");
       return;
     }
+    let viewerAuth: Awaited<ReturnType<typeof boxScreenAuth>>;
+    try {
+      viewerAuth = await boxScreenAuth(target, req.url!);
+    } catch {
+      res.statusCode = 502;
+      res.end("Screen unavailable");
+      return;
+    }
     const headers = {
       ...safeProxyHeaders(req.headers),
+      ...(viewerAuth.cookie ? { cookie: viewerAuth.cookie } : {}),
       ...(isCreateOSNovncHost(target.hostname) ? { "accept-encoding": "identity" } : {}),
       host: `${target.hostname}:${target.port}`,
     };
@@ -149,7 +159,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
         {
           hostname: target.hostname,
           port: target.port,
-          path: target.path,
+          path: viewerAuth.path,
           method: req.method,
           headers,
           ...(target.protocol === "https:" ? { servername: target.hostname } : {}),
@@ -222,6 +232,8 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
   });
 
   server.httpServer?.on("upgrade", async (req, socket, head) => {
+    // Older issued viewer URLs include a leading slash that noVNC prepends again.
+    if (req.url?.startsWith("//novnc/")) req.url = req.url.slice(1);
     if (!req.url?.startsWith("/novnc/")) return;
     const connectionId = randomUUID();
     const startedAt = Date.now();
@@ -238,6 +250,13 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
     });
     if (socket.destroyed) return;
     if (!target) {
+      socket.destroy();
+      return;
+    }
+    let viewerAuth: Awaited<ReturnType<typeof boxScreenAuth>>;
+    try {
+      viewerAuth = await boxScreenAuth(target, req.url!);
+    } catch {
       socket.destroy();
       return;
     }
@@ -282,10 +301,14 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
     });
     upstream.once(target.protocol === "https:" ? "secureConnect" : "connect", () => {
       const headerLines = [
-        `${req.method ?? "GET"} ${target.path} HTTP/1.1`,
+        `${req.method ?? "GET"} ${viewerAuth.path} HTTP/1.1`,
         `Host: ${target.hostname}:${target.port}`,
+        ...(viewerAuth.cookie
+          ? [`Cookie: ${viewerAuth.cookie}`, `Origin: https://${target.hostname}`]
+          : []),
       ];
       for (const [key, value] of Object.entries(safeProxyHeaders(req.headers))) {
+        if (viewerAuth.cookie && key.toLowerCase() === "origin") continue;
         headerLines.push(`${key}: ${Array.isArray(value) ? value.join(",") : value}`);
       }
       upstream.write(`${headerLines.join("\r\n")}\r\n\r\n`);
@@ -367,7 +390,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
   });
 }
 
-const NOVNC_STORAGE_SHIM_HOSTS = [".app.sb.createos.sh"];
+const NOVNC_STORAGE_SHIM_HOSTS = [".app.sb.createos.sh", ".on.ascii.dev", ".on.boat.dev"];
 
 function isCreateOSNovncHost(hostname: string) {
   return NOVNC_STORAGE_SHIM_HOSTS.some((suffix) => hostname.endsWith(suffix));

@@ -3,5 +3,8 @@ FROM ${BASE_IMAGE}
 USER root
 COPY --chown=node:node packages/adapters/src/ /app/packages/adapters/src/
 COPY --chown=node:node apps/web/src/pages/memory-providers/ /app/apps/web/src/pages/memory-providers/
+COPY --chown=node:node apps/web/vite.config.ts /app/apps/web/vite.config.ts
+COPY --chown=node:node apps/web/src/box-screen-auth.ts /app/apps/web/src/box-screen-auth.ts
+COPY --chown=node:node packages/core/src/node/screen-capability.ts /app/packages/core/src/node/screen-capability.ts
 RUN RAKAZO_ALLOW_DEV_SECRETS=1 pnpm --filter @rakazo/web build
 USER node
