@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { AGENT_SECRET_NAME_PATTERN } from "./agent-secret-name.js";
 import { BotAvatarValueSchema } from "./bot-avatar.js";
+import { BrowserDriverSchema } from "./browser-driver.js";
 import { DisabledBuiltinToolsSchema } from "./builtin-tools.js";
 import {
   CLOUDFLARE_AI_GATEWAY_CONFIG_MESSAGE,
@@ -1313,6 +1314,7 @@ export const VoiceStatusSchema = z.object({
 export type VoiceStatus = z.infer<typeof VoiceStatusSchema>;
 
 export const DeploymentSettingsSchema = z.object({
+  browserDriver: BrowserDriverSchema.default("cdp"),
   ownerUserId: Id.nullable(),
   signupsEnabled: z.boolean(),
   signupAllowlist: z.array(z.string()),

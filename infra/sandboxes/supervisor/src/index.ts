@@ -6,6 +6,7 @@ import { homedir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { serve } from "@hono/node-server";
+import { BrowserDriverSchema } from "@rakazo/contracts";
 import {
   boundedSandboxCommandTimeoutMs,
   readBoundedJsonResponse,
@@ -516,6 +517,7 @@ app.post("/computers/:id/browser", async (c) => {
                 ref: z.string().min(1).max(200),
                 text: z.string().max(32_000),
                 origin: z.string().url().max(2048).optional(),
+                secretField: z.literal("mfa").optional(),
               }),
             ]),
           )
@@ -523,6 +525,7 @@ app.post("/computers/:id/browser", async (c) => {
           .max(24),
       }),
     ])
+    .and(z.object({ driver: BrowserDriverSchema.optional() }))
     .parse(await c.req.json());
   const carriesSavedLogin =
     body.command === "act" && body.actions.some((step) => "origin" in step && step.origin);
@@ -540,7 +543,9 @@ app.post("/computers/:id/browser", async (c) => {
       // any process in the computer, including the bot's own shell. Other commands also keep the
       // argv copy so a computer still on an older image keeps working until it is replaced.
       [
-        "/usr/local/bin/rakazo-page-browser",
+        ...(body.driver === "patchright"
+          ? ["/opt/rakazo/patchright/bin/python", "/usr/local/bin/rakazo-patchright-browser"]
+          : ["/usr/local/bin/rakazo-page-browser"]),
         body.command,
         ...(carriesSavedLogin ? [] : [JSON.stringify(body)]),
       ],
@@ -562,6 +567,15 @@ app.post("/computers/:id/browser", async (c) => {
       },
     );
     // A nonzero exit or malformed output cannot establish which mutations ran.
+    if (body.driver === "patchright" && (result.code === 126 || result.code === 127)) {
+      return c.json({
+        ok: false,
+        completed: 0,
+        uncertain: false,
+        fallback: "computer_act",
+        error: "Patchright is unavailable on this computer. Update its image or choose Standard.",
+      });
+    }
     if (result.code !== 0 || Buffer.byteLength(result.stdout) > 512 * 1024) {
       throw new Error(
         /command timed out/.test(result.stderr)

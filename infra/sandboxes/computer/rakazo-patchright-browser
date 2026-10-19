@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Patchright controls the owned Chrome; shared isolated helpers protect saved logins."""
+import importlib.machinery
+import importlib.util
+import json
+import os
+from pathlib import Path
+import sys
+import threading
+
+loader = importlib.machinery.SourceFileLoader(
+    "rakazo_page_browser", str(Path(__file__).with_name("rakazo-page-browser")),
+)
+spec = importlib.util.spec_from_loader(loader.name, loader)
+core = importlib.util.module_from_spec(spec)
+loader.exec_module(core)
+
+
+class PageSession:
+    """Bind shared DOM operations to one Patchright-owned page CDP session."""
+    def __init__(self, session):
+        self.session = session
+        self.context_id = None
+
+    def call(self, method, params=None, *, session_id=None, timeout_s=30.0):
+        return self.session.send(method, params or {})
+
+
+def select_page(browser):
+    candidates = []
+    for context in browser.contexts:
+        for page in context.pages[:32]:
+            if page.evaluate('document.visibilityState === "visible"'):
+                candidates.append((page, page.evaluate('document.hasFocus()')))
+    focused = [page for page, focus in candidates if focus]
+    if len(focused) == 1:
+        return focused[0]
+    if len(candidates) == 1:
+        return candidates[0][0]
+    raise RuntimeError("No unambiguous visible browser tab. Use desktop tools to select a tab.")
+
+
+def operate(browser, command, args):
+    page = select_page(browser)
+    page.set_default_timeout(10_000)
+    session = PageSession(page.context.new_cdp_session(page))
+    try:
+        if command == "navigate":
+            url = str(args.get("url") or "")
+            parsed = core.urlsplit(url)
+            if parsed.scheme not in ("http", "https") or parsed.username or parsed.password:
+                raise RuntimeError("Only HTTP(S) URLs without embedded credentials are supported")
+            page.goto(url, wait_until="domcontentloaded", timeout=15_000)
+            return {"ok": True, "url": page.url, "title": page.title()}
+        if command == "snapshot":
+            return core.snapshot(session, "owned-page")
+        if command != "act":
+            raise RuntimeError("Unknown browser command")
+
+        def perform(step):
+            if step["kind"] == "click":
+                point = core.eval_json(session, "owned-page",
+                    f"window.__rakazoPageBrowser.clickPoint({json.dumps(step['ref'])})")
+                page.mouse.click(point["x"], point["y"])
+                return {}
+            # Origin validation, field restrictions, masking and upload confinement
+            # are shared with Standard, including when changing drivers mid-session.
+            return core.apply_action(session, "owned-page", step)
+
+        return core.act(session, "owned-page", args.get("actions"), perform_action=perform)
+    finally:
+        try:
+            session.session.detach()
+        except Exception:
+            pass  # Disconnect cleanup must not discard confirmed action results.
+
+
+def run(argv):
+    raw = core.read_stdin_line() if os.environ.get("RAKAZO_BROWSER_ARGS_STDIN") == "1" else (
+        argv[2] if len(argv) > 2 else "{}"
+    )
+    if os.environ.get("RAKAZO_BROWSER_WATCH_STDIN") == "1":
+        threading.Thread(target=core.exit_when_stdin_closes, daemon=True).start()
+    command = argv[1] if len(argv) > 1 else ""
+    args = json.loads(raw or "{}")
+    protected = command == "act" and any(step.get("origin") for step in args.get("actions", []))
+    result = None
+    try:
+        # Import only on the optional driver path; Standard requires no SDK.
+        from patchright.sync_api import sync_playwright
+        port = core.cdp_port()
+        core.wait_for_cdp(port)
+        endpoint = core.discover_ws_url(port)
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.connect_over_cdp(
+                endpoint, no_defaults=True, is_local=True, timeout=10_000,
+            )
+            result = operate(browser, command, args)
+            # Stopping the SDK disconnects its transport. Never close the live
+            # browser, its pages, or its persistent profile when a helper exits.
+    except Exception:
+        if result is None:
+            result = {
+                "ok": False, "completed": 0, "uncertain": command == "act",
+                "error": "Patchright browser unavailable. Inspect the screen before continuing.",
+                "fallback": "computer_act",
+            }
+    if protected and result.get("error"):
+        result["error"] = "Saved login could not be filled. Inspect the screen before continuing."
+    print(json.dumps(result))
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(run(sys.argv))

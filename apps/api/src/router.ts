@@ -1143,6 +1143,7 @@ export function createRouter(deps: RouterDeps) {
             signupAllowlist: (input.signupAllowlist ?? []).join(","),
             signupPolicyInitialized: true,
             computerHost: input.computerHost ?? undefined,
+            browserDriver: input.browserDriver,
           },
           update: {
             ...(input.signupsEnabled === undefined ? {} : { signupsEnabled: input.signupsEnabled }),
@@ -1151,6 +1152,7 @@ export function createRouter(deps: RouterDeps) {
               ? {}
               : { signupPolicyInitialized: true }),
             ...(input.computerHost === undefined ? {} : { computerHost: input.computerHost }),
+            ...(input.browserDriver === undefined ? {} : { browserDriver: input.browserDriver }),
           },
         });
         return deploymentDto(deps.prisma, deps.env.sandboxProvider);
@@ -6976,6 +6978,8 @@ async function computerScreenContext(
 async function deploymentDto(prisma: PrismaClient, sandboxProvider: string) {
   const settings = await prisma.deploymentSettings.findUnique({ where: { id: "default" } });
   return {
+    browserDriver:
+      settings?.browserDriver === "patchright" ? ("patchright" as const) : ("cdp" as const),
     ownerUserId: settings?.ownerUserId ?? null,
     signupsEnabled: settings?.signupsEnabled ?? true,
     signupAllowlist: settings?.signupAllowlist

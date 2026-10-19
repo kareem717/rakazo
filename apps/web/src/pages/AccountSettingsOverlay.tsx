@@ -17,6 +17,7 @@ import { useId, useRef, useState, useSyncExternalStore } from "react";
 import { Link } from "react-router-dom";
 import { AccountAccess } from "../components/AccountAccess";
 import { SuccessPop } from "../components/ai/primitives";
+import { BrowserDriverSettings } from "../components/BrowserDriverSettings";
 import { ComputersUnavailableHint } from "../components/ComputersUnavailableHint";
 import { DesktopUpdateSection } from "../components/DesktopUpdates";
 import { ListboxSelect } from "../components/ListboxSelect";
@@ -426,10 +427,12 @@ export function UsageSettingsPanel({
 }
 
 export function ComputerSettingsPanel({
+  isDeploymentOwner = false,
   sandboxProvider,
   onSandboxProviderChange,
   onRecoveryDismissed,
 }: {
+  isDeploymentOwner?: boolean;
   sandboxProvider?: string | null;
   onSandboxProviderChange?: (sandboxProvider: string) => void;
   onRecoveryDismissed?: () => void;
@@ -448,6 +451,7 @@ export function ComputerSettingsPanel({
         onRecovered={onSandboxProviderChange}
         onRecoveryDismissed={onRecoveryDismissed}
       />
+      {isDeploymentOwner ? <BrowserDriverSettings /> : null}
     </div>
   );
 }

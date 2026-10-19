@@ -36,7 +36,8 @@ function installPageHelper(url: string, html: string) {
       return {};
     },
   });
-  vm.runInContext(match[1], dom.getInternalVMContext());
+  const program = match[1];
+  vm.runInContext(program, dom.getInternalVMContext());
   const browser = (
     domWindow as unknown as {
       __rakazoPageBrowser: {
@@ -44,10 +45,15 @@ function installPageHelper(url: string, html: string) {
           elements: Array<{ ref: string; name: string; role: string; value?: string }>;
         };
         fill: (ref: string, value: string, origin?: string, secretField?: "mfa") => { url: string };
+        clickPoint: (ref: string) => { x: number; y: number };
       };
     }
   ).__rakazoPageBrowser;
-  return { domWindow, browser };
+  return {
+    domWindow,
+    browser,
+    reinstall: () => vm.runInContext(program, dom.getInternalVMContext()),
+  };
 }
 
 function fieldValue(window: JSDOM["window"], label: string): string {
@@ -100,6 +106,19 @@ describe("live page helper saved-login fill", () => {
     browser.fill(pin, "123456", origin, "mfa");
     expect(fieldValue(domWindow, "Pin")).toBe("123456");
     expect(JSON.stringify(browser.snapshot())).not.toContain("123456");
+  });
+
+  it("upgrades an open browser helper while retaining its refs and protected-field mask", () => {
+    const origin = "https://login.example.test";
+    const { browser, reinstall } = installPageHelper(`${origin}/signin`, html);
+    const pin = refFor("Pin", browser.snapshot().elements);
+    browser.fill(pin, "123456", origin, "mfa");
+    Reflect.deleteProperty(browser, "clickPoint");
+    reinstall();
+    expect(typeof browser.clickPoint).toBe("function");
+    // The old reference is still bound to the original node, and its mask survives.
+    browser.fill(pin, "234567", origin, "mfa");
+    expect(JSON.stringify(browser.snapshot())).not.toContain("234567");
   });
 
   it("refuses a private-LAN HTTP origin in the same fill, even when the page matches", () => {

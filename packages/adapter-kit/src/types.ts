@@ -1,4 +1,5 @@
 import type {
+  BrowserDriver,
   CacheCapabilities as ConnectionCacheCapabilities,
   ConnectionCatalogItem,
   SandboxKind,
@@ -968,10 +969,11 @@ export interface BrowserActResult {
 }
 
 /** A sandbox must route these commands through its owned screen, never generic host execution. */
-export type PageBrowserCommand =
+export type PageBrowserCommand = (
   | { command: "navigate"; url: string }
   | { command: "snapshot" }
-  | { command: "act"; actions: BrowserActStep[] };
+  | { command: "act"; actions: BrowserActStep[] }
+) & { driver?: BrowserDriver };
 
 export type PageBrowserResult = Partial<BrowserSnapshotResult & BrowserActResult> & { ok: boolean };
 

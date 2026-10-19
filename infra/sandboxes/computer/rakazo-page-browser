@@ -297,7 +297,24 @@ def ensure_world(client: CdpClient, session_id: str) -> None:
 
 EVAL_HELPERS = r"""
 (() => {
-  if (window.__rakazoPageBrowser) return true;
+  function clickPoint(ref) {
+      const el = this.resolve(ref);
+      if (!el) throw new Error(`Unknown element ref: ${ref}`);
+      el.scrollIntoView({block: "center", inline: "center", behavior: "instant"});
+      const rect = el.getBoundingClientRect();
+      const left = Math.max(0, rect.left), right = Math.min(innerWidth, rect.right);
+      const top = Math.max(0, rect.top), bottom = Math.min(innerHeight, rect.bottom);
+      if (right <= left || bottom <= top) throw new Error("Element is outside the viewport");
+      const x = (left + right) / 2, y = (top + bottom) / 2;
+      const hit = document.elementFromPoint(x, y);
+      if (!hit || (hit !== el && !el.contains(hit))) throw new Error("Element is covered");
+      return { x, y };
+  }
+  if (window.__rakazoPageBrowser) {
+    // Upgrade an already-open browser without replacing its refs or protected-field state.
+    window.__rakazoPageBrowser.clickPoint = clickPoint;
+    return true;
+  }
   const refMap = new Map();
   // Fields holding a saved login: snapshots never report their values, whatever their type.
   const loginFilled = new WeakSet();
@@ -433,6 +450,7 @@ EVAL_HELPERS = r"""
       }
       return el;
     },
+    clickPoint,
     click(ref) {
       const el = this.resolve(ref);
       if (!el) throw new Error(`Unknown element ref: ${ref}`);
@@ -644,7 +662,22 @@ def snapshot(client: CdpClient, session_id: str) -> dict[str, Any]:
     return {"ok": True, **data}
 
 
-def act(client: CdpClient, session_id: str, actions: list[dict[str, Any]]) -> dict[str, Any]:
+def apply_action(client: CdpClient, session_id: str, step: dict[str, Any]) -> dict[str, Any]:
+    kind, ref = step["kind"], step["ref"]
+    if kind == "upload":
+        upload(client, session_id, ref, step["files"])
+        return {}
+    arguments = json.dumps(ref)
+    if kind != "click":
+        arguments += ", " + json.dumps(step["text"])
+    if step.get("origin"):
+        arguments += ", " + json.dumps(step["origin"])
+        if step.get("secretField"):
+            arguments += ", " + json.dumps(step["secretField"])
+    return eval_json(client, session_id, f"window.__rakazoPageBrowser.{kind}({arguments})")
+
+
+def act(client: CdpClient, session_id: str, actions: list[dict[str, Any]], perform_action=None) -> dict[str, Any]:
     if not actions or len(actions) > 24:
         raise RuntimeError("Expected 1 to 24 actions")
     for step in actions:
@@ -674,21 +707,8 @@ def act(client: CdpClient, session_id: str, actions: list[dict[str, Any]]) -> di
             # Preflight catches stale refs before a mutation is dispatched.
             if not eval_json(client, session_id, f"Boolean(window.__rakazoPageBrowser.resolve({json.dumps(ref)}))"):
                 raise RuntimeError("Stale element ref. Take a fresh snapshot.")
-            if kind == "upload":
-                uncertain = True
-                upload(client, session_id, ref, step["files"])
-                completed += 1
-                uncertain = False
-                continue
-            arguments = json.dumps(ref)
-            if kind != "click":
-                arguments += ", " + json.dumps(step["text"])
-            if step.get("origin"):
-                arguments += ", " + json.dumps(step["origin"])
-                if step.get("secretField"):
-                    arguments += ", " + json.dumps(step["secretField"])
             uncertain = True
-            data = eval_json(client, session_id, f"window.__rakazoPageBrowser.{kind}({arguments})")
+            data = perform_action(step) if perform_action else apply_action(client, session_id, step)
             if not isinstance(data, dict):
                 raise RuntimeError("Action response unavailable")
             completed += 1

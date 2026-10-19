@@ -16,7 +16,6 @@ import {
 import type { ComponentType } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApprovalRulesSettings } from "../components/ApprovalRulesSettings";
-import { computersAreUnavailable } from "../components/ComputersUnavailableHint";
 import { ListboxSelect } from "../components/ListboxSelect";
 import { rpcForSpace } from "../lib/rpc";
 import { SpaceRpcProvider } from "../lib/space-rpc";
@@ -121,8 +120,7 @@ export function SettingsOverlay({
   const [voiceBusy, setVoiceBusy] = useState(false);
   const [keepComputerRecovery, setKeepComputerRecovery] = useState(false);
   const recoveryHoldTimer = useRef<number | undefined>(undefined);
-  const showComputer =
-    keepComputerRecovery || (isDeploymentOwner && computersAreUnavailable(sandboxProvider));
+  const showComputer = keepComputerRecovery || isDeploymentOwner;
   const panelBusy = memoryBusy || voiceBusy;
   const spaceScoped = SPACE_SECTIONS.has(section);
   const spaceId = spaceScoped ? (space?.id ?? null) : null;
@@ -357,6 +355,7 @@ export function SettingsOverlay({
                 ) : null}
                 {section === "computer" && showComputer ? (
                   <ComputerSettingsPanel
+                    isDeploymentOwner={isDeploymentOwner}
                     sandboxProvider={sandboxProvider}
                     onSandboxProviderChange={(next) => {
                       onSandboxProviderChange?.(next);

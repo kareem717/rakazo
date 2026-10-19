@@ -21,6 +21,7 @@ import {
   UpdateTicketInput,
 } from "./board.js";
 import { BotSecretMetadata, BotSecretPutInput, StoredBotSecretName } from "./bot-secrets.js";
+import { BrowserDriverSchema } from "./browser-driver.js";
 import {
   ActionApprovalRuleSchema,
   ActionAutoReviewSettingsSchema,
@@ -236,6 +237,7 @@ export const appContract = {
           signupsEnabled: z.boolean().optional(),
           signupAllowlist: z.array(z.string()).optional(),
           computerHost: z.enum(["docker", "this-mac"]).nullable().optional(),
+          browserDriver: BrowserDriverSchema.optional(),
         }),
       )
       .output(DeploymentSettingsSchema),

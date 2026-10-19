@@ -907,6 +907,10 @@ msgstr "Browser"
 msgid "Browser + tools"
 msgstr "Browser + tools"
 
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
+msgstr "Browser driver"
+
 #: src/components/NetworkSettings.tsx
 msgid "Browser only"
 msgstr "Browser only"
@@ -4641,6 +4645,10 @@ msgstr "SSH target"
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO is temporarily unavailable. Try again."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr "Standard"
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"
