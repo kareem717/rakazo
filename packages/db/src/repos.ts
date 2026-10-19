@@ -1,5 +1,10 @@
 import type { Actor, Bot, BotSection, MessageBlock, SpaceBot } from "@rakazo/contracts";
-import { BOT_COLORS, canonicalPiProviderId, InstructionVersionSchema } from "@rakazo/contracts";
+import {
+  BOT_COLORS,
+  canonicalPiProviderId,
+  DEFAULT_COMPUTER_MODE,
+  InstructionVersionSchema,
+} from "@rakazo/contracts";
 import {
   BACKGROUND_RUN_TRIGGERS,
   isBackgroundRunTrigger,
@@ -587,7 +592,7 @@ export function createRepos(
               ...input.initialMessage,
             });
           }
-          if (input.computerMode === "dedicated") {
+          if ((input.computerMode ?? DEFAULT_COMPUTER_MODE) === "dedicated") {
             const dedicated = await ensureComputerRecord(tx, {
               mode: "dedicated",
               spaceId: actor.spaceId,

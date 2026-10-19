@@ -1188,7 +1188,7 @@ export const builtinAgentTools: ConnectorTool[] = [
           type: "string",
           enum: ["team", "dedicated"],
           description:
-            "Optional. team shares one screen with other Team bots; dedicated (Private) gets its own. Defaults to team.",
+            "Optional. dedicated (Private) gets its own computer; team shares a computer with other Team bots. Defaults to dedicated.",
         },
       },
       required: ["name"],

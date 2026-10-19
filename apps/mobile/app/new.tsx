@@ -3,6 +3,7 @@ import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_NAME_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
+  DEFAULT_COMPUTER_MODE,
   normalizeCreateBotProfile,
 } from "@rakazo/contracts";
 import { Stack, useRouter } from "expo-router";
@@ -25,7 +26,7 @@ export default function NewBot() {
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [computerMode, setComputerMode] = useState<ComputerMode>("team");
+  const [computerMode, setComputerMode] = useState<ComputerMode>(DEFAULT_COMPUTER_MODE);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

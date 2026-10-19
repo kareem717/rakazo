@@ -15,6 +15,7 @@ import { RunTriggerSchema } from "./runs.js";
 
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
+export const DEFAULT_COMPUTER_MODE: ComputerMode = "dedicated";
 
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
@@ -352,7 +353,7 @@ export const CreateBotInput = z.object({
   instructions: z.string().max(BOT_INSTRUCTIONS_MAX_LENGTH).default(""),
   notifyOnFinish: z.boolean().default(true),
   color: BotAvatarValueSchema.optional(),
-  computerMode: ComputerModeSchema.default("team"),
+  computerMode: ComputerModeSchema.default(DEFAULT_COMPUTER_MODE),
   /** Idempotency key within a space (unique with spaceId). */
   spawnKey: z.string().trim().min(1).max(120).optional(),
 });

@@ -46,6 +46,79 @@ function reposFor(memoryScope: string | null) {
   return createRepos(prisma as unknown as PrismaClient);
 }
 
+describe("createRepos.createBot computers", () => {
+  it.each([undefined, "team"] as const)(
+    "isolates omitted-mode creations and honors explicit sharing (%s)",
+    async (computerMode) => {
+      const computers = new Map<string, { id: string; scope: string }>();
+      const bots = new Map<string, typeof baseBot & { computerId: string }>();
+      const prisma = {
+        $queryRaw: vi.fn(async () => []),
+        spaceMember: {
+          findUnique: vi.fn(async () => ({ organizationId: "org-1", space: { deletingAt: null } })),
+        },
+        deploymentSettings: { findUnique: vi.fn(async () => null) },
+        computer: {
+          upsert: vi.fn(async ({ create }: { create: { scopeKey: string; scope: string } }) => {
+            if (!computers.has(create.scopeKey)) {
+              computers.set(create.scopeKey, { id: create.scopeKey, scope: create.scope });
+            }
+            return computers.get(create.scopeKey)!;
+          }),
+        },
+        bot: {
+          count: vi.fn(async () => bots.size),
+          aggregate: vi.fn(async () => ({ _max: { position: bots.size - 1 } })),
+          create: vi.fn(async ({ data }: { data: { computerId: string } }) => {
+            const bot = { ...baseBot, ...data, id: `bot-${bots.size + 1}` };
+            bots.set(bot.id, bot);
+            return bot;
+          }),
+          update: vi.fn(
+            async ({ where, data }: { where: { id: string }; data: { computerId: string } }) => {
+              Object.assign(bots.get(where.id)!, data);
+            },
+          ),
+          findFirstOrThrow: vi.fn(async ({ where }: { where: { id: string } }) => {
+            const bot = bots.get(where.id)!;
+            return {
+              ...bot,
+              computer: [...computers.values()].find((c) => c.id === bot.computerId),
+            };
+          }),
+        },
+        thread: { create: vi.fn(async () => baseBot.thread) },
+        browserProfile: { create: vi.fn() },
+        memoryDocument: { create: vi.fn() },
+        $transaction: async (work: (tx: unknown) => unknown) => work(prisma),
+      };
+      const repos = createRepos(prisma as unknown as PrismaClient);
+      const input = {
+        name: "Helper",
+        title: "",
+        description: "",
+        instructions: "",
+        notifyOnFinish: true,
+        computerMode,
+      };
+      const previousLimit = process.env.SANDBOX_MAX_COMPUTERS_PER_USER;
+      process.env.SANDBOX_MAX_COMPUTERS_PER_USER = "0";
+      try {
+        const first = await repos.createBot(actor, input);
+        const second = await repos.createBot(actor, input);
+        expect(first.computerMode).toBe(computerMode ?? "dedicated");
+        expect(second.computerMode).toBe(computerMode ?? "dedicated");
+        expect(bots.get(first.id)!.computerId === bots.get(second.id)!.computerId).toBe(
+          computerMode === "team",
+        );
+      } finally {
+        if (previousLimit === undefined) delete process.env.SANDBOX_MAX_COMPUTERS_PER_USER;
+        else process.env.SANDBOX_MAX_COMPUTERS_PER_USER = previousLimit;
+      }
+    },
+  );
+});
+
 describe("createRepos.listBots", () => {
   it("surfaces a failed foreground run and clears the signal after recovery", async () => {
     const findMany = vi.fn(async () => [
