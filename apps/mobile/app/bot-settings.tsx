@@ -1,4 +1,4 @@
-import type { ComputerMode, ThinkingLevel } from "@rakazo/contracts";
+import type { ComputerMode, ThinkingLevel, VoiceCredential } from "@rakazo/contracts";
 import {
   BOT_AVATAR_SHAPE_COUNT,
   BOT_COLORS,
@@ -27,6 +27,7 @@ import { MenuPicker, MenuPickerMenu } from "../components/menu-picker";
 import { NativeActionButton } from "../components/native-action-button";
 import { NativeSwitch } from "../components/native-switch";
 import { NativeSymbol } from "../components/native-symbol";
+import { ProviderVoicePicker } from "../components/provider-voice-picker";
 import { Chevron } from "../components/row-accessories";
 import { SettingsFooter } from "../components/settings-group";
 import type { MobileBot, MobileMe, MobileModel, MobileModelCredential } from "../lib/api";
@@ -66,6 +67,9 @@ export default function BotSettingsScreen() {
   const [modelKey, setModelKey] = useState("");
   const [thinkingLevel, setThinkingLevel] = useState("");
   const [autoSpeak, setAutoSpeak] = useState(false);
+  const [providerVoiceId, setProviderVoiceId] = useState("");
+  const [voiceProvider, setVoiceProvider] = useState("");
+  const [voiceCredentials, setVoiceCredentials] = useState<VoiceCredential[]>([]);
   const [fleetManagement, setFleetManagement] = useState(false);
   const [credentials, setCredentials] = useState<MobileModelCredential[]>([]);
   const [catalog, setCatalog] = useState<MobileModel[]>([]);
@@ -99,12 +103,17 @@ export default function BotSettingsScreen() {
         );
         setThinkingLevel(next.thinkingLevel ?? "");
         setAutoSpeak(next.autoSpeak);
+        setProviderVoiceId(next.voiceId ?? "");
+        setVoiceProvider(next.voiceProvider ?? "");
         setFleetManagement(next.fleetManagement);
       })
       .catch((err) => setError(errorText(err, t("Could not load bot"))));
   }, [botId]);
 
   useEffect(() => {
+    void rpc<VoiceCredential[]>("voice/credentials")
+      .then(setVoiceCredentials)
+      .catch(() => undefined);
     void Promise.all([
       rpc<MobileMe>("me"),
       rpc<MobileModel[]>("models/list"),
@@ -299,6 +308,8 @@ export default function BotSettingsScreen() {
         modelId?: string | null;
         thinkingLevel?: ThinkingLevel | null;
         autoSpeak?: boolean;
+        voiceId?: string | null;
+        voiceProvider?: string | null;
       } = { botId };
       if (profile.name !== bot.name) input.name = profile.name;
       if (profile.title !== bot.title) input.title = profile.title;
@@ -324,6 +335,13 @@ export default function BotSettingsScreen() {
           : null;
       }
       if (autoSpeak !== bot.autoSpeak) input.autoSpeak = autoSpeak;
+      if (
+        (providerVoiceId || null) !== (bot.voiceId ?? null) ||
+        (voiceProvider || null) !== (bot.voiceProvider ?? null)
+      ) {
+        input.voiceId = providerVoiceId || null;
+        input.voiceProvider = providerVoiceId ? voiceProvider || null : null;
+      }
       if (computerMode !== bot.computerMode) {
         await rpc(
           "bots/setComputer",
@@ -576,6 +594,38 @@ export default function BotSettingsScreen() {
             "Lets this bot organize, retune and schedule the bots it creates. You approve each change.",
           )}
         </SettingsFooter>
+        {!deviceVoiceEnabled && (voiceCredentials.length || providerVoiceId) ? (
+          <>
+            <MenuPicker
+              label={t("Voice provider")}
+              value={voiceProvider}
+              choices={[
+                { key: "", label: t("Space default") },
+                ...(voiceProvider &&
+                !voiceCredentials.some((cred) => cred.provider === voiceProvider)
+                  ? [{ key: voiceProvider, label: voiceProvider }]
+                  : []),
+                ...voiceCredentials.map((cred) => ({ key: cred.provider, label: cred.provider })),
+              ]}
+              onChange={(value) => {
+                setVoiceProvider(value);
+                setProviderVoiceId("");
+              }}
+            />
+            <ProviderVoicePicker
+              key={voiceProvider}
+              provider={voiceProvider || undefined}
+              value={providerVoiceId}
+              allowDefault
+              disabled={pending}
+              onChange={(value) => {
+                setProviderVoiceId(value);
+                if (value && !voiceProvider)
+                  setVoiceProvider(voiceCredentials.find((cred) => cred.isDefault)?.provider ?? "");
+              }}
+            />
+          </>
+        ) : null}
         {deviceVoiceEnabled ? (
           voiceError ? (
             <Pressable

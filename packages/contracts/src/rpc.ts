@@ -971,7 +971,7 @@ export const appContract = {
   },
   voice: {
     catalog: oc.output(z.array(VoiceCatalogEntrySchema)),
-    status: oc.output(VoiceStatusSchema),
+    status: oc.input(z.object({ botId: Id.optional() }).optional()).output(VoiceStatusSchema),
     credentials: oc.output(z.array(VoiceCredentialSchema)),
     connect: oc
       .input(
@@ -1008,7 +1008,12 @@ export const appContract = {
       .input(z.object({ provider: z.string().min(1), speechModel: z.string().max(64) }))
       .output(VoiceCredentialSchema),
     voices: oc
-      .input(z.object({ provider: z.string().optional() }))
+      .input(
+        z.object({
+          provider: z.string().optional(),
+          query: z.string().trim().max(2048).optional(),
+        }),
+      )
       .output(z.array(VoiceInfoSchema)),
     prepare: oc
       .input(

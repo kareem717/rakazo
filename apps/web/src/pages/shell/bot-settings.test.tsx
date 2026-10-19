@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/rpc", () => ({
   rpc: {
-    voice: { voices: vi.fn(async () => []) },
+    voice: { voices: vi.fn(async () => []), credentials: vi.fn(async () => []) },
     models: {
       credentials: vi.fn(async () => []),
       list: vi.fn(async () => []),

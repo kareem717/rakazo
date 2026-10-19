@@ -196,10 +196,10 @@ import {
   deleteUnreferencedCredentialSecret,
   ensureBoard,
   findDefaultModelCredential,
-  findDefaultVoiceCredential,
   findModelCredential,
   findSpaceMemoryConfig,
   findTicket,
+  findVoiceCredential,
   formatMessagingLinkCode,
   InstructionConflictError,
   InvalidSpaceNameError,
@@ -305,7 +305,6 @@ import {
 import {
   disconnectVoiceCredential,
   listVoiceCatalog,
-  loadDefaultVoiceCredential,
   loadVoiceCredential,
   persistVoiceCredential,
   prepareVoice,
@@ -314,6 +313,7 @@ import {
   updateVoiceSpeechModel,
   voiceContext,
   voiceCredentialServer,
+  voiceStatus,
 } from "./voice.js";
 
 const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
@@ -1767,6 +1767,15 @@ export function createRouter(deps: RouterDeps) {
       }),
       update: authed.bots.update.handler(async ({ context, input }) => {
         const existing = await repos.getBot(context.actor, input.botId);
+        if (input.voiceProvider && input.voiceProvider !== existing.voiceProvider) {
+          const credential = await findVoiceCredential(
+            deps.prisma,
+            context.actor,
+            input.voiceProvider,
+          );
+          if (!credential)
+            throw new ORPCError("BAD_REQUEST", { message: "Connect that voice provider first." });
+        }
         if (input.sectionId) {
           const section = await deps.prisma.botSection.findFirst({
             where: {
@@ -1822,6 +1831,7 @@ export function createRouter(deps: RouterDeps) {
             memoryScope: input.memoryScope,
             sectionId: input.sectionId,
             voiceId: input.voiceId,
+            voiceProvider: input.voiceId === null ? null : input.voiceProvider,
             autoSpeak: input.autoSpeak,
             ...(input.modelProvider !== undefined
               ? { modelProvider: input.modelProvider, modelId: input.modelId ?? null }
@@ -6303,10 +6313,9 @@ export function createRouter(deps: RouterDeps) {
     },
     voice: {
       catalog: authed.voice.catalog.handler(async () => listVoiceCatalog()),
-      status: authed.voice.status.handler(async ({ context }) => {
-        const cred = await findDefaultVoiceCredential(deps.prisma, context.actor);
-        return toVoiceStatus(cred);
-      }),
+      status: authed.voice.status.handler(async ({ context, input }) =>
+        voiceStatus(deps, context.actor, input?.botId),
+      ),
       credentials: authed.voice.credentials.handler(async ({ context }) => {
         const rows = await deps.prisma.userVoiceCredential.findMany({
           where: { userId: context.actor.userId },
@@ -6381,17 +6390,19 @@ export function createRouter(deps: RouterDeps) {
         updateVoiceSpeechModel(deps, context.actor, input),
       ),
       voices: authed.voice.voices.handler(async ({ context, input }) => {
-        const loaded = await loadDefaultVoiceCredential(deps, context.actor);
-        if (!loaded) return [];
-        const providerId = input.provider ?? loaded.cred.provider;
-        const row =
-          providerId === loaded.cred.provider
-            ? loaded
-            : await loadVoiceCredential(deps, context.actor, providerId);
+        const row = await loadVoiceCredential(deps, context.actor, input.provider);
         if (!row) return [];
-        return createVoiceProvider(row.cred.provider).listVoices(
-          row.apiKey,
-          voiceContext(context.actor, context.signal),
+        const provider = createVoiceProvider(row.cred.provider);
+        const ctx = voiceContext(context.actor, context.signal);
+        const query = input.query?.trim();
+        if (query && provider.searchVoices) return provider.searchVoices(row.apiKey, query, ctx);
+        const voices = await provider.listVoices(row.apiKey, ctx);
+        if (!query) return voices;
+        const term = query.toLowerCase();
+        return voices.filter((voice) =>
+          [voice.id, voice.label, voice.description ?? ""].some((value) =>
+            value.toLowerCase().includes(term),
+          ),
         );
       }),
       prepare: authed.voice.prepare.handler(async ({ context, input }) =>
