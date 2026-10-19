@@ -15,6 +15,7 @@ export function HindsightSettingsForm({ busy, onConnect }: MemoryProviderSetting
   const [botBanks, setBotBanks] = useState<Record<string, string>>({});
   const [sharedBankId, setSharedBankId] = useState("");
   const [allowWrites, setAllowWrites] = useState(false);
+  const [retainConversations, setRetainConversations] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function HindsightSettingsForm({ busy, onConnect }: MemoryProviderSetting
           baseUrl: baseUrl.trim(),
           botBanks: JSON.stringify(mapped),
           allowWrites: String(allowWrites),
+          ...(allowWrites && retainConversations ? { retainConversations: "true" } : {}),
           ...(sharedBankId.trim() ? { sharedBankId: sharedBankId.trim() } : {}),
         },
         credentials: { apiKey: apiKey.trim() },
@@ -132,6 +134,17 @@ export function HindsightSettingsForm({ busy, onConnect }: MemoryProviderSetting
           <Trans>Recall and write</Trans>
         </Toggle>
       </div>
+      {allowWrites ? (
+        <Toggle
+          className="mt-3"
+          variant="outline"
+          pressed={retainConversations}
+          disabled={busy}
+          onPressedChange={setRetainConversations}
+        >
+          <Trans>Retain new conversations</Trans>
+        </Toggle>
+      ) : null}
       <Button
         type="button"
         variant="secondary"

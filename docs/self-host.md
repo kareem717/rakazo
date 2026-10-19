@@ -1025,3 +1025,23 @@ in MiB (1 MiB = 1,048,576 bytes). It defaults to `10` and must be a positive int
 Set it in `.env` and restart the API, worker, and Docker supervisor (when used). Web, desktop, and mobile use the
 limit advertised by the server. If a reverse proxy limits request bodies, allow
 room for base64 encoding (about 4/3 of the file size) and the JSON envelope.
+
+### Automatic conversation retention with Hindsight
+
+When connecting Hindsight in Memory settings, choose Recall and write, then enable
+Retain new conversations. This stores a server-generated start boundary. Only new,
+completed user conversations are retained; enabling it does not backfill imported
+history or existing runs. For an existing connection, preserve its settings and
+credentials and add `retainConversationsFrom` with the desired current ISO timestamp;
+remove that setting to disable automatic retention.
+
+Retention processes visible user and assistant text after the run completes.
+Protected credential cards, tool traces, reasoning, attachments, other bots' replies,
+and imported archive messages are excluded. Saved bot credentials are redacted before
+retention. Long conversations are partitioned into bounded sources with stable IDs.
+The durable run job retries unconfirmed ingestion without rerunning a completed bot
+task. Hindsight operation completion and source readback are checked before success;
+conversations that contain no extractable facts can still complete successfully.
+
+Compaction summaries remain local and do not overwrite the existing Hindsight bank.
+Explicit `save_memory` continues to work independently of automatic retention.
