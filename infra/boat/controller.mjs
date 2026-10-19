@@ -19,6 +19,10 @@ const busy = new Map();
 let saves = Promise.resolve();
 let registrations = Promise.resolve();
 
+export function gatewayErrorStatus(error) {
+  return Number.isInteger(error?.status) && error.status >= 400 && error.status <= 599 ? error.status : 503;
+}
+
 export function protectedCreate(body) {
   const botId = body?.env?.RAKAZO_BOT_ID;
   if (typeof botId !== 'string' || !/^[a-zA-Z0-9_-]{1,150}$/.test(botId)) throw new Error('missing valid bot identity');
@@ -280,7 +284,7 @@ async function handler(req, res) {
     const match = /^\/boxes\/(bx_[a-z0-9]+)(?:\/(.*))?$/.exec(url.pathname.slice('/api/box/v1'.length));
     if (match) {
       const [, id, action] = match;
-      if (!state.vms[id]) return json(403, { error: 'unregistered VM' });
+      if (!state.vms[id]) return json(404, { error: 'VM not registered' });
       if (action === 'resume' && req.method === 'POST') {
         await environmentSafe();
         const vm = state.vms[id]; vm.phase = 'created'; delete vm.bootstrapProcess; delete vm.bootstrapComplete; delete vm.bootstrapOperation; await save();
@@ -311,7 +315,7 @@ async function handler(req, res) {
     } else if (response.body) Readable.fromWeb(response.body).pipe(res); else res.end();
   } catch (error) {
     console.log(JSON.stringify({ event: 'request.failed', reason: error.message.startsWith('Boat HTTP') ? error.message : error.message.replace(/boat_[A-Za-z0-9_-]+/g, '[redacted]').slice(0, 180) }));
-    if (!res.headersSent) json(503, { error: 'Boat provisioning or network verification failed; inspect the gateway state before retrying' }); else res.end();
+    if (!res.headersSent) json(gatewayErrorStatus(error), { error: 'Boat provisioning or network verification failed; inspect the gateway state before retrying' }); else res.end();
   }
 }
 

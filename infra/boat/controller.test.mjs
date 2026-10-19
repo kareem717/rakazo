@@ -1,7 +1,7 @@
 import {execFileSync} from 'node:child_process';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { protectedCreate, clientConfig, retryRead, shellQuote } from './controller.mjs';
+import { protectedCreate, clientConfig, retryRead, shellQuote, gatewayErrorStatus } from './controller.mjs';
 
 test('provisioning forces the dedicated credential-free environment and removes unrelated injected variables', () => {
   assert.deepEqual(protectedCreate({ noEnv: false, environment: 'base', ttlSeconds: 7200, env: { RAKAZO_BOT_ID: 'fake-bot', SECRET: 'fake-value' } }), {
@@ -37,4 +37,11 @@ test('authorization failures do not retry', async () => {
 test('bootstrap scripts keep shell metacharacters literal', () => {
   const value="quote'\n$(printf expanded)`printf expanded`";
   assert.equal(execFileSync('sh', ['-c', 'printf %s ' + shellQuote(value)], {encoding:'utf8'}), value);
+});
+
+test('gateway preserves provider not-found so completed deletes reconcile successfully', () => {
+  assert.equal(gatewayErrorStatus({status:404}),404);
+  assert.equal(gatewayErrorStatus({status:403}),403);
+  assert.equal(gatewayErrorStatus(new Error('network failure')),503);
+  assert.equal(gatewayErrorStatus({status:200}),503);
 });

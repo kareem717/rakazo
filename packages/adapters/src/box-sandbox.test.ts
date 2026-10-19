@@ -249,6 +249,27 @@ describe("BoxSandboxProvider", () => {
     expect(fixture.resume).toHaveBeenCalledTimes(1);
   });
 
+  it("splits oversized restore files into bounded requests and atomically assembles them", async () => {
+    const fixture = boxFixture();
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    const content = Buffer.alloc(8 * 1024 * 1024, 0xa7);
+    await provider.writeFile(computer, { path: "large.bin", content }, context);
+    const chunks = fixture.writeFile.mock.calls
+      .map(([r]) => r.fileWriteRequest)
+      .filter((r) => r.path.includes(".rakazo-upload-"));
+    expect(chunks).toHaveLength(3);
+    expect(chunks.every((c) => c.content.length < 5 * 1024 * 1024)).toBe(true);
+    expect(Buffer.concat(chunks.map((c) => Buffer.from(c.content, "base64")))).toEqual(content);
+    expect(
+      fixture.command.mock.calls.some(
+        ([r]) =>
+          r.commandRequest.command.includes("mv -f --") &&
+          r.commandRequest.command.includes("large.bin"),
+      ),
+    ).toBe(true);
+  });
+
   it("captures independent desktops and exposes protected ports", async () => {
     const fixture = boxFixture();
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);

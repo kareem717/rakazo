@@ -25,7 +25,8 @@ RemainAfterExit=yes
 WantedBy=multi-user.target
 UNIT
 systemctl daemon-reload
-systemctl enable --now rakazo-wireguard.service
+systemctl enable rakazo-wireguard.service
+systemctl restart rakazo-wireguard.service
 # Chromium policy applies to all managed desktop browser profiles.
 for directory in /etc/chromium/policies/managed /etc/chromium-browser/policies/managed /etc/opt/chrome/policies/managed; do
  install -d -m 755 "$directory"
@@ -34,6 +35,9 @@ for directory in /etc/chromium/policies/managed /etc/chromium-browser/policies/m
 POLICY
  chmod 644 "$directory/rakazo-proxy.json"
 done
+if [ -f /etc/apt/sources.list.d/ubuntu.sources ]; then
+ sed -i 's|http://archive.ubuntu.com|https://archive.ubuntu.com|g; s|http://security.ubuntu.com|https://security.ubuntu.com|g' /etc/apt/sources.list.d/ubuntu.sources
+fi
 missing=false
 for tool in Xvfb x11vnc fluxbox xterm websockify; do command -v "$tool" >/dev/null || missing=true; done
 [ -f /usr/share/novnc/vnc.html ] || missing=true

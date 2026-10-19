@@ -508,19 +508,60 @@ export class BoxSandboxProvider implements SandboxProvider {
   ): Promise<void> {
     if (!files.length) return;
     await Promise.all(
-      files.map((file) =>
-        this.client.writeFile(
-          {
-            boxId: id,
-            fileWriteRequest: {
-              path: workspacePath(BOX_WORKSPACE, file.path),
-              content: Buffer.from(file.content).toString("base64"),
-              encoding: "base64",
+      files.map(async (file) => {
+        const destination = workspacePath(BOX_WORKSPACE, file.path);
+        const content = Buffer.from(file.content);
+        const chunkSize = 3 * 1024 * 1024;
+        if (content.length <= chunkSize) {
+          await this.client.writeFile(
+            {
+              boxId: id,
+              fileWriteRequest: {
+                path: destination,
+                content: content.toString("base64"),
+                encoding: "base64",
+              },
             },
-          },
-          { signal: context.signal },
-        ),
-      ),
+            { signal: context.signal },
+          );
+          return;
+        }
+        // Keep each base64 request below the provider's 5 MiB write limit.
+        // Stage beside the destination so final replacement is atomic.
+        const staging = `${destination}.rakazo-upload-${randomUUID()}`;
+        const parts: string[] = [];
+        for (let offset = 0; offset < content.length; offset += chunkSize) {
+          const part = `${staging}/part-${parts.length}`;
+          await this.client.writeFile(
+            {
+              boxId: id,
+              fileWriteRequest: {
+                path: part,
+                content: content.subarray(offset, offset + chunkSize).toString("base64"),
+                encoding: "base64",
+              },
+            },
+            { signal: context.signal },
+          );
+          parts.push(part);
+        }
+        const assembled = `${staging}/complete`;
+        const result = await this.runCommand(
+          id,
+          [
+            "umask 077",
+            `cat -- ${parts.map(shellQuote).join(" ")} > ${shellQuote(assembled)}`,
+            `chmod ${file.executable ? "700" : "600"} ${shellQuote(assembled)}`,
+            `mv -f -- ${shellQuote(assembled)} ${shellQuote(destination)}`,
+            `rm -rf -- ${shellQuote(staging)}`,
+          ].join(" && "),
+          undefined,
+          60_000,
+          context.signal,
+        );
+        if (result.exitCode !== 0 || result.timedOut)
+          throw new Error("could not assemble large Box workspace file");
+      }),
     );
     const executable = files.map(
       (file) =>
