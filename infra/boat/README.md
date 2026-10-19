@@ -4,6 +4,8 @@ Overlay for the images-based self-hosted deployment. Rakazo uses its native Box 
 
 Build `App.Dockerfile` with the repository root as its build context and use that image for the application services. It includes the screen wake fix, large workspace uploads, and server-side private viewer authentication. Provider cookies stay inside the screen proxy; the app origin never receives them. The image also includes protected browser fills on Boat, named website accounts, and optional TOTP MFA. Runtime imports are checked during the build to catch shared-package version mismatches.
 
+The browser helper resolves its named inspector-isolated world with `Page.createIsolatedWorld` without subscribing to `Runtime.enable` events. Chromium retains that world across helper connections, preserving element references between a snapshot and its actions. New snapshots refresh references; navigation clears the world. Protected-field masking survives helper reconnects. Page-owned helper objects are outside this world. This removes one automation signal; browser fingerprints, IP reputation, and site-specific behavior still affect detection. Installing Playwright or Puppeteer patches alone does not change this raw-CDP driver.
+
 Copy these files into `boat-network/` alongside the images compose file, and save `compose.boat.yml` as `docker-compose.boat.yml`. Start Compose with both files. Set `SANDBOX_PROVIDER=box` and `BOX_API_URL=http://127.0.0.1:8788/api/box/v1`. Set `BOX_API_KEY` to the same scoped runtime key saved in `boat-network/state/boat-key`.
 
 Set these deployment variables outside Git:
