@@ -21,6 +21,7 @@ import { generateTotp } from "./totp.js";
 import { readBodyCapped, withAbort } from "./web-ssrf.js";
 
 export type BotSecretScope = { userId: string; spaceId: string; botId: string };
+const BOT_SECRET_LIMIT = 500;
 function scopeFields({ userId, spaceId, botId }: BotSecretScope): BotSecretScope {
   return { userId, spaceId, botId };
 }
@@ -134,7 +135,7 @@ export async function loadBotCommandEnvironment(
     where: scopeFields(scope),
     select: { id: true, name: true, auth: true, ciphertext: true },
     orderBy: { name: "asc" },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
   const environment: Record<string, string> = {};
   for (const row of rows) {
@@ -193,7 +194,7 @@ export async function findCommandVariableConflict(
   const rows = await client.botSecret.findMany({
     where: { ...scopeFields(scope), name: { not: destination.name } },
     select: { name: true, auth: true },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
   return rows.find(
     (row) => isCommandCredential(row.auth) && commandVariableName(row.name) === variable,
@@ -401,7 +402,7 @@ export async function prepareBotSecret(input: {
   function validate(row: typeof existing, count: number) {
     if (row && !sameSecretDestination(normalizeSecretDestination(row), destination))
       throw new Error("Remove the existing credential before changing its destination");
-    if (!row && count >= 100) throw new Error("Credential limit reached");
+    if (!row && count >= BOT_SECRET_LIMIT) throw new Error("Credential limit reached");
   }
   validate(existing, await prisma.botSecret.count({ where: scopeFields(scope) }));
   const id = existing?.id ?? randomBytes(12).toString("hex");
@@ -466,7 +467,7 @@ export async function listBotSecrets(prisma: PrismaClient, scope: BotSecretScope
     where: scopeFields(scope),
     select: metadata,
     orderBy: { name: "asc" },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
   return rows.map(botSecretToolView);
 }
@@ -479,7 +480,7 @@ export function listBotSecretMetadata(prisma: PrismaClient, scope: BotSecretScop
     where: scopeFields(scope),
     select: ownerMetadata,
     orderBy: { name: "asc" },
-    take: 100,
+    take: BOT_SECRET_LIMIT,
   });
 }
 
