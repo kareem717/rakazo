@@ -26,6 +26,6 @@ The bootstrap enables persistent proxy services for new computers. To update an 
 
 For an intentional rollback, first run `/usr/local/lib/rakazo-network/terminal-routes.sh --remove` as root, then disable the three `rakazo-terminal-{tcp,dns,routes}` services and remove `/etc/profile.d/rakazo-terminal-proxy.sh`. Open a new terminal afterward. Stopping a proxy daemon alone deliberately leaves the routing in place to prevent direct fallback.
 
-Run `node --test infra/boat/controller.test.mjs` from the repository root and check the bootstrap and embedded route script with `bash -n`. Deployment acceptance also requires checking browser and terminal public IPs, proxy-independent Node/Python clients, a sudo child, localhost access, the direct management path, failure without fallback, and screen connection after resume.
+Run `node --test infra/boat/controller.test.mjs` from the repository root and check the bootstrap and embedded route script with `bash -n`. Deployment acceptance also requires checking browser and terminal public IPs, proxy-independent Node/Python clients, a sudo child, localhost access, the direct management path, failure without fallback, and screen connection after resume. Run `python3 check-terminal-proxy.py --rebind-wireguard` inside a managed bot terminal for the explicit online check, including a tunnel socket recreated inside the command cgroup.
 
 Do not commit state, keys, conversation exports, migration inventories, or live deployment receipts.

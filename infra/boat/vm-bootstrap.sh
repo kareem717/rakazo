@@ -129,6 +129,9 @@ iptables -w -t nat -C OUTPUT -j RAKAZO_TERM_NAT 2>/dev/null || iptables -w -t na
 iptables -w -N RAKAZO_TERM_OUT 2>/dev/null || true
 iptables -w -F RAKAZO_TERM_OUT
 iptables -w -A RAKAZO_TERM_OUT -d 127.0.0.0/8 -j RETURN
+# WireGuard sockets can inherit the bootstrap command cgroup. Preserve the
+# tunnel transport itself; its mark is set in clientConfig.
+iptables -w -A RAKAZO_TERM_OUT -m mark --mark 0x51821 -j RETURN
 iptables -w -A RAKAZO_TERM_OUT -p udp -j REJECT
 iptables -w -C OUTPUT -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT 2>/dev/null || iptables -w -I OUTPUT 1 -m cgroup --path "$terminal_group" -j RAKAZO_TERM_OUT
 ip6tables -w -N RAKAZO_TERM_OUT6 2>/dev/null || true
