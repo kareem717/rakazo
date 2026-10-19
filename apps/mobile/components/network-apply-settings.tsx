@@ -24,10 +24,12 @@ export function NetworkApplySettings({
     [error, setError] = useState<string | null>(null),
     [attempt, setAttempt] = useState(0);
   const alive = useRef<AbortController | null>(null);
+  const inFlight = useRef(false);
   const callbacks = useRef({ onApplied, onBusy });
   callbacks.current = { onApplied, onBusy };
   const read = () => rpc<NetworkApplyStatus>("network/applyStatus");
   async function follow(operation: NetworkApplyStatus, signal: AbortSignal) {
+    inFlight.current = true;
     setBusy(true);
     callbacks.current.onBusy(true);
     try {
@@ -37,6 +39,7 @@ export function NetworkApplySettings({
       if (!signal.aborted) setError(errorText(cause, t("Could not apply network settings")));
     } finally {
       if (!signal.aborted) {
+        inFlight.current = false;
         setBusy(false);
         callbacks.current.onBusy(false);
       }
@@ -61,7 +64,8 @@ export function NetworkApplySettings({
     };
   }, [attempt]);
   async function apply() {
-    if (busy || !status?.available || !alive.current) return;
+    if (inFlight.current || !status?.available || !alive.current) return;
+    inFlight.current = true;
     setBusy(true);
     setError(null);
     callbacks.current.onBusy(true);
@@ -71,6 +75,7 @@ export function NetworkApplySettings({
       await follow(operation, alive.current.signal);
     } catch (cause) {
       setError(errorText(cause, t("Could not apply network settings")));
+      inFlight.current = false;
       setBusy(false);
       callbacks.current.onBusy(false);
     }

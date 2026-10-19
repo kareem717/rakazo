@@ -2,6 +2,12 @@ import http from "node:http";
 import type { NetworkConnection } from "@rakazo/contracts";
 import { NetworkConnectionSchema } from "@rakazo/contracts";
 
+export class NetworkControlError extends Error {
+  constructor(readonly status: number) {
+    super("Network control unavailable");
+  }
+}
+
 export async function networkSocketRequest(
   socketPath: string,
   path: string,
@@ -28,7 +34,7 @@ export async function networkSocketRequest(
         response.on("end", () => {
           try {
             if (response.statusCode !== 200 && response.statusCode !== 202)
-              throw new Error("Network control unavailable");
+              throw new NetworkControlError(response.statusCode ?? 503);
             resolve(JSON.parse(body));
           } catch (error) {
             reject(error);

@@ -86,6 +86,7 @@ export class NetworkApplier {
       if (!terminal.has(this.status.phase)) {
         this.status = {
           ...this.status,
+          available: false,
           phase: "failed",
           error: "Network apply was interrupted. Recovery requires server access.",
         };
@@ -167,8 +168,7 @@ export class NetworkApplier {
     }
   }
   async start(input: unknown) {
-    if (this.status.error?.includes("Recovery requires server access"))
-      throw new Error("Recovery requires server access");
+    if (!this.status.available) throw new Error("Recovery requires server access");
     const { revision } = NetworkApplyInputSchema.parse(input);
     if (this.work || !terminal.has(this.status.phase))
       throw new Error("A network apply is already running");
@@ -291,6 +291,7 @@ export class NetworkApplier {
           await this.replaceConfig(targetBytes, uid, gid);
           message = "Could not apply network settings. The previous route was restored.";
         } catch {
+          this.status = { ...this.status, available: false };
           message = "Network apply failed. Recovery requires server access.";
         }
       }

@@ -83,6 +83,7 @@ import {
   mapScratchpadItem,
   modelCredentialAuthKindsForSpace,
   modelCredentialDto,
+  NetworkApplyConflict,
   NetworkSettingsError,
   networkApplyStatus,
   networkConnection,
@@ -1113,7 +1114,9 @@ export function createRouter(deps: RouterDeps) {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
         try {
           return await networkApplyStatus(input.revision);
-        } catch {
+        } catch (error) {
+          if (error instanceof NetworkApplyConflict)
+            throw new ORPCError("CONFLICT", { message: error.message });
           throw new ORPCError("SERVICE_UNAVAILABLE", {
             message: "Could not reach the network restart service",
           });

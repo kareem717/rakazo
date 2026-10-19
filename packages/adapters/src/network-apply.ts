@@ -1,6 +1,12 @@
 import type { NetworkApplyStatus } from "@rakazo/contracts";
 import { NetworkApplyStatusSchema } from "@rakazo/contracts";
-import { networkSocketRequest } from "./network-connection.js";
+import { NetworkControlError, networkSocketRequest } from "./network-connection.js";
+
+export class NetworkApplyConflict extends Error {
+  constructor() {
+    super("Network settings changed or an apply is already running. Reload and try again.");
+  }
+}
 
 export async function networkApplyStatus(
   revision?: string,
@@ -17,7 +23,9 @@ export async function networkApplyStatus(
         revision ? { revision } : undefined,
       ),
     );
-  } catch {
+  } catch (error) {
+    if (error instanceof NetworkControlError && error.status === 409)
+      throw new NetworkApplyConflict();
     throw new Error("Could not reach the network restart service");
   }
 }
