@@ -1,6 +1,6 @@
 import { GROUP_MEMBER_MAX } from "@rakazo/contracts";
 import { describe, expect, it } from "vitest";
-import { resolveRosterDrop } from "./roster-drop";
+import { canDropSection, resolveRosterDrop } from "./roster-drop";
 
 const bot = (id: string, sectionId: string | null, pinned = false) => ({
   id,
@@ -137,5 +137,24 @@ describe("resolveRosterDrop", () => {
         sameParent: true,
       }),
     ).toBeNull();
+  });
+});
+
+describe("section drops", () => {
+  const sections = [
+    { id: "root", parentId: null },
+    { id: "child", parentId: "root" },
+    { id: "leaf", parentId: "child" },
+    { id: "other", parentId: null },
+  ];
+  const input = { sectionId: "child", sourceSpaceId: "work", targetSpaceId: "work", sections };
+  it("allows nesting and returning to the space root", () => {
+    expect(canDropSection({ ...input, parentId: "other" })).toBe(true);
+    expect(canDropSection({ ...input, parentId: null })).toBe(true);
+  });
+  it("rejects cycles, unchanged parents and cross-space drops", () => {
+    for (const parentId of ["child", "leaf", "root", "missing"])
+      expect(canDropSection({ ...input, parentId })).toBe(false);
+    expect(canDropSection({ ...input, parentId: null, targetSpaceId: "personal" })).toBe(false);
   });
 });
