@@ -13,6 +13,7 @@ import {
   BOT_DESCRIPTION_MAX_LENGTH,
   BOT_NAME_MAX_LENGTH,
   BOT_TITLE_MAX_LENGTH,
+  DEFAULT_COMPUTER_MODE,
   isBuiltinToolName,
 } from "@rakazo/contracts";
 import {
@@ -106,7 +107,7 @@ export function CreateBotForm({
   const [name, setName] = useState("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [computerMode, setComputerMode] = useState<ComputerMode>("team");
+  const [computerMode, setComputerMode] = useState<ComputerMode>(DEFAULT_COMPUTER_MODE);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

@@ -77,7 +77,7 @@ vi.mock("../KnowledgeSection", () => ({ KnowledgeSection: () => null }));
 
 import { InstructionSettings } from "../../components/InstructionSettings";
 import { rpc } from "../../lib/rpc";
-import { BotSettings } from "./bot-panel";
+import { BotSettings, CreateBotForm } from "./bot-panel";
 
 const longInstructions = "I".repeat(4_000);
 
@@ -191,6 +191,20 @@ afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
   vi.unstubAllGlobals();
+});
+
+describe("CreateBotForm", () => {
+  it("selects a private computer by default", async () => {
+    await act(async () => {
+      root.render(<CreateBotForm onCreate={vi.fn()} onCancel={vi.fn()} />);
+    });
+    expect(
+      container.querySelector('[data-testid="create-bot-private"]')?.getAttribute("aria-pressed"),
+    ).toBe("true");
+    expect(
+      container.querySelector('[data-testid="create-bot-team"]')?.getAttribute("aria-pressed"),
+    ).toBe("false");
+  });
 });
 
 describe("BotSettings model choices", () => {
