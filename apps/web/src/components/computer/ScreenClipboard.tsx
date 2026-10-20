@@ -2,7 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { ScreenControlCommand } from "@rakazo/core";
 import { Button, Popover, PopoverContent, PopoverTrigger, Switch, Textarea } from "@rakazo/ui-web";
 import { Clipboard, Copy, CornerUpLeft, CornerUpRight, Scissors, TextSelect } from "lucide-react";
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 
 /** Clipboard permissions stay in the app window, never in the sandboxed viewer. */
 export function ScreenClipboard({
@@ -20,6 +20,7 @@ export function ScreenClipboard({
   const [draft, setDraft] = useState<string | null>(null);
   const [failed, setFailed] = useState(false);
   const field = useRef<HTMLTextAreaElement>(null);
+  const syncId = useId();
   const value = draft ?? text;
   const shortcut = (key: "a" | "c" | "x" | "z" | "y") => onCommand({ request: "shortcut", key });
   return (
@@ -111,9 +112,9 @@ export function ScreenClipboard({
           {failed ? (
             <p className="text-xs text-muted-foreground">{t`Use the text field to copy or paste.`}</p>
           ) : null}
-          <label className="flex items-center justify-between gap-3 text-xs">
+          <label htmlFor={syncId} className="flex items-center justify-between gap-3 text-xs">
             {t`Sync clipboard`}
-            <Switch size="sm" checked={sync} onCheckedChange={onSync} />
+            <Switch id={syncId} size="sm" checked={sync} onCheckedChange={onSync} />
           </label>
         </PopoverContent>
       </Popover>

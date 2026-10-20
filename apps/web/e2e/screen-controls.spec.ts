@@ -2,6 +2,10 @@ import { expect, test } from "@playwright/test";
 import { injectScreenViewerBridge } from "../src/screen-viewer-bridge";
 import { captureScreenshot } from "./helpers";
 
+type ViewerFixtureWindow = Window & {
+  fixtureViewer: { pasted: string[]; keys: { code: string }[] };
+};
+
 test.beforeEach(async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await page.route("**/novnc/session/**", (route) => {
@@ -39,14 +43,27 @@ test("Mac shortcuts and explicit clipboard sync work through a sandboxed viewer"
   await page.getByRole("button", { name: "From device", exact: true }).click();
   const viewer = page.frameLocator('iframe[title="Controlled screen"]');
   await expect
-    .poll(() => viewer.locator("body").evaluate(() => (window as any).fixtureViewer.pasted))
+    .poll(() =>
+      viewer.locator("body").evaluate(() => (window as ViewerFixtureWindow).fixtureViewer.pasted),
+    )
     .toEqual(["From device"]);
+  await page.getByRole("button", { name: "Clipboard", exact: true }).click();
+  await viewer.locator("#screen").click();
+  await page.keyboard.press("Meta+v");
+  await expect
+    .poll(() =>
+      viewer.locator("body").evaluate(() => (window as ViewerFixtureWindow).fixtureViewer.pasted),
+    )
+    .toEqual(["From device", "From device"]);
+  await page.getByRole("button", { name: "Clipboard", exact: true }).click();
   await page.getByRole("button", { name: "Select all", exact: true }).click();
   await expect
     .poll(() =>
       viewer
         .locator("body")
-        .evaluate(() => (window as any).fixtureViewer.keys.some((key: any) => key.code === "KeyA")),
+        .evaluate(() =>
+          (window as ViewerFixtureWindow).fixtureViewer.keys.some((key) => key.code === "KeyA"),
+        ),
     )
     .toBe(true);
   await page.getByRole("button", { name: "Clipboard", exact: true }).click();
@@ -56,7 +73,9 @@ test("Mac shortcuts and explicit clipboard sync work through a sandboxed viewer"
     .poll(() =>
       viewer
         .locator("body")
-        .evaluate(() => (window as any).fixtureViewer.keys.some((key: any) => key.code === "KeyX")),
+        .evaluate(() =>
+          (window as ViewerFixtureWindow).fixtureViewer.keys.some((key) => key.code === "KeyX"),
+        ),
     )
     .toBe(true);
   await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe("From device");
@@ -100,6 +119,8 @@ test("clipboard permission denial keeps manual paste available", async ({ page }
   await page.getByRole("button", { name: "Paste", exact: true }).click();
   const viewer = page.frameLocator('iframe[title="Controlled screen"]');
   await expect
-    .poll(() => viewer.locator("body").evaluate(() => (window as any).fixtureViewer.pasted))
+    .poll(() =>
+      viewer.locator("body").evaluate(() => (window as ViewerFixtureWindow).fixtureViewer.pasted),
+    )
     .toEqual(["Manual paste 🌍"]);
 });

@@ -7,10 +7,10 @@ const chord = { key: "a", meta: true, control: false, alt: false };
 
 it("forwards editing chords only to the connected app's control viewer", () => {
   for (const key of ["a", "c", "x", "v", "z", "y", "f", "l"])
-    expect(screenHandlesShortcut({ ...chord, key }, origin + "/app", control)).toBe(true);
+    expect(screenHandlesShortcut({ ...chord, key }, `${origin}/app`, control)).toBe(true);
   for (const frame of [
     undefined,
-    origin + "/app",
+    `${origin}/app`,
     control.replace("/control/", "/view/"),
     control.replace("app.example.test", "other.example.test"),
   ])
