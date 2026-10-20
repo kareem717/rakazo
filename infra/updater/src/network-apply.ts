@@ -152,6 +152,16 @@ export class NetworkApplier {
       operation,
     ]);
   }
+  private async drain(operationId: string, action: "begin" | "release") {
+    // Docker exec selects the trusted API process environment; credentials never leave it.
+    const script = `import {loadEnv} from "./apps/api/src/env.ts";
+      const env=loadEnv();
+      fetch("http://127.0.0.1:"+env.port+"/api/internal/network-drain",{
+        method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+env.screenProxySecret},
+        body:JSON.stringify(${JSON.stringify({ operationId, action })}),signal:AbortSignal.timeout(650000)
+      }).then(async r=>{if(!r.ok)process.exit(1);console.log(JSON.stringify(await r.json()))}).catch(()=>process.exit(1));`;
+    await this.command(["exec", "-T", "api", "pnpm", "exec", "tsx", "-e", script], 680_000);
+  }
   private async replaceConfig(bytes: string, uid: number, gid: number) {
     const file = `${this.config.configPath}.${randomUUID()}.tmp`;
     const handle = await open(file, "wx", 0o600);
@@ -170,7 +180,7 @@ export class NetworkApplier {
   }
   async start(input: unknown) {
     if (!this.status.available) throw new Error("Recovery requires server access");
-    const { revision } = NetworkApplyInputSchema.parse(input);
+    const { revision, stopComputers = false } = NetworkApplyInputSchema.parse(input);
     if (this.work || !terminal.has(this.status.phase))
       throw new Error("A network apply is already running");
     if (
@@ -196,7 +206,13 @@ export class NetworkApplier {
         error: null,
       };
       await this.persist();
-      this.work = this.apply(target, targetBytes, metadata.uid, metadata.gid).finally(async () => {
+      this.work = this.apply(
+        target,
+        targetBytes,
+        metadata.uid,
+        metadata.gid,
+        stopComputers,
+      ).finally(async () => {
         await lock.close();
         await unlink(lockPath);
         this.work = null;
@@ -213,8 +229,15 @@ export class NetworkApplier {
   async wait() {
     await this.work;
   }
-  private async apply(target: EgressConfig, targetBytes: string, uid: number, gid: number) {
+  private async apply(
+    target: EgressConfig,
+    targetBytes: string,
+    uid: number,
+    gid: number,
+    stopComputers: boolean,
+  ) {
     const operation = this.status.operationId!;
+    let drained = false;
     let frozen = false,
       restarted = false,
       previous: EgressConfig | undefined;
@@ -225,7 +248,7 @@ export class NetworkApplier {
       );
       await writeFile(
         path.join(this.stateDir, "recovery.json"),
-        JSON.stringify({ operation, previous, target }),
+        JSON.stringify({ operation, previous, target, stopComputers }),
         { mode: 0o600 },
       );
       if (target.mode === "all") {
@@ -249,6 +272,13 @@ export class NetworkApplier {
           )
         )
           throw new Error("Connect Tailscale and select an online exit node before applying.");
+      }
+      if (stopComputers) {
+        preflightError =
+          "Could not drain computers. Wait for active work or maintenance to finish and try again.";
+        await this.phase("draining");
+        drained = true;
+        await this.drain(operation, "begin");
       }
       preflightError = "Could not pause computer operations. Try again.";
       await this.freeze(operation);
@@ -277,6 +307,10 @@ export class NetworkApplier {
       await this.recreate(target);
       await this.freeze(operation, true);
       frozen = false;
+      if (drained) {
+        await this.drain(operation, "release");
+        drained = false;
+      }
       await this.phase("succeeded");
     } catch (error) {
       let message =
@@ -296,6 +330,15 @@ export class NetworkApplier {
           frozen = false;
           await this.replaceConfig(targetBytes, uid, gid);
           message = "Could not apply network settings. The previous route was restored.";
+        } catch {
+          this.status = { ...this.status, available: false };
+          message = "Network apply failed. Recovery requires server access.";
+        }
+      }
+      if (drained) {
+        try {
+          await this.drain(operation, "release");
+          drained = false;
         } catch {
           this.status = { ...this.status, available: false };
           message = "Network apply failed. Recovery requires server access.";

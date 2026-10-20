@@ -111,6 +111,7 @@ import {
 import { NetworkConnectionSchema } from "./network-connection.js";
 import {
   NetworkApplyInputSchema,
+  NetworkApplyPreviewSchema,
   NetworkApplyStatusSchema,
   NetworkEgressConfigSchema,
   NetworkSettingsSchema,
@@ -230,6 +231,7 @@ export const appContract = {
   },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
   network: {
+    applyPreview: oc.output(NetworkApplyPreviewSchema),
     applyStatus: oc.output(NetworkApplyStatusSchema),
     apply: oc.input(NetworkApplyInputSchema).output(NetworkApplyStatusSchema),
     connection: oc.output(NetworkConnectionSchema),

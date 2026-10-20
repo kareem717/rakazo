@@ -1,7 +1,17 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { NetworkApplyStatus } from "@rakazo/contracts";
 import { isNetworkApplying, waitForNetworkApply } from "@rakazo/core";
-import { Button } from "@rakazo/ui-web";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  Button,
+} from "@rakazo/ui-web";
 import { useEffect, useRef, useState } from "react";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
@@ -20,6 +30,10 @@ export function NetworkApplySettings({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
+  const [preview, setPreview] = useState<{ computers: { id: string; name: string }[] } | null>(
+    null,
+  );
+  const [preparing, setPreparing] = useState(false);
   const alive = useRef<AbortController | null>(null);
   const inFlight = useRef(false);
   const callbacks = useRef({ onApplied, onBusy });
@@ -60,14 +74,27 @@ export function NetworkApplySettings({
       callbacks.current.onBusy(false);
     };
   }, [attempt]);
+  async function confirm() {
+    if (inFlight.current || preparing) return;
+    setPreparing(true);
+    setError(null);
+    try {
+      setPreview(await rpc.network.applyPreview());
+    } catch (cause) {
+      setError(errorText(cause, t`Could not prepare network restart`));
+    } finally {
+      setPreparing(false);
+    }
+  }
   async function apply() {
     if (inFlight.current || !status?.available || !alive.current) return;
     inFlight.current = true;
+    setPreview(null);
     setBusy(true);
     setError(null);
     callbacks.current.onBusy(true);
     try {
-      const operation = await rpc.network.apply({ revision });
+      const operation = await rpc.network.apply({ revision, stopComputers: true });
       setStatus(operation);
       await follow(operation, alive.current.signal);
     } catch (cause) {
@@ -81,14 +108,16 @@ export function NetworkApplySettings({
     <div className="space-y-2">
       {status?.available ? (
         <>
-          <p>
-            {busy ? (
-              <Trans>Applying network settings… Reconnecting automatically.</Trans>
-            ) : (
-              <Trans>Stop computers before applying.</Trans>
-            )}
-          </p>
-          <Button disabled={busy} onClick={() => void apply()}>
+          {busy ? (
+            <p>
+              {status.phase === "draining" ? (
+                <Trans>Saving and stopping computers…</Trans>
+              ) : (
+                <Trans>Applying network settings… Reconnecting automatically.</Trans>
+              )}
+            </p>
+          ) : null}
+          <Button disabled={busy || preparing} onClick={() => void confirm()}>
             <Trans>Apply and restart</Trans>
           </Button>
         </>
@@ -97,6 +126,41 @@ export function NetworkApplySettings({
           <Trans>Stop computers and restart the deployment to apply.</Trans>
         </p>
       ) : null}
+      <AlertDialog
+        open={preview !== null}
+        onOpenChange={(open) => {
+          if (!open) setPreview(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              <Trans>Apply network settings?</Trans>
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <Trans>
+                Save open files first. The app will wait for active work, save and stop computers,
+                then restart.
+              </Trans>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {preview?.computers.length ? (
+            <ul className="max-h-40 overflow-auto text-sm text-muted-foreground">
+              {preview.computers.map((computer) => (
+                <li key={computer.id}>{computer.name}</li>
+              ))}
+            </ul>
+          ) : null}
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              <Trans>Cancel</Trans>
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={() => void apply()}>
+              <Trans>Apply and restart</Trans>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       {error ? (
         <>
           <p role="alert" className="text-destructive">

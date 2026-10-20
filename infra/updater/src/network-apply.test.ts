@@ -22,6 +22,7 @@ async function fixture(
     failFirstRestart?: boolean;
     failAllRestarts?: boolean;
     tailscaleStatus?: string;
+    failDrain?: boolean;
   } = {},
 ) {
   const dir = await realpath(await mkdtemp(path.join(tmpdir(), "network-apply-")));
@@ -40,6 +41,8 @@ async function fixture(
       expect(execution.output).toBe("stdout");
       return ok(options.tailscaleStatus);
     }
+    if (args.includes("tsx") && options.failDrain && args.at(-1)?.includes('"action":"begin"'))
+      return { ok: false, exitCode: 1, output: "private drain failure" };
     if (args.includes("cat")) return ok(JSON.stringify(booted));
     if (args.includes("--check-network-apply") && options.busy)
       return { ok: false, exitCode: 1, output: "private provider diagnostic" };
@@ -191,4 +194,29 @@ it("reports interrupted runs after the control service restarts", async () => {
   });
   await recovered.initialize();
   expect(recovered.status.error).toContain("interrupted");
+});
+
+it("drains only after explicit consent and releases maintenance after verification", async () => {
+  const { applier, commands } = await fixture();
+  await applier.start({ revision: networkRevision(target), stopComputers: true });
+  await applier.wait();
+  expect(applier.status.phase).toBe("succeeded");
+  const begin = commands.findIndex((args) => args.at(-1)?.includes('"action":"begin"'));
+  const stop = commands.findIndex((args) => args.includes("stop"));
+  const release = commands.findIndex((args) => args.at(-1)?.includes('"action":"release"'));
+  expect(begin).toBeGreaterThanOrEqual(0);
+  expect(stop).toBeGreaterThan(begin);
+  expect(release).toBeGreaterThan(stop);
+});
+it("releases a failed drain without restarting the app or route", async () => {
+  const { applier, commands } = await fixture({ failDrain: true });
+  await applier.start({ revision: networkRevision(target), stopComputers: true });
+  await applier.wait();
+  expect(applier.status).toMatchObject({
+    available: true,
+    phase: "failed",
+    error: expect.stringContaining("Could not drain"),
+  });
+  expect(commands.some((args) => args.includes("stop") || args.includes("up"))).toBe(false);
+  expect(commands.some((args) => args.at(-1)?.includes('"action":"release"'))).toBe(true);
 });

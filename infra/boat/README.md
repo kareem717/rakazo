@@ -111,9 +111,21 @@ The deployment owner can open **Settings → General → Advanced → Network** 
 or **Settings → Advanced → Network** on mobile. The four routing scopes share the same
 validation and backend. Transport fields appear only when needed. **Save** stages the JSON;
 the UI shows **Restart required** while it differs from the running process configuration.
-Stop computers and recreate the entire deployment before using the new route. Saving never
-silently moves existing sockets to another route. Returning the saved config to its active
-value cancels the pending change.
+With the optional restart controller, **Apply and restart** shows the affected computers and
+asks for confirmation. The server claims maintenance across API and worker processes, waits
+for active work, saves workspaces and stops computers before recreating the deployment. Save
+open files first. A failed drain leaves the current route in place; failed checkpoints never
+stop that computer. Computers start again when next used. Native desktop computers are not
+stopped by server maintenance. Without the controller, stop computers and recreate the
+deployment manually. Saving never silently moves existing sockets to another route.
+Returning the saved config to its active value cancels the pending change.
+
+The restart operation survives client disconnects and API recreation. Maintenance claims stay
+fenced until the controller releases them after route verification or failure cleanup. An
+interrupted controller keeps its recovery-required state; reconcile its journal and matching
+`network:` maintenance claims before enabling another apply. Never clear a live operation's
+claims. The internal drain endpoint requires the deployment's internal screen-proxy secret
+and a matching, currently draining owner-authorized operation; it is not a client API.
 
 A file-only or read-only mount remains visible but cannot be edited. To enable editing, use
 only a dedicated config directory, mode 700 with `network.json` mode 600, writable by the API

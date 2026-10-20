@@ -87,6 +87,7 @@ import {
   NetworkSettingsError,
   networkApplyStatus,
   networkConnection,
+  networkDrainPreview,
   normalizeSecretDestination,
   PushSessionEndedError,
   parseModelSecret,
@@ -1100,6 +1101,10 @@ export function createRouter(deps: RouterDeps) {
       };
     }),
     network: {
+      applyPreview: authed.network.applyPreview.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        return networkDrainPreview(deps.prisma);
+      }),
       applyStatus: authed.network.applyStatus.handler(async ({ context }) => {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
         try {
@@ -1113,7 +1118,7 @@ export function createRouter(deps: RouterDeps) {
       apply: authed.network.apply.handler(async ({ context, input }) => {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
         try {
-          return await networkApplyStatus(input.revision);
+          return await networkApplyStatus(input.revision, undefined, input.stopComputers);
         } catch (error) {
           if (error instanceof NetworkApplyConflict)
             throw new ORPCError("CONFLICT", { message: error.message });

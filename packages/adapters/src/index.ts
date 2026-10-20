@@ -96,6 +96,7 @@ export * from "./model-selection.js";
 export * from "./model-vision.js";
 export * from "./network-apply.js";
 export * from "./network-connection.js";
+export * from "./network-drain.js";
 export * from "./network-settings.js";
 export * from "./none-sandbox.js";
 export * from "./openai-compatible-url.js";

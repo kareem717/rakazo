@@ -10,6 +10,7 @@ const calls = vi.hoisted(() => ({
   save: vi.fn(),
   connection: vi.fn(),
   connect: vi.fn(),
+  applyPreview: vi.fn(),
   applyStatus: vi.fn(),
   apply: vi.fn(),
 }));
@@ -44,6 +45,7 @@ async function render(
   applyAvailable = false,
 ) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  calls.applyPreview.mockResolvedValue({ computers: [{ id: "computer", name: "Example bot" }] });
   calls.get.mockResolvedValue(state);
   calls.connection.mockResolvedValue(connection);
   calls.applyStatus.mockResolvedValue({
@@ -124,7 +126,25 @@ it("applies a pending configuration and reloads only after the matching restart 
         .find((node) => node.textContent === "Apply and restart")!
         .click(),
     );
-    expect(calls.apply).toHaveBeenCalledWith({ revision: initial.revision });
+    expect(calls.apply).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain("Example bot");
+    await act(async () =>
+      Array.from(document.querySelectorAll<HTMLButtonElement>("[role=alertdialog] button"))
+        .find((node) => node.textContent === "Cancel")!
+        .click(),
+    );
+    expect(calls.apply).not.toHaveBeenCalled();
+    await act(async () =>
+      Array.from(container.querySelectorAll("button"))
+        .find((node) => node.textContent === "Apply and restart")!
+        .click(),
+    );
+    await act(async () =>
+      Array.from(document.querySelectorAll<HTMLButtonElement>("[role=alertdialog] button"))
+        .find((node) => node.textContent === "Apply and restart")!
+        .click(),
+    );
+    expect(calls.apply).toHaveBeenCalledWith({ revision: initial.revision, stopComputers: true });
     expect(container.textContent).not.toContain("Restart required");
   } finally {
     await close();
