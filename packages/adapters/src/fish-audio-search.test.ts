@@ -39,6 +39,39 @@ it("searches the upstream library by title", async () => {
   expect(new URL(fetcher.mock.calls[0]?.[0]).searchParams.get("title")).toBe("Narrator");
 });
 
+it("finds built-in names even when upstream search omits them", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockImplementation(async () => new Response(JSON.stringify({ items: [] }))),
+  );
+  const provider = new FishAudioVoiceProvider();
+  for (const label of ["Eddie", "Marty", "Brad", "Eric", "Ling", "Greg", "Tony", "Jim"]) {
+    await expect(
+      provider.searchVoices("fake-api-key", ` ${label.toUpperCase()} `, context),
+    ).resolves.toEqual([expect.objectContaining({ label })]);
+  }
+});
+
+it("keeps built-in names and deduplicates upstream search matches", async () => {
+  const voiceId = "08a027bcd6d74cf7bb71df89c9ef07e9";
+  vi.stubGlobal(
+    "fetch",
+    vi.fn().mockImplementation(async (input: RequestInfo | URL) => {
+      const model = { _id: voiceId, title: "Upstream title" };
+      return new Response(
+        JSON.stringify(String(input).endsWith(`/model/${voiceId}`) ? model : { items: [model] }),
+      );
+    }),
+  );
+  const provider = new FishAudioVoiceProvider();
+  await expect(provider.searchVoices("fake-api-key", "Eddie", context)).resolves.toEqual([
+    { id: voiceId, label: "Eddie" },
+  ]);
+  await expect(provider.searchVoices("fake-api-key", voiceId, context)).resolves.toEqual([
+    { id: voiceId, label: "Eddie", description: undefined },
+  ]);
+});
+
 it.each([
   `https://fish.audio.evil.test/?modelId=${id}`,
   `https://user@fish.audio/?modelId=${id}`,
@@ -67,3 +100,23 @@ it.each([
     new FishAudioVoiceProvider().searchVoices("fake-api-key", id, context),
   ).resolves.toEqual([]);
 });
+
+it.each([{ dmca_taken_down: true }, { state: "failed" }])(
+  "omits unavailable built-in voices from catalog and name search: %j",
+  async (unavailable) => {
+    const voiceId = "08a027bcd6d74cf7bb71df89c9ef07e9";
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockImplementation(
+          async () => new Response(JSON.stringify({ items: [{ _id: voiceId, ...unavailable }] })),
+        ),
+    );
+    const provider = new FishAudioVoiceProvider();
+    expect(await provider.listVoices("fake-api-key", context)).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: voiceId })]),
+    );
+    await expect(provider.searchVoices("fake-api-key", "Eddie", context)).resolves.toEqual([]);
+  },
+);
