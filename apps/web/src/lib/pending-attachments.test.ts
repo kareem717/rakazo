@@ -1,5 +1,6 @@
+import { isFileDrag } from "@rakazo/ui-web/hooks/use-file-drop";
 import { describe, expect, it, vi } from "vitest";
-import { isFileDrag, isFilePaste, revokePendingAttachmentPreviews } from "./pending-attachments.js";
+import { isFilePaste, revokePendingAttachmentPreviews } from "./pending-attachments.js";
 
 function fileList(length: number) {
   return { length } as unknown as FileList;

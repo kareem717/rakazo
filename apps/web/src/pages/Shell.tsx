@@ -92,6 +92,7 @@ import {
   PopoverTrigger,
   resolvePersonaColorDef,
 } from "@rakazo/ui-web";
+import { useFileDrop } from "@rakazo/ui-web/hooks/use-file-drop";
 import {
   ArrowDown,
   ArrowUp,
@@ -127,7 +128,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { ClipboardEvent, DragEvent, MutableRefObject, RefObject } from "react";
+import type { ClipboardEvent, MutableRefObject, RefObject } from "react";
 import {
   Fragment,
   memo,
@@ -231,7 +232,6 @@ import { copyableMessageText } from "../lib/message-text";
 import { messageProviderLabel } from "../lib/messaging";
 import { parseModelOptionKey } from "../lib/model-catalog";
 import {
-  isFileDrag,
   isFilePaste,
   readFileAsBase64,
   revokePendingAttachmentPreviews,
@@ -550,6 +550,7 @@ function SpaceShell() {
   }, setLogOutError);
   const [attachmentNotice, setAttachmentNotice] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatDropTargetRef = useRef<HTMLElement>(null);
   const [panel, setPanelState] = useState<Panel>(null);
   const [restoredPanelKey, setRestoredPanelKey] = useState<string | null>(null);
   const panelStorageKeyRef = useRef<string | null>(null);
@@ -4001,6 +4002,7 @@ function SpaceShell() {
 
       {/* Keep the composer's z-index inside the chat so phone overlays like the side panel cover it. */}
       <main
+        ref={chatDropTargetRef}
         data-space-switch="main"
         aria-hidden={mobileSidebarOpen || undefined}
         inert={mobileSidebarOpen}
@@ -4184,6 +4186,7 @@ function SpaceShell() {
             onDismissError={dismissComposerError}
             sending={sending}
             fileInputRef={fileInputRef}
+            dropTargetRef={chatDropTargetRef}
             onAttachmentPick={onAttachmentPick}
             onRemoveAttachment={removeAttachment}
             onSend={sendMessage}
@@ -6062,6 +6065,7 @@ export const Composer = memo(function Composer({
   onDismissError,
   sending,
   fileInputRef,
+  dropTargetRef,
   onAttachmentPick,
   onRemoveAttachment,
   onSend,
@@ -6091,6 +6095,7 @@ export const Composer = memo(function Composer({
   onDismissError: () => void;
   sending: boolean;
   fileInputRef: RefObject<HTMLInputElement | null>;
+  dropTargetRef?: RefObject<HTMLElement | null>;
   onAttachmentPick: (files: FileList | null) => boolean;
   onRemoveAttachment: (attachment: PendingAttachment) => void;
   onSend: (text: string, mentions: ComposerMention[], clientNonce: string) => Promise<boolean>;
@@ -6174,8 +6179,12 @@ export const Composer = memo(function Composer({
   const runErrorRef = useRef<HTMLDivElement>(null);
   const presentedRunErrorIdRef = useRef<string | null>(null);
   const mentionListboxId = useId();
-  const dragDepth = useRef(0);
-  const [draggingFiles, setDraggingFiles] = useState(false);
+  const composerDropTargetRef = useRef<HTMLFieldSetElement>(null);
+  const draggingFiles = useFileDrop(
+    dropTargetRef ?? composerDropTargetRef,
+    pickAttachments,
+    disabled,
+  );
   const canSend =
     draft.trim().length > 0 ||
     selectedSkill !== null ||
@@ -6275,7 +6284,10 @@ export const Composer = memo(function Composer({
 
   function pickAttachments(files: FileList | null) {
     if (!files?.length) return;
-    if (onAttachmentPick(files)) markEdited();
+    if (onAttachmentPick(files)) {
+      markEdited();
+      textareaRef.current?.focus();
+    }
   }
 
   function updateDraft(value: string) {
@@ -6413,52 +6425,6 @@ export const Composer = memo(function Composer({
     setSelectedMentions(mentions);
   }
 
-  function handleDragEnter(event: DragEvent<HTMLFieldSetElement>) {
-    const dataTransfer = event.dataTransfer;
-    if (!isFileDrag(dataTransfer)) return;
-    event.preventDefault();
-    if (disabled) {
-      dragDepth.current = 0;
-      setDraggingFiles(false);
-      return;
-    }
-    dragDepth.current += 1;
-    setDraggingFiles(true);
-  }
-
-  function handleDragOver(event: DragEvent<HTMLFieldSetElement>) {
-    const dataTransfer = event.dataTransfer;
-    if (!isFileDrag(dataTransfer)) return;
-    event.preventDefault();
-    dataTransfer.dropEffect = disabled ? "none" : "copy";
-    if (disabled) {
-      dragDepth.current = 0;
-      setDraggingFiles(false);
-      return;
-    }
-    setDraggingFiles(true);
-  }
-
-  function handleDragLeave(event: DragEvent<HTMLFieldSetElement>) {
-    if (!isFileDrag(event.dataTransfer)) return;
-    if (disabled) {
-      dragDepth.current = 0;
-      setDraggingFiles(false);
-      return;
-    }
-    dragDepth.current = Math.max(0, dragDepth.current - 1);
-    if (dragDepth.current === 0) setDraggingFiles(false);
-  }
-
-  function handleDrop(event: DragEvent<HTMLFieldSetElement>) {
-    const dataTransfer = event.dataTransfer;
-    if (!isFileDrag(dataTransfer)) return;
-    event.preventDefault();
-    dragDepth.current = 0;
-    setDraggingFiles(false);
-    if (!disabled) pickAttachments(dataTransfer.files);
-  }
-
   function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
     const clipboardData = event.clipboardData;
     // Only intercept real FileList pastes; leave text-only / empty-files native.
@@ -6577,14 +6543,22 @@ export const Composer = memo(function Composer({
     <fieldset
       aria-label={t`Message composer`}
       data-dragging={draggingFiles ? "files" : undefined}
-      onDragEnter={handleDragEnter}
-      onDragOver={handleDragOver}
-      onDragLeave={handleDragLeave}
-      onDrop={handleDrop}
+      ref={composerDropTargetRef}
       className={`relative z-30 m-0 min-w-0 border-0 px-3 pb-4 pt-3 md:px-6 md:pb-6 ${
         draggingFiles ? "rounded-[14px] ring-2 ring-inset ring-ring" : ""
       }`}
     >
+      {draggingFiles ? (
+        <div
+          className="pointer-events-none absolute inset-0 z-50 grid place-items-center rounded-[14px] bg-background/95"
+          role="status"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium">
+            <Paperclip size={18} aria-hidden="true" />
+            <Trans>Drop to attach</Trans>
+          </span>
+        </div>
+      ) : null}
       <div role="status" data-testid="composer-announcement" className="sr-only">
         {replyAnnouncement}
       </div>

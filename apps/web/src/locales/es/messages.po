@@ -2358,6 +2358,10 @@ msgstr "Habilidad en borrador"
 msgid "Drag, drop, or paste an image"
 msgstr "Arrastra, suelta o pega una imagen"
 
+#: src/pages/Shell.tsx
+msgid "Drop to attach"
+msgstr ""
+
 #: src/pages/BotContextMenu.tsx
 msgid "Duplicate"
 msgstr "Duplicar"

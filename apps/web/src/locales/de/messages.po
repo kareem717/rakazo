@@ -2358,6 +2358,10 @@ msgstr "Skill-Entwurf"
 msgid "Drag, drop, or paste an image"
 msgstr "Bild ziehen, ablegen oder einfügen"
 
+#: src/pages/Shell.tsx
+msgid "Drop to attach"
+msgstr ""
+
 #: src/pages/BotContextMenu.tsx
 msgid "Duplicate"
 msgstr "Duplizieren"

@@ -318,6 +318,33 @@ describe("Composer", () => {
     expect(textarea.value).toBe("");
   });
 
+  it("accepts a drop in the conversation and preserves newer attachments after a failed send", async () => {
+    let finishSend = (_sent: boolean) => {};
+    const onAttachmentPick = vi.fn(() => true);
+    const textarea = renderComposer(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finishSend = resolve;
+        }),
+      { onAttachmentPick, dropTargetRef: { current: document.body } },
+    );
+    type(textarea, "earlier message");
+    pressEnter(textarea);
+    const event = new Event("drop", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", {
+      value: {
+        types: ["Files"],
+        items: [{ kind: "file" }],
+        files: [new File(["notes"], "notes.txt", { type: "text/plain" })],
+      },
+    });
+    act(() => document.body.dispatchEvent(event));
+    expect(onAttachmentPick).toHaveBeenCalledTimes(1);
+    expect(document.activeElement).toBe(textarea);
+    await act(async () => finishSend(false));
+    expect(textarea.value).toBe("");
+  });
+
   it("restores after a rejected attachment pick and preserves the nonce on rejected retry picks", async () => {
     let finishSend = (_sent: boolean) => {};
     const onSend = vi.fn<ComponentProps<typeof Composer>["onSend"]>(
