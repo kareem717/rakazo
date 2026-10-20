@@ -35,6 +35,9 @@ export function ProviderVoicePicker({
       () => {
         void rpc<VoiceInfo[]>("voice/voices", { provider, query: query.trim() || undefined })
           .then(async (listed) => {
+            if (!current) return;
+            setVoices(listed);
+            setLoading(false);
             if (!query && value && !listed.some((voice) => voice.id === value)) {
               const saved = await rpc<VoiceInfo[]>("voice/voices", {
                 provider,
