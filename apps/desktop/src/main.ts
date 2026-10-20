@@ -43,8 +43,8 @@ import {
   immutableRendererAsset,
   isRendererAssetMiss,
 } from "./renderer-assets.js";
-import { installSessionPermissions } from "./session-permissions.js";
 import { installScreenShortcuts } from "./screen-shortcuts.js";
+import { installSessionPermissions } from "./session-permissions.js";
 import {
   DEFAULT_LOCAL_WEB_URL,
   desktopStackImageTag,

@@ -26,8 +26,8 @@ import {
   SafeAreaView,
 } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { ComputerKeyboardBar } from "../components/computer-keyboard-bar";
 import { ComputerClipboardMenu } from "../components/computer-clipboard-menu";
+import { ComputerKeyboardBar } from "../components/computer-keyboard-bar";
 import { ComputerMaintenanceActions } from "../components/computer-maintenance-actions";
 import { ComputerModePicker } from "../components/computer-mode-picker";
 import { GlassIconButton } from "../components/glass-icon-button";

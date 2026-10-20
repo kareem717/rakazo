@@ -4989,6 +4989,7 @@ msgstr "Der ausgewählte Erinnerungsanbieter ist in diesem Build nicht verfügba
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr ""
 
+#: src/components/ai/Reasoning.tsx
 #: src/components/call/CallCard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx

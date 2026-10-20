@@ -253,8 +253,19 @@ test("guarded bootstrap submits one command and reads its response without repla
   }
 });
 
-test("network apply refuses live computers and unresolved provisioning even when mode is unchanged",async()=>{
-  await assert.rejects(()=>assertNetworkApplyStopped({vm:{}},{},async()=>({state:"running"})),/Stop computers/);
-  await assert.rejects(()=>assertNetworkApplyStopped({}, {bot:{phase:"intent"}},async()=>({state:"stopped"})),/pending/);
-  await assertNetworkApplyStopped({vm:{}},{bot:{phase:"created"}},async()=>({state:"stopped"}));
+test("network apply refuses live computers and unresolved provisioning even when mode is unchanged", async () => {
+  await assert.rejects(
+    () => assertNetworkApplyStopped({ vm: {} }, {}, async () => ({ state: "running" })),
+    /Stop computers/,
+  );
+  await assert.rejects(
+    () =>
+      assertNetworkApplyStopped({}, { bot: { phase: "intent" } }, async () => ({
+        state: "stopped",
+      })),
+    /pending/,
+  );
+  await assertNetworkApplyStopped({ vm: {} }, { bot: { phase: "created" } }, async () => ({
+    state: "stopped",
+  }));
 });
