@@ -1,4 +1,6 @@
 import dns from "node:dns";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { fetch as undiciFetch } from "undici";
 import { describe, expect, it, vi } from "vitest";
 import {
@@ -10,6 +12,34 @@ import {
 } from "./remote-mcp.js";
 
 const publicResolver = async () => [{ address: "203.0.113.10", family: 4 as const }];
+
+describe("remote transport cleanup", () => {
+  it("closes an unfinished response instead of waiting for its body forever", async () => {
+    const server = createServer((_request, response) => {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.write('{"pending":');
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const fetch = createSafeRemoteFetch(undefined, undefined, { allowPrivateEndpoint: true });
+    let deadline: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const response = await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/`);
+      expect(response.status).toBe(200);
+      const closed = await Promise.race([
+        fetch.close().then(() => true),
+        new Promise<false>((resolve) => {
+          deadline = setTimeout(() => resolve(false), 250);
+        }),
+      ]);
+      expect(closed).toBe(true);
+    } finally {
+      clearTimeout(deadline);
+      server.closeAllConnections();
+      await fetch.close();
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+});
 
 describe("remote MCP URL policy", () => {
   it("accepts public HTTPS endpoints", async () => {

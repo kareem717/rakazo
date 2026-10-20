@@ -7,10 +7,11 @@ import type {
 import { dispatchBackgroundJob } from "@rakazo/adapter-kit";
 import { isTooManyDatabaseConnections } from "@rakazo/db";
 import { getLogger, runCorrelatedJob, unwrapJobPayload, wrapJobPayload } from "@rakazo/logging";
-import type { Runner, WorkerUtils } from "graphile-worker";
+import type { JobHelpers, Runner, WorkerUtils } from "graphile-worker";
 import { makeWorkerUtils, run } from "graphile-worker";
 import type { Pool } from "pg";
 import { recordHistoryCompactAttemptsExhausted } from "./history-compaction.js";
+import { JobWorkerOwnership } from "./job-worker-ownership.js";
 
 // Share the caller's pg.Pool instead of opening a separate connectionString-based
 // pool per graphile-worker component: three independent pools per worker process
@@ -79,6 +80,7 @@ export function databaseCapacityBackoffMs(attempt: number): number {
 
 export class GraphileJobWorkerHost implements JobWorkerHost {
   private runner: Runner | undefined;
+  private ownership: JobWorkerOwnership | undefined;
   private handlers: BackgroundJobHandlers | undefined;
   private stopping = false;
   private superviseTask: Promise<void> | undefined;
@@ -112,8 +114,10 @@ export class GraphileJobWorkerHost implements JobWorkerHost {
     try {
       await this.runner?.stop();
     } finally {
+      await this.ownership?.stop();
       await this.superviseTask?.catch(() => undefined);
       this.runner = undefined;
+      this.ownership = undefined;
       this.superviseTask = undefined;
       this.handlers = undefined;
     }
@@ -122,10 +126,15 @@ export class GraphileJobWorkerHost implements JobWorkerHost {
   private async launchRunner(): Promise<void> {
     const handlers = this.handlers;
     if (!handlers) throw new Error("Background job worker has no handlers");
+    let runner: Runner | undefined;
+    const ownership = new JobWorkerOwnership(this.pgPool, () => {
+      void runner?.stop().catch((error) => getLogger().error("job worker shutdown failed", error));
+    });
     const taskList = Object.fromEntries(
       Object.keys(handlers).map((name) => [
         name,
-        async (payload: unknown) => {
+        async (payload: unknown, helpers: JobHelpers) => {
+          await ownership.claim(helpers.job.locked_by);
           const unpacked = unwrapJobPayload(payload);
           await runCorrelatedJob({
             name,
@@ -136,13 +145,24 @@ export class GraphileJobWorkerHost implements JobWorkerHost {
         },
       ]),
     );
-    const runner = await run({
+    runner = await run({
       pgPool: this.pgPool,
       concurrency: this.options.concurrency ?? 4,
       pollInterval: this.options.pollInterval ?? 500,
       noHandleSignals: this.options.noHandleSignals,
       taskList,
     });
+    // run() has installed Graphile's schema. Handlers also await start(), so they
+    // cannot perform effects before their pool's ownership is registered.
+    try {
+      await ownership.start();
+    } catch (error) {
+      await runner.stop().catch(() => undefined);
+      await ownership.stop().catch(() => undefined);
+      throw error;
+    }
+    void runner.promise.finally(() => ownership.stop()).catch(() => undefined);
+    this.ownership = ownership;
     runner.events.on("job:failed", ({ job, error }) => {
       recordHistoryCompactAttemptsExhausted(job, error);
     });
@@ -174,14 +194,17 @@ export class GraphileJobWorkerHost implements JobWorkerHost {
   private async supervise(): Promise<void> {
     for (;;) {
       const runner = this.runner;
+      const ownership = this.ownership;
       if (!runner || this.stopping) return;
       try {
         await runner.promise;
-        return;
+        if (!ownership?.unavailable) return;
+        throw new Error("Background job ownership connection was lost");
       } catch (error) {
         if (this.stopping) return;
         if (this.runner === runner) this.runner = undefined;
-        if (!isTooManyDatabaseConnections(error)) throw error;
+        if (!isTooManyDatabaseConnections(error) && !ownership?.unavailable) throw error;
+        await ownership?.stop();
         // Back off after every lifecycle 53300 (runner death or failed relaunch),
         // not only when launchRunner rejects — otherwise a runner that starts then
         // dies again under saturation reconnects with no delay.

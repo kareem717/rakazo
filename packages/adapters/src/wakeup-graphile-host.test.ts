@@ -11,6 +11,24 @@ import type { Pool } from "pg";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const run = vi.hoisted(() => vi.fn());
+const ownershipMocks = vi.hoisted(() => [] as Array<{ lose: () => void }>);
+
+vi.mock("./job-worker-ownership.js", () => ({
+  JobWorkerOwnership: class {
+    unavailable = false;
+    lose: () => void;
+    constructor(_pool: unknown, onLost: () => void) {
+      this.lose = () => {
+        this.unavailable = true;
+        onLost();
+      };
+      ownershipMocks.push(this);
+    }
+    start = vi.fn(async () => undefined);
+    claim = vi.fn(async () => undefined);
+    stop = vi.fn(async () => undefined);
+  },
+}));
 
 vi.mock("graphile-worker", () => ({
   run: (...args: unknown[]) => run(...args),
@@ -222,6 +240,19 @@ describe("GraphileJobPublisher.enqueue", () => {
 describe("GraphileJobWorkerHost runner lifecycle", () => {
   afterEach(() => {
     run.mockReset();
+    ownershipMocks.length = 0;
+  });
+
+  it("restarts after its ownership connection is lost instead of remaining idle", async () => {
+    const first = mockRunner();
+    const second = mockRunner();
+    run.mockResolvedValueOnce(first.runner).mockResolvedValueOnce(second.runner);
+    const host = new GraphileJobWorkerHost({} as Pool, { sleep: async () => undefined });
+    await host.start(handlers());
+    ownershipMocks.at(-1)!.lose();
+    await vi.waitFor(() => expect(run).toHaveBeenCalledTimes(2));
+    expect(first.runner.stop).toHaveBeenCalled();
+    await host.stop();
   });
 
   it("backs off then restarts when runner.promise rejects with 53300", async () => {

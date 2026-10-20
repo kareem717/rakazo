@@ -1,6 +1,8 @@
 import type { BackgroundJobHandlers } from "@rakazo/adapter-kit";
+import type { PoolClient } from "pg";
 import { Pool } from "pg";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { JobWorkerOwnership } from "./job-worker-ownership.js";
 import { GraphileJobPublisher, GraphileJobWorkerHost } from "./wakeup.js";
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -47,6 +49,72 @@ async function waitFor(assertion: () => void, timeoutMs = 10_000): Promise<void>
 }
 
 describePostgres("Graphile background jobs (PostgreSQL contract)", () => {
+  it("recovers a crashed owner's jobs without unlocking a live owner's jobs", async () => {
+    const publisher = new GraphileJobPublisher(testPool());
+    const alive = new JobWorkerOwnership(testPool(), () => undefined);
+    const keys = ["contract:live-owner", "contract:dead-owner"];
+    const liveId = "contract-live-owner";
+    const deadId = "contract-dead-owner";
+    let deadClient: PoolClient | undefined;
+    try {
+      // Initialize Graphile's schema without running these jobs.
+      for (const key of keys) {
+        await publisher.enqueue({
+          name: "run.continue",
+          payload: { runId: "fixture-run" },
+          replaceKey: key,
+          availableAt: new Date(Date.now() + 60_000),
+        });
+      }
+      await alive.start();
+      await alive.claim(liveId);
+      deadClient = await testPool().connect();
+      deadClient.on("error", () => undefined);
+      await deadClient.query("select pg_advisory_lock($1::integer, hashtext($2))", [
+        1_380_019_076,
+        deadId,
+      ]);
+      await deadClient.query("insert into graphile_worker.rakazo_worker_owners (id) values ($1)", [
+        deadId,
+      ]);
+      for (const [index, key] of keys.entries()) {
+        await testPool().query(
+          "update graphile_worker._private_jobs set locked_by = $1, locked_at = now() where key = $2",
+          [index === 0 ? liveId : deadId, key],
+        );
+      }
+      await alive.recover();
+      const before = await testPool().query<{ locked_by: string | null }>(
+        "select locked_by from graphile_worker._private_jobs where key = any($1::text[]) order by key",
+        [keys],
+      );
+      expect(before.rows.every((row) => row.locked_by !== null)).toBe(true);
+      const pid = await deadClient.query<{ pid: number }>("select pg_backend_pid() as pid");
+      await testPool().query("select pg_terminate_backend($1)", [pid.rows[0]!.pid]);
+      deadClient.release(true);
+      deadClient = undefined;
+      await alive.recover();
+      const after = await testPool().query<{ key: string; locked_by: string | null }>(
+        "select key, locked_by from graphile_worker._private_jobs where key = any($1::text[])",
+        [keys],
+      );
+      expect(after.rows.find((row) => row.key === keys[0])?.locked_by).toBe(liveId);
+      expect(after.rows.find((row) => row.key === keys[1])?.locked_by).toBeNull();
+    } finally {
+      deadClient?.release(true);
+      await alive.stop();
+      await testPool().query("select graphile_worker.force_unlock_workers($1::text[])", [
+        [liveId, deadId],
+      ]);
+      await testPool().query(
+        "delete from graphile_worker.rakazo_worker_owners where id = any($1::text[])",
+        [[liveId, deadId]],
+      );
+      for (const key of keys) await publisher.cancel(key);
+      await publisher.close();
+    }
+  });
+
   it("waits for an active handler during graceful shutdown", async () => {
     const publisher = new GraphileJobPublisher(testPool());
     const host = new GraphileJobWorkerHost(testPool(), { concurrency: 1, pollInterval: 25 });

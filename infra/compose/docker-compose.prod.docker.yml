@@ -135,6 +135,7 @@ services:
         condition: service_healthy
 
   worker:
+    stop_grace_period: 60s
     environment:
       SENTRY_DSN: ${SENTRY_DSN:-}
       SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-}

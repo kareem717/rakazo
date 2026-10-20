@@ -201,6 +201,7 @@ export function createSafeRemoteFetch(
   policy: RemoteUrlPolicy = {},
 ): SafeRemoteFetch {
   const dispatcher = createToolAgent(createSafeLookup(resolve, policy));
+  const lifetime = new AbortController();
   // Injected fetches are not given this Agent; they keep the original hostname
   // for TLS/SNI and pin TCP to the already-validated address through dns.lookup.
   const usePackageFetch = fetchPairedWithDispatcher(baseFetch) === dispatcherFetch;
@@ -211,7 +212,11 @@ export function createSafeRemoteFetch(
     const { url, addresses } = await inspectSafeRemoteUrl(String(input), resolve, policy);
     let response: Response;
     try {
-      const requestInit = { ...init, redirect: "manual" as const };
+      const requestInit = {
+        ...init,
+        redirect: "manual" as const,
+        signal: combineSignals(init?.signal ?? undefined, lifetime.signal),
+      };
       response = usePackageFetch
         ? await dispatcherFetch(url, {
             ...requestInit,
@@ -232,7 +237,10 @@ export function createSafeRemoteFetch(
     return response;
   };
   const result = safeFetch as SafeRemoteFetch;
-  result.close = () => dispatcher.close();
+  result.close = () => {
+    lifetime.abort();
+    return dispatcher.destroy();
+  };
   return result;
 }
 
@@ -262,6 +270,7 @@ export function createPrivateNetworkFetch(
   baseFetch?: typeof globalThis.fetch,
   resolve: ResolveHostname = resolveHostname,
 ): SafeRemoteFetch {
+  const lifetime = new AbortController();
   const dispatcher = new Agent({
     connect: { lookup: createAddressCheckedLookup(resolve, assertPrivateAddresses) },
   });
@@ -278,7 +287,11 @@ export function createPrivateNetworkFetch(
     assertPrivateAddresses(addresses);
     let response: Response;
     try {
-      const requestInit = { ...init, redirect: "manual" as const };
+      const requestInit = {
+        ...init,
+        redirect: "manual" as const,
+        signal: combineSignals(init?.signal ?? undefined, lifetime.signal),
+      };
       response = usePackageFetch
         ? await dispatcherFetch(url, {
             ...requestInit,
@@ -299,7 +312,10 @@ export function createPrivateNetworkFetch(
     return response;
   };
   const result = privateFetch as SafeRemoteFetch;
-  result.close = () => dispatcher.close();
+  result.close = () => {
+    lifetime.abort();
+    return dispatcher.destroy();
+  };
   return result;
 }
 
