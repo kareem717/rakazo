@@ -15,7 +15,7 @@ function fixture(isDeploymentOwner = true) {
     deploymentSettings: { findUnique: vi.fn(async () => settings), upsert },
   } as unknown as PrismaClient;
   const handler = new RPCHandler(
-    createRouter({ prisma, env: { sandboxProvider: "box" } } as RouterDeps),
+    createRouter({ prisma, env: { sandboxProvider: "boat" } } as RouterDeps),
   );
   const actor: Actor = {
     userId: "user-1",

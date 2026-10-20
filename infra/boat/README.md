@@ -1,6 +1,6 @@
 # Configurable network egress for Boat computers
 
-This optional overlay connects Rakazo's native Box adapter to a local Boat controller. Core Rakazo defaults to ordinary networking and requires no proxy or Tailscale account. Web, Electron and mobile use the same backend policy.
+This optional overlay connects Rakazo's native Boat adapter to a local Boat controller. Core Rakazo defaults to ordinary networking and requires no proxy or Tailscale account. Web, Electron and mobile use the same backend policy.
 
 ## Choose a scope
 
@@ -13,7 +13,7 @@ This optional overlay connects Rakazo's native Box adapter to a local Boat contr
 
 `tools` rejects unsupported public UDP and direct IPv6 from command scopes. It preserves the provider management path. Backend models, memory and provider requests keep ordinary networking in this mode. Authorized private backend endpoints remain direct; their existing authorization and URL checks still apply. A hosted connector or extraction service makes its own onward requests from that service's network.
 
-The deployment-wide **Browser driver** setting also supports Patchright. Its optional adapter attaches to the same Chrome with default emulation overrides disabled, uses native browser input, and shares the protected DOM state with Standard. The Box adapter installs verified, pinned wheels in a separate user virtual environment before the first Patchright request on each computer. Existing and future computers use the saved choice automatically. Browser operations never install an unpinned package, replace the user's Chrome profile, or silently switch drivers after failure.
+The deployment-wide **Browser driver** setting also supports Patchright. Its optional adapter attaches to the same Chrome with default emulation overrides disabled, uses native browser input, and shares the protected DOM state with Standard. The Boat adapter installs verified, pinned wheels in a separate user virtual environment before the first Patchright request on each computer. Existing and future computers use the saved choice automatically. Browser operations never install an unpinned package, replace the user's Chrome profile, or silently switch drivers after failure.
 
 `all` routes public TCP, UDP and both IP families from the application network namespace and managed computers through a Tailscale exit node. Local/private destinations, tunnel envelopes and replies to incoming management connections are exceptions. Docker image pulls on the host, other host processes, client devices and external services' onward requests are outside this namespace. The exit node must support the desired IP families. Failed tunnel traffic is rejected rather than falling back to the ordinary public route.
 
@@ -142,8 +142,8 @@ Use a repository checkout and the images-based Compose deployment. Build `infra/
 
 Set these deployment variables:
 
-- `SANDBOX_PROVIDER=box` and `BOX_API_URL=http://127.0.0.1:8788/api/box/v1`.
-- `BOX_API_KEY`: the same scoped runtime key saved in `boat-network/state/boat-key`.
+- `SANDBOX_PROVIDER=boat` and `BOAT_API_URL=http://127.0.0.1:8788/api/v1`.
+- `BOAT_API_KEY`: the same scoped runtime key saved in `boat-network/state/boat-key`.
 - `BOAT_ENVIRONMENT_ID`: a dedicated credential-free Boat environment ID.
 - `BOAT_ENVIRONMENT`: its name, default `rakazo`.
 - `BOAT_WIREGUARD_ENDPOINT`: a reachable gateway address and UDP port, such as `vpn.example.com:51871`.

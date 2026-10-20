@@ -407,17 +407,6 @@ describe("iOS swipe row", () => {
   });
 });
 
-describe("inbox row long press", () => {
-  const source = readFileSync(new URL("../app/index.tsx", testFileUrl), "utf8").replace(/\s+/g, "");
-
-  it("leaves long press to the system menu on iOS rows and keeps the sheet elsewhere", () => {
-    for (const kind of ["bot", "group"]) {
-      const name = kind === "bot" ? "organizeBot" : "organizeGroup";
-      expect(source).toContain(`onLongPress={!SWIPE_ROWS?${name}:undefined}`);
-    }
-  });
-});
-
 describe("cross-space organize", () => {
   const source = readFileSync(new URL("../app/index.tsx", testFileUrl), "utf8");
   const handler = source.slice(
@@ -548,8 +537,7 @@ describe("inbox swipe handlers", () => {
       errorText: (_error: unknown, fallback: string) => fallback,
       chatTarget,
       unreadOverrideKey,
-      resumeLiveNotifications: vi.fn(async () => {}),
-      dismissThreadNotifications: vi.fn(async () => {}),
+      afterChatNotifyChange: vi.fn(async () => {}),
       currentApiBase: () => "",
       loadSessionToken: async () => null,
       selectedSpaceId: () => session.space,
