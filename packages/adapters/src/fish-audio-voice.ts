@@ -20,6 +20,16 @@ import {
 } from "./voice-http.js";
 
 const API = "https://api.fish.audio";
+const BUILT_IN_VOICES: readonly VoiceInfo[] = [
+  { id: "08a027bcd6d74cf7bb71df89c9ef07e9", label: "Eddie" },
+  { id: "9510938238df4aee95544907d81644fc", label: "Marty" },
+  { id: "d13f84b987ad4f22b56d2b47f4eb838e", label: "Brad" },
+  { id: "7887b4fd42c44f0b8960c02d8cd4b77d", label: "Eric" },
+  { id: "2fc03641cbbb4a1fabc05ae7f6d7fe16", label: "Ling" },
+  { id: "b7d87973de6642eba435769a09e6365d", label: "Greg" },
+  { id: "c69e6db9161b40c3b308f2ca6dedad8b", label: "Tony" },
+  { id: "e1918c064c174767957bd7e950dd03fc", label: "Jim" },
+];
 const MODEL_PAGE_SIZE = 100;
 /** Top-scored public voices for the picker — not a full catalog crawl. */
 const PUBLIC_MODEL_PAGES = 5;
@@ -61,7 +71,7 @@ export class FishAudioVoiceProvider implements VoiceProvider {
     });
   }
 
-  /** Return user-owned then bounded public Fish Audio voices as Rakazo choices. */
+  /** Keep built-in voices available alongside user-owned and bounded public voices. */
   async listVoices(apiKey: string, context: AdapterContext): Promise<VoiceInfo[]> {
     const signal = voiceDeadline(context.signal, LIST_VOICES_DEADLINE_MS);
     const listContext = { ...context, signal };
@@ -69,12 +79,7 @@ export class FishAudioVoiceProvider implements VoiceProvider {
       fetchModels(apiKey, listContext, false),
       fetchModels(apiKey, listContext, true),
     ]);
-    const seen = new Set<string>();
-    return [...ownModels, ...publicModels].map(modelToVoice).filter((voice): voice is VoiceInfo => {
-      if (!voice || seen.has(voice.id)) return false;
-      seen.add(voice.id);
-      return true;
-    });
+    return catalogVoices([...ownModels, ...publicModels], BUILT_IN_VOICES);
   }
 
   async searchVoices(apiKey: string, query: string, context: AdapterContext): Promise<VoiceInfo[]> {
@@ -93,7 +98,11 @@ export class FishAudioVoiceProvider implements VoiceProvider {
       return voice ? [voice] : [];
     }
     const models = await fetchModels(apiKey, { ...context, signal }, false, query);
-    return models.map(modelToVoice).filter((voice): voice is VoiceInfo => voice !== null);
+    const title = query.trim().toLowerCase();
+    return catalogVoices(
+      models,
+      BUILT_IN_VOICES.filter((voice) => voice.label.toLowerCase().includes(title)),
+    );
   }
 
   /** Synthesize one Rakazo utterance as bounded MP3 audio. */
@@ -388,11 +397,34 @@ function modelToVoice(model: Record<string, unknown>): VoiceInfo | null {
   if (model.dmca_taken_down === true || model.state === "failed") return null;
   const id = asText(model._id) || asText(model.id);
   if (!id) return null;
-  const label = asText(model.title) || asText(model.name) || "Voice";
+  const label =
+    BUILT_IN_VOICES.find((voice) => voice.id === id)?.label ||
+    asText(model.title) ||
+    asText(model.name) ||
+    "Voice";
   const description =
     [asText(model.description), languageLabel(model.languages)].filter(Boolean).join(" · ") ||
     undefined;
   return { id, label, description };
+}
+
+function catalogVoices(
+  models: readonly Record<string, unknown>[],
+  builtInVoices: readonly VoiceInfo[],
+): VoiceInfo[] {
+  const voices = new Map<string, VoiceInfo | null>();
+  for (const model of models) {
+    const id = asText(model._id) || asText(model.id);
+    if (id && !voices.has(id)) voices.set(id, modelToVoice(model));
+  }
+  const ordered = new Map<string, VoiceInfo | null>();
+  for (const voice of builtInVoices) {
+    ordered.set(voice.id, voices.has(voice.id) ? (voices.get(voice.id) ?? null) : voice);
+  }
+  for (const [id, voice] of voices) {
+    if (!ordered.has(id)) ordered.set(id, voice);
+  }
+  return [...ordered.values()].filter((voice): voice is VoiceInfo => voice !== null);
 }
 
 /** Read a trimmed string field from an untyped provider response. */

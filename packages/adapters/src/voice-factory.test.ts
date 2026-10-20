@@ -279,7 +279,18 @@ describe("CartesiaVoiceProvider", () => {
 });
 
 describe("FishAudioVoiceProvider", () => {
-  it("lists own then public voice models without duplicates", async () => {
+  const builtInVoices = [
+    { id: "08a027bcd6d74cf7bb71df89c9ef07e9", label: "Eddie" },
+    { id: "9510938238df4aee95544907d81644fc", label: "Marty" },
+    { id: "d13f84b987ad4f22b56d2b47f4eb838e", label: "Brad" },
+    { id: "7887b4fd42c44f0b8960c02d8cd4b77d", label: "Eric" },
+    { id: "2fc03641cbbb4a1fabc05ae7f6d7fe16", label: "Ling" },
+    { id: "b7d87973de6642eba435769a09e6365d", label: "Greg" },
+    { id: "c69e6db9161b40c3b308f2ca6dedad8b", label: "Tony" },
+    { id: "e1918c064c174767957bd7e950dd03fc", label: "Jim" },
+  ];
+
+  it("lists built-in, own, then public voice models without duplicates", async () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(
@@ -295,6 +306,7 @@ describe("FishAudioVoiceProvider", () => {
             items: [
               { _id: "private-id", title: "Private Voice", description: "My clone" },
               { _id: "public-id", title: "Duplicate" },
+              { _id: builtInVoices[0]!.id, title: "Upstream title" },
               { _id: "failed-id", title: "Failed", state: "failed" },
             ],
           }),
@@ -305,6 +317,7 @@ describe("FishAudioVoiceProvider", () => {
     const voices = await new FishAudioVoiceProvider().listVoices("sk-test", ctx);
 
     expect(voices).toEqual([
+      ...builtInVoices,
       { id: "private-id", label: "Private Voice", description: "My clone" },
       { id: "public-id", label: "Duplicate" },
     ]);
@@ -330,7 +343,13 @@ describe("FishAudioVoiceProvider", () => {
 
     const voices = await new FishAudioVoiceProvider().listVoices("sk-test", ctx);
 
-    expect(voices.map((voice) => voice.id)).toEqual(["own-1", "own-2", "pub-1", "pub-2"]);
+    expect(voices.map((voice) => voice.id)).toEqual([
+      ...builtInVoices.map((voice) => voice.id),
+      "own-1",
+      "own-2",
+      "pub-1",
+      "pub-2",
+    ]);
     expect(voices.some((voice) => voice.label === "Public 2")).toBe(true);
     expect(voices.some((voice) => voice.label === "Own 2")).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(4);
@@ -402,9 +421,9 @@ describe("FishAudioVoiceProvider", () => {
 
     const voices = await new FishAudioVoiceProvider().listVoices("sk-test", ctx);
 
-    expect(voices).toHaveLength(ownPages * 100 + publicPages * 100);
-    expect(voices[0]?.id).toBe("own-1");
-    expect(voices.at(ownPages * 100)?.id).toBe("pub-1");
+    expect(voices).toHaveLength(builtInVoices.length + ownPages * 100 + publicPages * 100);
+    expect(voices[builtInVoices.length]?.id).toBe("own-1");
+    expect(voices.at(builtInVoices.length + ownPages * 100)?.id).toBe("pub-1");
     expect(
       fetchMock.mock.calls.filter((call) => String(call[0]).includes("self=true")),
     ).toHaveLength(ownPages);
