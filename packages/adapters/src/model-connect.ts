@@ -9,6 +9,7 @@ import {
   MAX_ENABLED_MODEL_IDS,
   modelOutputLeavesInputRoom,
 } from "@rakazo/contracts";
+import { CURSOR_MANAGED_LIMITS_MESSAGE, CURSOR_MODEL_PROVIDER } from "./cursor-models.js";
 import { enabledOpenAiCompatibleModelIds } from "./model-selection.js";
 import { modelIdSupportsImages, updateModelImageCapabilities } from "./model-vision.js";
 import { normalizeOpenAiCompatibleBaseUrl } from "./openai-compatible-url.js";
@@ -51,6 +52,12 @@ export function buildModelConnectPlaintext(
   previousPlaintext?: string,
   options?: BuildModelConnectOptions,
 ): string {
+  if (
+    input.provider === CURSOR_MODEL_PROVIDER &&
+    (input.maxTokens != null || input.contextWindow != null)
+  ) {
+    throw new Error(CURSOR_MANAGED_LIMITS_MESSAGE);
+  }
   const previous = tryParseModelSecret(previousPlaintext);
   const inherited = previous?.kind === "api_key" ? previous : undefined;
   const cacheCapabilities = input.cacheCapabilities ?? inherited?.cacheCapabilities;

@@ -28,6 +28,13 @@ test("onboarding preflight stays on the connection being tested", async ({ page 
   await expect(page.getByRole("button", { name: "Test sign-in" })).toHaveCount(0);
 
   await provider.click();
+  await page.getByRole("option", { name: "Cursor", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Test API key" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Test sign-in" })).toHaveCount(0);
+  await expect(page.getByText("Composer 2.5", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "onboarding-cursor-subscription");
+
+  await provider.click();
   await page.getByRole("option", { name: "Anthropic" }).click();
   await expect(page.getByRole("button", { name: "Test sign-in" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Test API key" })).toHaveCount(0);

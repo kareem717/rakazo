@@ -81,6 +81,7 @@ import { recordPiTelemetryContent, withPiTelemetry, withPiTelemetrySpan } from "
 import { observedPiStream } from "./pi-usage.js";
 import type { RuntimeContextDecision } from "./runtime-context.js";
 import { createRuntimeContextPolicy, VERBATIM_TOOL_RESULTS } from "./runtime-context.js";
+import { sanitizeSensitiveText } from "./runtime-errors.js";
 import { SCHEDULE_TOOL_NAMES } from "./schedule-tools.js";
 import type { FinishedShellCommand } from "./shell-command-stream.js";
 import { deliverFinishedShells } from "./shell-command-stream.js";
@@ -171,6 +172,7 @@ export interface PiAgentRuntimeOptions {
 }
 
 export class PiAgentRuntime implements AgentRuntime {
+  private cursorRuntime?: Promise<AgentRuntime>;
   private readonly sessionRecorder?: PiSessionRecorder;
   private readonly modelCallObserver?: ModelCallObserver;
   private readonly onContextDecision?: PiAgentRuntimeOptions["onContextDecision"];
@@ -198,6 +200,7 @@ export class PiAgentRuntime implements AgentRuntime {
   }
 
   async abort(runId: string): Promise<void> {
+    if (this.cursorRuntime) await (await this.cursorRuntime).abort(runId);
     const active = running.get(runId);
     active?.controller.abort();
     await active?.work;
@@ -208,7 +211,15 @@ export class PiAgentRuntime implements AgentRuntime {
     context?: Partial<AdapterContext>,
   ): AsyncIterableIterator<AgentRuntimeEvent> {
     const controller = new AbortController();
-    const events = this.runEvents(request, controller, context);
+    const events =
+      request.model.provider === "cursor"
+        ? this.runCursor(request, {
+            ...context,
+            signal: context?.signal
+              ? AbortSignal.any([controller.signal, context.signal])
+              : controller.signal,
+          })
+        : this.runEvents(request, controller, context);
     return {
       [Symbol.asyncIterator]() {
         return this;
@@ -225,6 +236,19 @@ export class PiAgentRuntime implements AgentRuntime {
         return events.throw(error);
       },
     };
+  }
+
+  private async *runCursor(request: AgentRunRequest, context?: Partial<AdapterContext>) {
+    // The SDK owns its internal model loop and exposes no before-call reservation hook.
+    if (this.modelCallObserver)
+      throw new Error("Cursor does not support per-model-call budget reservations.");
+    this.cursorRuntime ??= import("./cursor-runtime.js").then(
+      ({ CursorAgentRuntime }) =>
+        new CursorAgentRuntime({
+          runOtherModel: (child, childContext) => this.run(child, childContext),
+        }),
+    );
+    yield* (await this.cursorRuntime).run(request, context);
   }
 
   private async *runEvents(
@@ -281,6 +305,7 @@ export class PiAgentRuntime implements AgentRuntime {
           depth: 0,
           pausePending: false,
           pendingShells: [],
+          runSubagent: (id, args) => executeSubagent(host, id, args),
         };
         resumeHost = host;
         const tools = toAgentTools(toolDefs, host);
@@ -833,7 +858,7 @@ export function modelsForRequest(
   return catalogModels();
 }
 
-function toAgentTools(toolDefs: readonly ConnectorTool[], host: ToolHost): AgentTool[] {
+function toAgentTools(toolDefs: readonly ConnectorTool[], host: RuntimeToolHost): AgentTool[] {
   // Registration order is incidental. Canonicalize before allocating collision suffixes
   // so both provider-visible names and JSON schema serialization stay stable.
   const canonicalJson = (value: unknown): unknown => {
@@ -985,7 +1010,7 @@ function stableToolNameHash(name: string): string {
   return (hash >>> 0).toString(36);
 }
 
-function toHistory(
+export function priorRuntimeHistory(
   history: AgentRunRequest["history"],
   prompt: string,
   sourceMessageId?: string | null,
@@ -1005,23 +1030,29 @@ function toHistory(
     duplicatePromptIndex < 0
       ? history
       : history.filter((_, index) => index !== duplicatePromptIndex);
-  return prior
-    .filter((m) => m.role === "user" || m.role === "assistant")
-    .map((m) => {
-      const text = m.role === "assistant" ? `Assistant: ${m.content}` : m.content;
-      const images = m.role === "assistant" ? [] : toPiImages(m.images);
-      return {
-        role: "user" as const,
-        content: images.length ? [{ type: "text" as const, text }, ...images] : text,
-        timestamp: Date.now(),
-        rakazoHistory: true,
-        rakazoMessageId: m.id,
-        rakazoCreatedAt: m.createdAt,
-      };
-    });
+  return prior.filter((m) => m.role === "user" || m.role === "assistant");
 }
 
-function withoutSteeringMessages(
+function toHistory(
+  history: AgentRunRequest["history"],
+  prompt: string,
+  sourceMessageId?: string | null,
+) {
+  return priorRuntimeHistory(history, prompt, sourceMessageId).map((m) => {
+    const text = m.role === "assistant" ? `Assistant: ${m.content}` : m.content;
+    const images = m.role === "assistant" ? [] : toPiImages(m.images);
+    return {
+      role: "user" as const,
+      content: images.length ? [{ type: "text" as const, text }, ...images] : text,
+      timestamp: Date.now(),
+      rakazoHistory: true,
+      rakazoMessageId: m.id,
+      rakazoCreatedAt: m.createdAt,
+    };
+  });
+}
+
+export function withoutSteeringMessages(
   history: AgentRunRequest["history"],
   steering: AgentSteeringMessage[],
 ): AgentRunRequest["history"] {
@@ -1081,7 +1112,7 @@ export function prepareRequestSecretArguments(raw: Record<string, unknown>) {
   };
 }
 
-function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): AgentTool {
+function toAgentTool(tool: ConnectorTool, host: RuntimeToolHost, exposedName: string): AgentTool {
   return {
     name: exposedName,
     label: tool.name,
@@ -1282,7 +1313,7 @@ function toAgentTool(tool: ConnectorTool, host: ToolHost, exposedName: string): 
                 };
               }
               if (tool.name === "run_subagent") {
-                const result = await executeSubagent(host, executionId, args);
+                const result = await host.runSubagent(executionId, args);
                 return {
                   content: [{ type: "text", text: result }],
                   details: { result },
@@ -2262,20 +2293,6 @@ export function providerFailureText(message: unknown): string | undefined {
   return undefined;
 }
 
-function sanitizeSensitiveText(message: string) {
-  return message
-    .replace(/sk-or-v1-[a-zA-Z0-9]+/g, "[redacted]")
-    .replace(/sk-[a-zA-Z0-9-]+/g, "[redacted]")
-    .replace(/Bearer\s+[^\s"',;&]+/gi, "Bearer [redacted]")
-    .replace(/eyJ[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+/g, "[redacted]")
-    .replace(/COMPOSIO_API_KEY[=:]?\s*\S+/gi, "COMPOSIO_API_KEY=[redacted]")
-    .replace(
-      /((?:api[_-]?key|access[_-]?token|password|secret)\s*[=:]\s*)[^\s"',;&]+/gi,
-      "$1[redacted]",
-    )
-    .replace(/((?:auth|authorization)\s*[=:]\s*)(?!Bearer\b)[^\s"',;&]+/gi, "$1[redacted]");
-}
-
 /** Origin + path only for activity chips; drop userinfo, query, and fragment. */
 function redactActivityUrl(value: unknown): string {
   const raw = String(value ?? "").trim();
@@ -2324,35 +2341,88 @@ function sanitizeProviderError(provider: string, message: string): string {
   return sanitized;
 }
 
-interface EventQueue {
+export interface EventQueue {
   push(event: AgentRuntimeEvent): void;
   fail(error: Error): void;
   close(): void;
   iterate(): AsyncIterable<AgentRuntimeEvent>;
 }
 
-interface ToolHost {
+interface RuntimeToolHost {
+  queue: Pick<EventQueue, "push">;
+  request: AgentRunRequest;
+  toolCallBudget: ToolCallBudget;
+  toolCallSeq: { value: number };
+  abortTurn(): void;
+  signal: AbortSignal;
+  agentNamespace?: string;
+  pausePending: boolean;
+  pendingShells: Array<Promise<FinishedShellCommand>>;
+  runSubagent(executionId: string, args: Record<string, unknown>): Promise<string>;
+}
+
+interface ToolHost extends RuntimeToolHost {
   context?: Partial<AdapterContext>;
   onContextDecision?: PiAgentRuntimeOptions["onContextDecision"];
   modelCallObserver?: ModelCallObserver;
   queue: EventQueue;
-  request: AgentRunRequest;
   activeModel: RuntimeModelTarget;
   models: Models;
   model: Model<Api>;
   apiKey: string | undefined;
   nestedAgents: Set<Agent>;
   subagentGate: { acquire(): Promise<void>; release(): void };
-  toolCallBudget: ToolCallBudget;
-  /** Shared fallback uniqueness when the model omits toolCallId (nested hosts reuse this). */
-  toolCallSeq: { value: number };
-  abortTurn(): void;
-  signal: AbortSignal;
   depth: number;
-  agentNamespace?: string;
-  pausePending: boolean;
-  /** Shell commands that returned output and are still running. */
-  pendingShells: Array<Promise<FinishedShellCommand>>;
+}
+
+/** Share tool normalization, authorization routing, pause handling and budgets across runtimes. */
+export function createRuntimeToolSession(input: {
+  request: AgentRunRequest;
+  signal: AbortSignal;
+  budget?: ToolCallBudget;
+  namespace?: string;
+  push(event: AgentRuntimeEvent): void;
+  abortTurn(): void;
+  runSubagent(executionId: string, args: Record<string, unknown>): Promise<string>;
+}) {
+  const host: RuntimeToolHost = {
+    request: input.request,
+    signal: input.signal,
+    queue: { push: input.push },
+    toolCallBudget: input.budget ?? toolCallBudgetFor(input.request.runId),
+    agentNamespace: input.namespace,
+    toolCallSeq: { value: 0 },
+    abortTurn: input.abortTurn,
+    runSubagent: input.runSubagent,
+    pausePending: false,
+    pendingShells: [],
+  };
+  return {
+    tools: toAgentTools(input.request.tools, host),
+    budget: host.toolCallBudget,
+    pause() {
+      host.pausePending = true;
+    },
+    get paused() {
+      return host.pausePending;
+    },
+    get budgetExceeded() {
+      return host.toolCallBudget.exceeded;
+    },
+    get budgetMessage() {
+      return toolCallBudgetExceededMessage(host.toolCallBudget.limit);
+    },
+    async finishShells(followUp: (text: string) => void) {
+      await deliverFinishedShells(followUp, host.pendingShells, { toolResults: [] }, input.signal);
+    },
+    close() {
+      if (input.budget) return;
+      releaseToolCallBudget(
+        input.request.runId,
+        (input.signal.aborted || host.pausePending) && !host.toolCallBudget.exceeded,
+      );
+    },
+  };
 }
 
 function toolCallBudgetExceededMessage(limit: number) {
@@ -2380,13 +2450,13 @@ function releaseToolCallBudget(runId: string, keepForResume: boolean) {
   if (!keepForResume) toolCallBudgetsByRun.delete(runId);
 }
 
-function maybeAbortToolCallBudget(host: ToolHost) {
+function maybeAbortToolCallBudget(host: RuntimeToolHost) {
   if (host.toolCallBudget.exceeded && host.toolCallBudget.inFlight === 0) {
     host.abortTurn();
   }
 }
 
-function beginToolCall(host: ToolHost): boolean {
+function beginToolCall(host: RuntimeToolHost): boolean {
   const budget = host.toolCallBudget;
   if (budget.limit <= 0) {
     budget.count += 1;
@@ -2412,7 +2482,7 @@ function beginToolCall(host: ToolHost): boolean {
   return false;
 }
 
-function endToolCall(host: ToolHost) {
+function endToolCall(host: RuntimeToolHost) {
   host.toolCallBudget.inFlight = Math.max(0, host.toolCallBudget.inFlight - 1);
   maybeAbortToolCallBudget(host);
 }
@@ -2767,7 +2837,7 @@ function fallbackAwareModelStream(
   return output;
 }
 
-function createGate(max: number) {
+export function createGate(max: number) {
   let active = 0;
   const waiters: Array<() => void> = [];
   return {
@@ -2786,7 +2856,7 @@ function createGate(max: number) {
   };
 }
 
-function createQueue(): EventQueue {
+export function createQueue(): EventQueue {
   const items: AgentRuntimeEvent[] = [];
   let wake: (() => void) | undefined;
   let closed = false;

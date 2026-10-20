@@ -429,6 +429,9 @@ CREATEOS_SANDBOX_API_KEY= # when SANDBOX_PROVIDER=createos
 BOAT_API_KEY=             # when SANDBOX_PROVIDER=boat
 ```
 
+To use an existing Cursor plan for the main chat and agents, connect a user API key through
+**Settings → Models → Cursor**. See [Cursor model connections](./self-host/cursor-models.md).
+
 To use an operator-controlled OpenAI-compatible server such as Ollama, LM Studio, llama.cpp, or
 MLX, list its model IDs and an endpoint that both the API and worker processes can reach:
 

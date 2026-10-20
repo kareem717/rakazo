@@ -2,6 +2,7 @@ import { getSupportedThinkingLevels } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import type { ModelOAuthSignInMode, ThinkingLevel } from "@rakazo/contracts";
 import { canonicalPiProviderId } from "@rakazo/contracts";
+import { CURSOR_DEFAULT_MODEL, CURSOR_MODEL_PROVIDER, probeCursorModels } from "./cursor-models.js";
 import { LOCAL_PROVIDER_ID, registerLocalProvider } from "./pi-local-provider.js";
 import { applyPiModelCompatibility } from "./pi-model-compat.js";
 import { loadProviderOAuth, SUBSCRIPTION_SIGN_IN_PROVIDERS } from "./pi-oauth.js";
@@ -51,6 +52,7 @@ export async function probeCatalogProviderModels(
   fetchImpl?: typeof fetch,
   signal?: AbortSignal,
 ): Promise<string[]> {
+  if (input.provider === CURSOR_MODEL_PROVIDER) return probeCursorModels(input.apiKey, signal);
   const baseUrl = catalogProviderProbeBaseUrl(input.provider);
   if (!baseUrl) throw new Error("This provider cannot be tested without saving.");
   return probeOpenAiCompatibleModels({ baseUrl, apiKey: input.apiKey }, fetchImpl, signal, {
@@ -106,7 +108,21 @@ function buildPiCatalog(): PiCatalogEntry[] {
   const models = registerOpenAiCompatibleCatalog(
     registerLocalProvider(applyPiModelCompatibility(builtinModels())),
   );
-  const entries: PiCatalogEntry[] = [];
+  const entries: PiCatalogEntry[] = [
+    {
+      provider: CURSOR_MODEL_PROVIDER,
+      providerName: "Cursor",
+      id: CURSOR_DEFAULT_MODEL,
+      label: "Composer 2.5",
+      billing: "Uses your Cursor plan. Your plan’s usage limits and charges apply.",
+      auth: "api-key",
+      subscription: true,
+      reasoning: false,
+      thinkingLevels: ["off"],
+      images: true,
+      catalogProbe: true,
+    },
+  ];
   for (const provider of models.getProviders()) {
     const providerName = PROVIDER_DISPLAY_NAMES[provider.id] ?? provider.name;
     const apiKey = Boolean(provider.auth.apiKey);

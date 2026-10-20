@@ -831,3 +831,28 @@ describe("compatible model selection limit", () => {
     }
   });
 });
+
+describe("Cursor plan connection", () => {
+  it("stores a personal key through the shared credential format", () => {
+    const plaintext = buildModelConnectPlaintext({
+      provider: "cursor",
+      apiKey: "fake-cursor-user-key",
+    });
+    expect(parseModelSecret(plaintext)).toMatchObject({
+      kind: "api_key",
+      key: "fake-cursor-user-key",
+    });
+  });
+  it.each([{ maxTokens: 1000 }, { contextWindow: 32000 }])(
+    "rejects an unsupported limit: %j",
+    (limit) => {
+      expect(() =>
+        buildModelConnectPlaintext({
+          provider: "cursor",
+          apiKey: "fake-cursor-user-key",
+          ...limit,
+        }),
+      ).toThrow("Cursor manages its own token and context limits.");
+    },
+  );
+});
