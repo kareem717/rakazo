@@ -909,4 +909,14 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Tailscale is not connected.": "Tailscale 未连接。",
   "Use Tailscale": "使用 Tailscale",
   "Voice provider": "语音提供商",
+  "Call limit (minutes)": "通话时限（分钟）",
+  Calls: "通话",
+  "Connect the live call provider first.": "请先连接实时通话提供商。",
+  "Conversation model": "对话模型",
+  "Could not load call settings": "无法加载通话设置",
+  "Could not save call settings": "无法保存通话设置",
+  "Live calls": "实时通话",
+  "Live calls require web or desktop on this version.":
+    "此版本的实时通话需要使用网页版或桌面应用。",
+  "Use standard call": "使用标准通话",
 };

@@ -950,4 +950,14 @@ export const DE_MESSAGES: Record<string, string> = {
   "Tailscale is not connected.": "Tailscale ist nicht verbunden.",
   "Use Tailscale": "Tailscale verwenden",
   "Voice provider": "Sprachanbieter",
+  "Call limit (minutes)": "Anruflimit (Minuten)",
+  Calls: "Anrufe",
+  "Connect the live call provider first.": "Verbinde zuerst den Anbieter für Live-Anrufe.",
+  "Conversation model": "Gesprächsmodell",
+  "Could not load call settings": "Anrufeinstellungen konnten nicht geladen werden",
+  "Could not save call settings": "Anrufeinstellungen konnten nicht gespeichert werden",
+  "Live calls": "Live-Anrufe",
+  "Live calls require web or desktop on this version.":
+    "Live-Anrufe erfordern in dieser Version die Web- oder Desktop-App.",
+  "Use standard call": "Standardanruf verwenden",
 };

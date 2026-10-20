@@ -907,4 +907,14 @@ export const NL_MESSAGES: Record<string, string> = {
   "Tailscale is not connected.": "Tailscale is niet verbonden.",
   "Use Tailscale": "Tailscale gebruiken",
   "Voice provider": "Stemaanbieder",
+  "Call limit (minutes)": "Gesprekslimiet (minuten)",
+  Calls: "Gesprekken",
+  "Connect the live call provider first.": "Verbind eerst de provider voor livegesprekken.",
+  "Conversation model": "Gespreksmodel",
+  "Could not load call settings": "Gespreksinstellingen konden niet worden geladen",
+  "Could not save call settings": "Gespreksinstellingen konden niet worden opgeslagen",
+  "Live calls": "Livegesprekken",
+  "Live calls require web or desktop on this version.":
+    "Livegesprekken vereisen in deze versie de web- of desktopapp.",
+  "Use standard call": "Standaardgesprek gebruiken",
 };
