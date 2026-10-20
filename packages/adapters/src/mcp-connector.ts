@@ -1,3 +1,4 @@
+import { ToolListChangedNotificationSchema } from "@modelcontextprotocol/sdk/types.js";
 import type {
   AdapterContext,
   ConnectorCall,
@@ -29,6 +30,10 @@ import { McpSession } from "./mcp-transport.js";
 import { actorMayUsePrivateEndpoint } from "./private-endpoint.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 
+const DISCOVERY_TIMEOUT_MS = 10_000;
+const DISCOVERY_CACHE_MS = 60_000;
+const DISCOVERY_RETRY_MS = 30_000;
+
 type SessionEntry = {
   session: McpSession;
   revision: number;
@@ -36,6 +41,7 @@ type SessionEntry = {
   digest?: string;
   ref?: string;
   recordId?: string;
+  tools?: { expiresAt: number; promise: ReturnType<McpSession["listTools"]> };
 };
 type PendingSession = {
   revision: number;
@@ -86,6 +92,7 @@ function reportAllowlistDrift(
 export class McpConnector implements ConnectorProvider {
   private readonly sessions = new Map<string, SessionEntry>();
   private readonly connecting = new Map<string, PendingSession>();
+  private readonly discoveryFailures = new Map<string, { revision: number; retryAt: number }>();
   // Discovery runs more than once per run: once up front, then again on every lazy
   // catalog access. Each attempt needs its own executionId.
   private discoverySeq = 0;
@@ -105,6 +112,7 @@ export class McpConnector implements ConnectorProvider {
   ) {
     this.unsubscribe =
       this.secrets.onChange?.((ref) => {
+        this.discoveryFailures.clear();
         for (const [key, entry] of this.sessions)
           if (entry.ref === ref) void this.evict(key).catch(() => undefined);
         for (const entry of this.connecting.values())
@@ -153,10 +161,27 @@ export class McpConnector implements ConnectorProvider {
     });
     const groups = await Promise.all(
       assignments.map(async (assignment): Promise<ConnectorTool[]> => {
+        context.signal.throwIfAborted();
+        const key = this.sessionKey(assignment.server, context);
+        const failure = this.discoveryFailures.get(key);
+        if (failure?.revision === assignment.server.revision && failure.retryAt > Date.now()) {
+          return [];
+        }
+        this.discoveryFailures.delete(key);
         const startedAt = Date.now();
         try {
           const session = await this.sessionFor(assignment.server, context);
-          const listed = await session.listTools({ signal: context.signal });
+          const entry = this.sessions.get(key)!;
+          if (!entry.tools || entry.tools.expiresAt <= Date.now()) {
+            entry.tools = {
+              expiresAt: Date.now() + DISCOVERY_CACHE_MS,
+              promise: session.listTools({
+                signal: context.signal,
+                timeoutMs: DISCOVERY_TIMEOUT_MS,
+              }),
+            };
+          }
+          const listed = await entry.tools.promise;
           reportAllowlistDrift(assignment, listed.tools, context);
           return listed.tools
             .filter(
@@ -178,6 +203,16 @@ export class McpConnector implements ConnectorProvider {
               },
             }));
         } catch (error) {
+          // Cancelling one request must not put a healthy connection into cooldown.
+          if (context.signal.aborted) {
+            const entry = this.sessions.get(key);
+            if (entry) entry.tools = undefined;
+            context.signal.throwIfAborted();
+          }
+          this.discoveryFailures.set(key, {
+            revision: assignment.server.revision,
+            retryAt: Date.now() + DISCOVERY_RETRY_MS,
+          });
           // A single unavailable server must not hide tools from other connectors.
           getLogger().error(
             `mcp discovery failed for server ${assignment.server.slug}:`,
@@ -185,7 +220,6 @@ export class McpConnector implements ConnectorProvider {
           );
           // Capture material before eviction so the audited reason stays redacted, the
           // same reason execute() captures it before callTool.
-          const key = this.sessionKey(assignment.server, context);
           const material = this.sessions.get(key)?.material;
           await this.evict(key);
           await this.recordDiscoveryFailure(
@@ -310,6 +344,7 @@ export class McpConnector implements ConnectorProvider {
     await Promise.all([...this.sessions.values()].map(({ session }) => session.close()));
     this.sessions.clear();
     this.connecting.clear();
+    this.discoveryFailures.clear();
   }
 
   private sessionKey(server: McpServer, context: AdapterContext): string {
@@ -384,6 +419,9 @@ export class McpConnector implements ConnectorProvider {
         recordId,
       };
       this.sessions.set(sessionKey, connected);
+      session.client.setNotificationHandler(ToolListChangedNotificationSchema, () => {
+        if (connected) connected.tools = undefined;
+      });
       return session;
     });
     this.connecting.set(sessionKey, { revision: server.revision, promise });
@@ -440,6 +478,7 @@ export class McpConnector implements ConnectorProvider {
           env,
           allowedCommands: this.options.allowedCommands ?? [],
           signal: context.signal,
+          timeoutMs: DISCOVERY_TIMEOUT_MS,
         });
       } else {
         if (!server.endpoint) throw new Error("MCP endpoint is required");
@@ -482,6 +521,7 @@ export class McpConnector implements ConnectorProvider {
           authProvider,
           network: this.options.network,
           signal: context.signal,
+          timeoutMs: DISCOVERY_TIMEOUT_MS,
         });
       }
       return { session, material, ref, digest, recordId };

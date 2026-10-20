@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { InfisicalSecretStore } from "./infisical-secret-store.js";
 import { allowlistDrift, McpConnector } from "./mcp-connector.js";
 import { type McpOAuthBroker, StoredMcpOAuthProvider } from "./mcp-oauth.js";
+import { McpSession } from "./mcp-transport.js";
 import { InMemoryRealtimeFanout } from "./realtime.js";
 import { migrateSecrets } from "./secret-migration.js";
 import { ComposedSecretStore } from "./secret-store-factory.js";
@@ -107,6 +108,76 @@ function mcpFetch(
 }
 
 describe("MCP connector session cache", () => {
+  it("shares cached discovery while checking assignment permissions on every access", async () => {
+    const assignment = { ...ASSIGNMENT, server: { ...SERVER } };
+    const prisma = { botMcpServer: { findMany: vi.fn(async () => [assignment]) } };
+    const state = { failNext: false, initializations: 0 };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    const listing = vi.spyOn(McpSession.prototype, "listTools");
+    const clock = vi.spyOn(Date, "now").mockReturnValue(1_000);
+    const connector = new McpConnector(prisma as never, {} as never, { network: TEST_NETWORK });
+    const context = {
+      operationId: "test",
+      traceId: "test",
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    };
+    try {
+      const results = await Promise.all([
+        connector.discoverTools(context),
+        connector.discoverTools(context),
+      ]);
+      expect(results.map((tools) => tools.length)).toEqual([1, 1]);
+      expect(listing).toHaveBeenCalledTimes(1);
+      assignment.allowAllTools = false;
+      expect(await connector.discoverTools(context)).toEqual([]);
+      expect(prisma.botMcpServer.findMany).toHaveBeenCalledTimes(3);
+      expect(listing).toHaveBeenCalledTimes(1);
+      assignment.allowAllTools = true;
+      assignment.server.revision += 1;
+      expect(await connector.discoverTools(context)).toHaveLength(1);
+      expect(state.initializations).toBe(2);
+      clock.mockReturnValue(61_001);
+      expect(await connector.discoverTools(context)).toHaveLength(1);
+      expect(listing).toHaveBeenCalledTimes(3);
+    } finally {
+      await connector.close();
+      listing.mockRestore();
+      clock.mockRestore();
+    }
+  });
+
+  it("retries discovery immediately after a configuration revision changes", async () => {
+    const assignment = { ...ASSIGNMENT, server: { ...SERVER } };
+    const state = { failNext: true, initializations: 0 };
+    vi.stubGlobal("fetch", mcpFetch(state));
+    const connector = new McpConnector(
+      { botMcpServer: { findMany: vi.fn(async () => [assignment]) } } as never,
+      {} as never,
+      { network: TEST_NETWORK },
+    );
+    const context = {
+      operationId: "test",
+      traceId: "test",
+      spaceId: "w1",
+      userId: "u1",
+      botId: "bot-1",
+      signal: new AbortController().signal,
+    };
+    try {
+      expect(await connector.discoverTools(context)).toEqual([]);
+      state.failNext = false;
+      expect(await connector.discoverTools(context)).toEqual([]);
+      expect(state.initializations).toBe(0);
+      assignment.server.revision += 1;
+      expect(await connector.discoverTools(context)).toHaveLength(1);
+    } finally {
+      await connector.close();
+    }
+  });
+
   it("keeps sessions across unchanged TTL reads and reconnects on observed rotation", async () => {
     vi.useFakeTimers();
     const fake = infisicalFake();
@@ -596,7 +667,9 @@ describe("MCP connector session cache", () => {
     await connector.close();
   });
 
-  it("gives every discovery failure of one run its own executionId", async () => {
+  it("backs off failed discovery and gives a retried failure its own executionId", async () => {
+    const clock = vi.spyOn(Date, "now");
+    clock.mockReturnValue(1_000);
     vi.stubGlobal("fetch", mcpFetch({ failNext: true, initializations: 0 }));
     const append = vi.fn().mockResolvedValue(undefined);
     const prisma = {
@@ -619,11 +692,16 @@ describe("MCP connector session cache", () => {
     await connector.discoverTools(context as never);
     await connector.discoverTools(context as never);
 
+    expect(append).toHaveBeenCalledTimes(1);
+    clock.mockReturnValue(31_001);
+    await connector.discoverTools(context as never);
+
     expect(append).toHaveBeenCalledTimes(2);
     const ids = append.mock.calls.map((call) => call[0].payload.executionId);
     expect(new Set(ids).size).toBe(2);
     for (const id of ids) expect(id).toMatch(/^mcp-discovery-demo-run-1-\d+$/);
     await connector.close();
+    clock.mockRestore();
   });
 
   it("leaves no discovery event when the failure happens outside a run", async () => {

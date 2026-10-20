@@ -356,9 +356,12 @@ export class McpSession {
     await this.connecting;
   }
 
-  async listTools(options?: { signal?: AbortSignal }): Promise<ListToolsResult> {
+  async listTools(options?: {
+    signal?: AbortSignal;
+    timeoutMs?: number;
+  }): Promise<ListToolsResult> {
     this.assertConnected();
-    return this.client.listTools({}, { signal: options?.signal });
+    return this.client.listTools({}, { signal: options?.signal, timeout: options?.timeoutMs });
   }
 
   async callTool(

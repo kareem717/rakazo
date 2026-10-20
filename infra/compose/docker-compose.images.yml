@@ -192,6 +192,7 @@ services:
       retries: 20
 
   worker:
+    stop_grace_period: 60s
     image: ${RAKAZO_IMAGE:-ghcr.io/elie222/rakazo/app}:${RAKAZO_IMAGE_TAG:-edge}
     restart: unless-stopped
     command: ["pnpm", "--filter", "@rakazo/worker", "start"]
