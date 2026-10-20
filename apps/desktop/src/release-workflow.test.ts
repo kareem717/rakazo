@@ -55,6 +55,14 @@ describe("desktop release workflow", () => {
     );
   });
 
+  it("checks the microphone entitlement in the signed app and helpers before publication", () => {
+    expect(workflow).toContain('codesign -d --entitlements :- "$1"');
+    expect(workflow).toContain("Print :com.apple.security.device.audio-input");
+    expect(workflow).toContain('verify_microphone_entitlement "$app"');
+    expect(workflow).toContain('for helper in "$app"/Contents/Frameworks/*Helper*.app; do');
+    expect(workflow).toContain('verify_microphone_entitlement "$helper"');
+  });
+
   it("builds Windows only when an Authenticode certificate is configured", () => {
     expect(workflow).toContain(
       `WINDOWS_SIGNING: ${expression("secrets.DESKTOP_WIN_CSC_LINK != ''")}`,
