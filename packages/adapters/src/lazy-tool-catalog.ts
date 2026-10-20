@@ -5,6 +5,7 @@ import type {
   ConnectorTool,
 } from "@rakazo/adapter-kit";
 import { z } from "zod";
+import type { $ZodIssue } from "zod/v4/core";
 
 export const DIRECT_TOOL_LIMIT = 20;
 export const TOOL_SEARCH_LIMIT = 10;
@@ -313,7 +314,24 @@ export function parseConnectorToolArgs(
   const schema = z.fromJSONSchema(inputSchema as never);
   const parsed = schema.safeParse(args);
   if (!parsed.success) {
-    throw new Error(`Tool arguments are invalid: ${z.prettifyError(parsed.error)}`);
+    const issues: $ZodIssue[] = [];
+    const seen = new Set<string>();
+    const collect = (nested: $ZodIssue[], prefix: PropertyKey[] = []) => {
+      for (const issue of nested) {
+        if (issues.length >= 12) return;
+        const path = [...prefix, ...issue.path];
+        if (issue.code === "invalid_union" && issue.errors.length) {
+          for (const branch of issue.errors) collect(branch, path);
+        } else {
+          const key = JSON.stringify([path, issue.message]);
+          if (seen.has(key)) continue;
+          seen.add(key);
+          issues.push({ ...issue, path });
+        }
+      }
+    };
+    collect(parsed.error.issues);
+    throw new Error(`Tool arguments are invalid: ${z.prettifyError({ issues })}`);
   }
   return parsed.data as Record<string, unknown>;
 }

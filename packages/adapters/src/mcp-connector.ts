@@ -29,6 +29,8 @@ import { McpSession } from "./mcp-transport.js";
 import { actorMayUsePrivateEndpoint } from "./private-endpoint.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 
+const DISCOVERY_TIMEOUT_MS = 30_000;
+
 type SessionEntry = {
   session: McpSession;
   revision: number;
@@ -156,7 +158,10 @@ export class McpConnector implements ConnectorProvider {
         const startedAt = Date.now();
         try {
           const session = await this.sessionFor(assignment.server, context);
-          const listed = await session.listTools({ signal: context.signal });
+          const listed = await session.listTools({
+            signal: context.signal,
+            timeoutMs: DISCOVERY_TIMEOUT_MS,
+          });
           reportAllowlistDrift(assignment, listed.tools, context);
           return listed.tools
             .filter(
@@ -440,6 +445,7 @@ export class McpConnector implements ConnectorProvider {
           env,
           allowedCommands: this.options.allowedCommands ?? [],
           signal: context.signal,
+          timeoutMs: DISCOVERY_TIMEOUT_MS,
         });
       } else {
         if (!server.endpoint) throw new Error("MCP endpoint is required");
@@ -482,6 +488,7 @@ export class McpConnector implements ConnectorProvider {
           authProvider,
           network: this.options.network,
           signal: context.signal,
+          timeoutMs: DISCOVERY_TIMEOUT_MS,
         });
       }
       return { session, material, ref, digest, recordId };
