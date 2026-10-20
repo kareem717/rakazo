@@ -1,6 +1,7 @@
 import type { Models } from "@earendil-works/pi-ai";
 import { builtinModels } from "@earendil-works/pi-ai/providers/all";
 import { canonicalPiProviderId } from "@rakazo/contracts";
+import { CURSOR_DEFAULT_MODEL, CURSOR_MODEL_PROVIDER } from "./cursor-models.js";
 import { DEFAULT_OPENROUTER_MODEL_ID } from "./deployment-model.js";
 import { registerLocalProvider } from "./pi-local-provider.js";
 import { applyPiModelCompatibility } from "./pi-model-compat.js";
@@ -92,6 +93,7 @@ export function modelAcceptsImageInput(
 ): boolean {
   const resolved = resolveModelRefForVisionCheck(provider, modelId);
   if (!resolved.provider || !resolved.id) return false;
+  if (resolved.provider === CURSOR_MODEL_PROVIDER) return resolved.id === CURSOR_DEFAULT_MODEL;
   if (acceptsImages && resolved.provider === OPENAI_COMPATIBLE_PROVIDER_ID) return true;
 
   const models = catalogModels();
