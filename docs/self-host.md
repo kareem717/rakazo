@@ -400,7 +400,8 @@ Compose gives workers 60 seconds to shut down before killing them.
 MCP discovery shares tool lists for up to 60 seconds per server revision and authenticated identity;
 server tool-list notifications invalidate them sooner. Assignments and credentials are still checked
 on each access. Discovery requests time out after 10 seconds; failed servers get a 30-second cooldown
-that configuration revisions and credential changes bypass.
+that configuration revisions and credential changes bypass. Closing a transport cancels unfinished
+HTTP responses, and OAuth network requests have a 15-second deadline.
 
 Error reporting to Sentry or a Sentry-compatible collector such as GlitchTip is optional:
 

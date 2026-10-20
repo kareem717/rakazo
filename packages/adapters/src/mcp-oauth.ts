@@ -18,7 +18,7 @@ import { isLocalMcpHost } from "@rakazo/contracts";
 import { readBoundedResponseBytes } from "@rakazo/core";
 import type { PrismaClient } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
-import { sanitizeConnectorError } from "./connector-safety.js";
+import { combineSignals, sanitizeConnectorError } from "./connector-safety.js";
 import { secureFetch, validateUrl, withEndpointOriginFallback } from "./mcp-transport.js";
 import { actorMayUsePrivateEndpoint } from "./private-endpoint.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
@@ -437,7 +437,16 @@ function oauthFetch(
   let rejection: OAuthRejection | undefined;
   const recordingFetch: typeof fetch = async (input, init) => {
     try {
-      const response = await fallbackFetch(input, init);
+      // The SDK's protocol deadline does not cover token refresh and discovery
+      // fetches. Bound those requests too, including reading their response bodies.
+      const response = await fallbackFetch(input, {
+        ...init,
+        signal: combineSignals(
+          input instanceof Request ? input.signal : undefined,
+          init?.signal ?? undefined,
+          AbortSignal.timeout(15_000),
+        ),
+      });
       if (!response.ok) {
         const next = await readOAuthRejection(response);
         if (next) rejection = next;

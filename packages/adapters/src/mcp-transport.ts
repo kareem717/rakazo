@@ -102,6 +102,7 @@ export function secureFetch(
   headerPolicy: McpHeaderPolicy = {},
   network: RemoteTransportDependencies = {},
 ): SafeRemoteFetch {
+  const lifetime = new AbortController();
   // A local hostname is not authorization: the unguarded loopback fetch below
   // needs the deployment-owner private-endpoint escape as well.
   const localOrigin =
@@ -171,7 +172,7 @@ export function secureFetch(
       headers,
       body,
       redirect: "manual",
-      signal: source.signal,
+      signal: combineSignals(source.signal, lifetime.signal),
     } satisfies RequestInit;
     const response = localHttp
       ? await (network.fetch ?? globalThis.fetch)(url, requestInit)
@@ -182,7 +183,10 @@ export function secureFetch(
     return response;
   };
   const result = request as SafeRemoteFetch;
-  result.close = () => safeRemoteFetch.close();
+  result.close = () => {
+    lifetime.abort();
+    return safeRemoteFetch.close();
+  };
   return result;
 }
 
