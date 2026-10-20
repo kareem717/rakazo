@@ -132,10 +132,22 @@ it("releases the live provider after the bot has already closed its thread call"
   await start();
   const callId = mocks.start.mock.calls[0]![0].callId;
   const feed = vi.mocked(runThreadSubscription).mock.calls[0]?.[0];
-  feed?.onEvent?.({ type: "thread.call.ended", payload: { callId } } as ProductEvent, {
-    threadId: "thread-1",
-    cursor: 1,
-  });
+  feed?.onEvent?.(
+    {
+      id: "event-1",
+      spaceId: "space-1",
+      threadId: "thread-1",
+      botId: "bot-1",
+      seq: 1,
+      createdAt: "2026-10-20T00:00:00.000Z",
+      type: "thread.call.ended",
+      payload: { callId },
+    } satisfies ProductEvent,
+    {
+      threadId: "thread-1",
+      cursor: 1,
+    },
+  );
   options.onEnd();
   await Promise.resolve();
   expect(mocks.close).toHaveBeenCalledWith({ callId });
