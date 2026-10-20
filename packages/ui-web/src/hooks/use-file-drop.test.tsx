@@ -94,6 +94,25 @@ describe("useFileDrop", () => {
     }
   });
 
+  it("preserves another upload target's accepted drag", () => {
+    const view = setup();
+    const other = document.createElement("div");
+    document.body.append(other);
+    other.addEventListener("dragover", (event) => {
+      event.preventDefault();
+      const transfer = (event as DragEvent).dataTransfer;
+      if (transfer) transfer.dropEffect = "copy";
+    });
+    try {
+      const event = drag(other, "dragover") as DragEvent;
+      expect(event.dataTransfer?.dropEffect).toBe("copy");
+      expect(view.onFiles).not.toHaveBeenCalled();
+    } finally {
+      other.remove();
+      view.cleanup();
+    }
+  });
+
   it("clears feedback on exit, blur, and outside drops, and removes global listeners", () => {
     const view = setup();
     try {

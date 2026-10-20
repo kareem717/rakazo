@@ -58,9 +58,10 @@ export function useFileDrop(
     // Other targets (such as avatar uploads) still receive their own events.
     function preventNavigation(event: DragEvent) {
       if (!isFileDrag(event.dataTransfer)) return;
+      const handled = event.defaultPrevented;
       event.preventDefault();
       if (event.type === "drop") reset();
-      else if (event.dataTransfer && !target?.contains(event.target as Node)) {
+      else if (!handled && event.dataTransfer && !target?.contains(event.target as Node)) {
         event.dataTransfer.dropEffect = "none";
       }
     }
