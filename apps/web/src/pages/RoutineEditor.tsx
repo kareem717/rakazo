@@ -740,7 +740,9 @@ export function RoutineEditor({
         </p>
       ) : null}
 
-      {editing ? <RoutineRunHistory key={editing.id} routineId={editing.id} /> : null}
+      {editing ? (
+        <RoutineRunHistory key={editing.id} routineId={editing.id} onViewChat={onClose} />
+      ) : null}
     </div>
   );
 }

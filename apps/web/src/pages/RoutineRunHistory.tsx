@@ -10,7 +10,13 @@ import { translateRunError } from "../lib/run-error";
 import { formatToolActivityDuration } from "../lib/tool-activity-view";
 import { statusLabel, statusTone } from "./ActivityList";
 
-export function RoutineRunHistory({ routineId }: { routineId: string }) {
+export function RoutineRunHistory({
+  routineId,
+  onViewChat,
+}: {
+  routineId: string;
+  onViewChat: () => void;
+}) {
   const { i18n, t } = useLingui();
   const [history, setHistory] = useState<RoutineHistory | null>(null);
   const [failed, setFailed] = useState(false);
@@ -235,7 +241,21 @@ export function RoutineRunHistory({ routineId }: { routineId: string }) {
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span>{duration}</span>
                   {chatTo ? (
-                    <Link to={chatTo} className="text-foreground underline underline-offset-2">
+                    <Link
+                      to={chatTo}
+                      onClick={(event) => {
+                        if (
+                          event.button === 0 &&
+                          !event.metaKey &&
+                          !event.ctrlKey &&
+                          !event.shiftKey &&
+                          !event.altKey
+                        ) {
+                          onViewChat();
+                        }
+                      }}
+                      className="text-foreground underline underline-offset-2"
+                    >
                       <Trans>View chat</Trans>
                     </Link>
                   ) : null}

@@ -43,7 +43,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   api.history.mockReset();
 });
-async function mounted(routineId = "routine-1") {
+async function mounted(routineId = "routine-1", onViewChat = vi.fn()) {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   const container = document.createElement("div");
   document.body.append(container);
@@ -52,7 +52,7 @@ async function mounted(routineId = "routine-1") {
     act(async () =>
       root.render(
         <MemoryRouter>
-          <RoutineRunHistory key={id} routineId={id} />
+          <RoutineRunHistory key={id} routineId={id} onViewChat={onViewChat} />
         </MemoryRouter>,
       ),
     );
@@ -286,6 +286,46 @@ it("accepts a successful collapse refresh when the overlapping poll fails", asyn
     await view.close();
   }
 });
+
+it.each([null, "group-1"])(
+  "reveals the chat for a run needing input (group: %s)",
+  async (groupId) => {
+    api.history.mockResolvedValue(page([{ ...run, groupId, status: "waiting_input" }]));
+    const onViewChat = vi.fn();
+    const view = await mounted("routine-1", onViewChat);
+    try {
+      expect(view.container.textContent).toContain("Needs input");
+      await act(async () => view.container.querySelector("a")!.click());
+      expect(onViewChat).toHaveBeenCalledOnce();
+    } finally {
+      await view.close();
+    }
+  },
+);
+
+it.each(["metaKey", "ctrlKey", "shiftKey", "altKey"])(
+  "keeps the routine open for a modified View chat click (%s)",
+  async (modifier) => {
+    api.history.mockResolvedValue(page([run]));
+    const onViewChat = vi.fn();
+    const view = await mounted("routine-1", onViewChat);
+    try {
+      await act(async () => {
+        const event = new MouseEvent("click", {
+          bubbles: true,
+          cancelable: true,
+          [modifier]: true,
+        });
+        // Suppress jsdom's unsupported browser navigation after React handles the click.
+        view.container.addEventListener("click", (event) => event.preventDefault(), { once: true });
+        view.container.querySelector("a")!.dispatchEvent(event);
+      });
+      expect(onViewChat).not.toHaveBeenCalled();
+    } finally {
+      await view.close();
+    }
+  },
+);
 
 it("links View chat into the group thread when the run has a groupId", async () => {
   api.history.mockResolvedValue(page([{ ...run, groupId: "group-1", messageId: "reply-1" }]));
