@@ -19,7 +19,7 @@ export type UserVisibleMessagesOptions = {
   knownPeerRunIds?: Iterable<string>;
   /**
    * Run ids for background triggers (e.g. `tickets`). Their messages are hidden
-   * except cards that need user input.
+   * except user messages and cards that need user input.
    */
   backgroundRunIds?: Iterable<string>;
   /**
@@ -95,7 +95,7 @@ export function foldPeerReplies<T extends PresentableMessage>(
 
   const visible = messages.filter((message) => {
     if (message.runId && backgroundRunIds.has(message.runId)) {
-      return message.blocks.some(isBackgroundInputBlock);
+      return message.role === "user" || message.blocks.some(isBackgroundInputBlock);
     }
     if (isPeerReceiptBlocks(message.blocks)) return includePeerReceipts;
     // A reaction folds with its folded parent so the count shows when the parent is expanded.

@@ -1997,7 +1997,7 @@ describe("sendThreadMessage", () => {
     expect(tx.task.create).not.toHaveBeenCalled();
     expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({ name: "run.continue" }));
   });
-  it("keeps a message pending instead of steering into an active routine run", async () => {
+  it.each(["routine", "tickets"])("holds messages behind %s work", async (trigger) => {
     let messageSeq = 0;
     let eventSeq = 0;
     const tx = {
@@ -2024,7 +2024,7 @@ describe("sendThreadMessage", () => {
         findMany: vi
           .fn()
           .mockResolvedValueOnce([
-            { id: "run-routine", taskId: "task-routine", status: "running", trigger: "routine" },
+            { id: "run-routine", taskId: "task-routine", status: "running", trigger },
           ])
           .mockResolvedValue([]),
         findUnique: vi.fn().mockResolvedValue({ status: "queued", startedAt: null }),
