@@ -74,7 +74,7 @@ export function ScreenClipboard({
               variant="outline"
               size="sm"
               onClick={() => {
-                void navigator.clipboard.writeText(value).catch(() => {
+                void (navigator.clipboard?.writeText(value) ?? Promise.reject()).catch(() => {
                   field.current?.focus();
                   field.current?.select();
                   setFailed(true);
@@ -94,7 +94,7 @@ export function ScreenClipboard({
               variant="ghost"
               size="sm"
               onClick={() => {
-                void navigator.clipboard.readText().then(
+                void (navigator.clipboard?.readText() ?? Promise.reject()).then(
                   (text) => {
                     setDraft(text);
                     onCommand({ request: "paste", text });
