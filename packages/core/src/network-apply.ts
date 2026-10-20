@@ -1,7 +1,7 @@
 import type { NetworkApplyStatus } from "@rakazo/contracts";
 
 export function isNetworkApplying(status: NetworkApplyStatus) {
-  return ["checking", "restarting", "verifying"].includes(status.phase);
+  return ["checking", "draining", "restarting", "verifying"].includes(status.phase);
 }
 
 /** The control service survives API restarts; API availability alone is not success. */

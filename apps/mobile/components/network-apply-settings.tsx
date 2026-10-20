@@ -1,7 +1,7 @@
 import type { NetworkApplyStatus } from "@rakazo/contracts";
 import { isNetworkApplying, waitForNetworkApply } from "@rakazo/core";
 import { useEffect, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Alert, Text, View } from "react-native";
 import { rpc } from "../lib/api";
 import { useI18n } from "../lib/i18n";
 import { native, useMobileTokens } from "../lib/native";
@@ -70,7 +70,10 @@ export function NetworkApplySettings({
     setError(null);
     callbacks.current.onBusy(true);
     try {
-      const operation = await rpc<NetworkApplyStatus>("network/apply", { revision });
+      const operation = await rpc<NetworkApplyStatus>("network/apply", {
+        revision,
+        stopComputers: true,
+      });
       setStatus(operation);
       await follow(operation, alive.current.signal);
     } catch (cause) {
@@ -80,19 +83,44 @@ export function NetworkApplySettings({
       callbacks.current.onBusy(false);
     }
   }
+  async function confirm() {
+    if (inFlight.current) return;
+    try {
+      const preview = await rpc<{ computers: { id: string; name: string }[] }>(
+        "network/applyPreview",
+      );
+      Alert.alert(
+        t("Apply network settings?"),
+        [
+          t(
+            "Save open files first. The app will wait for active work, save and stop computers, then restart.",
+          ),
+          ...preview.computers.map((computer) => computer.name),
+        ].join("\n"),
+        [
+          { text: t("Cancel"), style: "cancel" },
+          { text: t("Apply and restart"), style: "destructive", onPress: () => void apply() },
+        ],
+      );
+    } catch (cause) {
+      setError(errorText(cause, t("Could not prepare network restart")));
+    }
+  }
   return (
     <View style={{ gap: 8 }}>
       {status?.available ? (
         <>
-          <Text style={{ color: native.secondaryLabel }}>
-            {busy
-              ? t("Applying network settings… Reconnecting automatically.")
-              : t("Stop computers before applying.")}
-          </Text>
+          {busy ? (
+            <Text style={{ color: native.secondaryLabel }}>
+              {status.phase === "draining"
+                ? t("Saving and stopping computers…")
+                : t("Applying network settings… Reconnecting automatically.")}
+            </Text>
+          ) : null}
           <NativeActionButton
             label={t("Apply and restart")}
             busy={busy}
-            onPress={() => void apply()}
+            onPress={() => void confirm()}
           />
         </>
       ) : status ? (

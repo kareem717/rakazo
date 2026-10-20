@@ -30,10 +30,14 @@ export const NetworkApplyStatusSchema = z.object({
   available: z.boolean(),
   operationId: z.string().nullable(),
   revision: z.string().nullable(),
-  phase: z.enum(["idle", "checking", "restarting", "verifying", "succeeded", "failed"]),
+  phase: z.enum(["idle", "checking", "draining", "restarting", "verifying", "succeeded", "failed"]),
   error: z.string().nullable(),
 });
 export type NetworkApplyStatus = z.infer<typeof NetworkApplyStatusSchema>;
 export const NetworkApplyInputSchema = z
-  .object({ revision: z.string().regex(/^[a-f0-9]{64}$/) })
+  .object({ revision: z.string().regex(/^[a-f0-9]{64}$/), stopComputers: z.boolean().optional() })
   .strict();
+
+export const NetworkApplyPreviewSchema = z.object({
+  computers: z.array(z.object({ id: z.string(), name: z.string() })),
+});

@@ -27,11 +27,15 @@ test("owner configures network scope with transport fields and pending restart",
     revision: null as string | null,
     error: null,
   };
+  await page.route("**/rpc/network/applyPreview", (route) =>
+    route.fulfill({ json: { json: { computers: [{ id: "example", name: "Example computer" }] } } }),
+  );
   await page.route("**/rpc/network/applyStatus", (route) =>
     route.fulfill({ json: { json: applyState } }),
   );
   await page.route("**/rpc/network/apply", async (route) => {
     expect(route.request().postDataJSON().json.revision).toBe(revision);
+    expect(route.request().postDataJSON().json.stopComputers).toBe(true);
     current = saved as typeof current;
     applyState = { ...applyState, phase: "succeeded", operationId: "operation", revision };
     await route.fulfill({ json: { json: { ...applyState, phase: "checking" } } });
@@ -107,6 +111,12 @@ test("owner configures network scope with transport fields and pending restart",
   await expect(form.getByRole("button", { name: "Apply and restart", exact: true })).toBeVisible();
   await captureScreenshot(page, testInfo, "network-settings-apply-button");
   await form.getByRole("button", { name: "Apply and restart", exact: true }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog).toContainText("Example computer");
+  await captureScreenshot(page, testInfo, "network-settings-confirm-drain");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await form.getByRole("button", { name: "Apply and restart", exact: true }).click();
+  await dialog.getByRole("button", { name: "Apply and restart", exact: true }).click();
   await expect(form).not.toContainText("Restart required");
   await form.getByLabel("Routing", { exact: true }).selectOption("direct");
   await expect(form.getByLabel("Tailscale exit node", { exact: true })).toHaveCount(0);

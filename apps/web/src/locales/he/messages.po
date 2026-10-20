@@ -645,6 +645,10 @@ msgid "Apply and restart"
 msgstr ""
 
 #: src/components/NetworkApplySettings.tsx
+msgid "Apply network settings?"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
 msgid "Applying network settings… Reconnecting automatically."
 msgstr ""
 
@@ -964,6 +968,7 @@ msgstr "לא ניתן לקרוא תמונות"
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/ComputerUpdateProgress.tsx
 #: src/components/markdown-link-prompt.tsx
+#: src/components/NetworkApplySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/KnowledgeSection.tsx
@@ -1764,6 +1769,10 @@ msgstr "לא ניתן לפתוח את הטרמינל"
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not play a test clip"
 msgstr "לא ניתן להשמיע קטע בדיקה"
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not prepare network restart"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
@@ -4339,6 +4348,10 @@ msgstr "שמירת פרטי הגישה"
 msgid "Save new value"
 msgstr "שמירת הערך החדש"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Save open files first. The app will wait for active work, save and stop computers, then restart."
+msgstr ""
+
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save open files first. The workspace will be saved before stopping."
 msgstr ""
@@ -4364,6 +4377,10 @@ msgstr "נשמר."
 #: src/pages/RoutineEditor.tsx
 msgid "Saved. Rotate to reveal."
 msgstr "נשמר. יש להחליף את המפתח כדי להציג אותו."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Saving and stopping computers…"
+msgstr ""
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Saving your workspace"
@@ -4804,10 +4821,6 @@ msgstr ""
 
 #: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
-msgstr ""
-
-#: src/components/NetworkApplySettings.tsx
-msgid "Stop computers before applying."
 msgstr ""
 
 #: src/pages/Shell.tsx

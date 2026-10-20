@@ -645,6 +645,10 @@ msgid "Apply and restart"
 msgstr "Apply and restart"
 
 #: src/components/NetworkApplySettings.tsx
+msgid "Apply network settings?"
+msgstr "Apply network settings?"
+
+#: src/components/NetworkApplySettings.tsx
 msgid "Applying network settings… Reconnecting automatically."
 msgstr "Applying network settings… Reconnecting automatically."
 
@@ -964,6 +968,7 @@ msgstr "Can't read images"
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/ComputerUpdateProgress.tsx
 #: src/components/markdown-link-prompt.tsx
+#: src/components/NetworkApplySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/KnowledgeSection.tsx
@@ -1764,6 +1769,10 @@ msgstr "Could not open terminal"
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Could not play a test clip"
 msgstr "Could not play a test clip"
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not prepare network restart"
+msgstr "Could not prepare network restart"
 
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
@@ -4339,6 +4348,10 @@ msgstr "Save credential"
 msgid "Save new value"
 msgstr "Save new value"
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Save open files first. The app will wait for active work, save and stop computers, then restart."
+msgstr "Save open files first. The app will wait for active work, save and stop computers, then restart."
+
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save open files first. The workspace will be saved before stopping."
 msgstr "Save open files first. The workspace will be saved before stopping."
@@ -4364,6 +4377,10 @@ msgstr "Saved."
 #: src/pages/RoutineEditor.tsx
 msgid "Saved. Rotate to reveal."
 msgstr "Saved. Rotate to reveal."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Saving and stopping computers…"
+msgstr "Saving and stopping computers…"
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Saving your workspace"
@@ -4805,10 +4822,6 @@ msgstr "Stop computer?"
 #: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
 msgstr "Stop computers and restart the deployment to apply."
-
-#: src/components/NetworkApplySettings.tsx
-msgid "Stop computers before applying."
-msgstr "Stop computers before applying."
 
 #: src/pages/Shell.tsx
 msgid "Stop speaking"

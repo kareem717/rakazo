@@ -11,6 +11,7 @@ export class NetworkApplyConflict extends Error {
 export async function networkApplyStatus(
   revision?: string,
   socketPath = process.env.RAKAZO_NETWORK_APPLY_SOCKET,
+  stopComputers = false,
 ): Promise<NetworkApplyStatus> {
   if (!socketPath)
     return { available: false, phase: "idle", operationId: null, revision: null, error: null };
@@ -20,7 +21,7 @@ export async function networkApplyStatus(
         socketPath,
         "/network",
         revision ? "POST" : "GET",
-        revision ? { revision } : undefined,
+        revision ? { revision, stopComputers } : undefined,
       ),
     );
   } catch (error) {
