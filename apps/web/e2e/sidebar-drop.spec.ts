@@ -25,6 +25,8 @@ test("drag bots into collapsed sections, another section's row, and group chats"
   });
   await page.reload();
   const sidebar = page.locator("aside").first();
+  const root = sidebar.locator('[data-sidebar-group$=":heading"]');
+  const rootHeader = root.getByRole("button", { name: /^Collapse / });
   const sectionRows = sidebar.locator(`[data-sidebar-group="section:${section.id}"]`);
   const chief = sidebar.locator(`[data-roster-bot-id="${chiefId}"]`);
   await sectionRows.getByRole("button", { name: "Collapse Projects", exact: true }).click();
@@ -48,28 +50,16 @@ test("drag bots into collapsed sections, another section's row, and group chats"
     },
     { times: 1 },
   );
-  await chief.dragTo(sidebar.getByRole("button", { name: "Collapse Unassigned", exact: true }));
+  await chief.dragTo(rootHeader);
   await expect(page.getByRole("alert").filter({ hasText: "Internal Server Error" })).toBeVisible();
   await expect(sectionRows.locator(`[data-roster-bot-id="${chiefId}"]`)).toBeVisible();
   // Moving the last bot out leaves an empty section as a usable drop target.
-  await chief.dragTo(sidebar.getByRole("button", { name: "Collapse Unassigned", exact: true }));
-  await expect(
-    sidebar
-      .locator('[data-sidebar-group="unassigned"]')
-      .locator(`[data-roster-bot-id="${chiefId}"]`),
-  ).toBeVisible();
-  await sidebar
-    .locator(`[data-roster-bot-id="${alpha.id}"]`)
-    .dragTo(sidebar.getByRole("button", { name: "Collapse Unassigned", exact: true }));
+  await chief.dragTo(rootHeader);
+  await expect(root.locator(`[data-roster-bot-id="${chiefId}"]`)).toBeVisible();
+  await sidebar.locator(`[data-roster-bot-id="${alpha.id}"]`).dragTo(rootHeader);
   // Wait for the save and roster refresh before dragging a row whose position changes.
-  await expect(
-    sidebar
-      .locator('[data-sidebar-group="unassigned"]')
-      .locator(`[data-roster-bot-id="${alpha.id}"]`),
-  ).toBeVisible();
-  await sidebar
-    .locator(`[data-roster-bot-id="${beta.id}"]`)
-    .dragTo(sidebar.getByRole("button", { name: "Collapse Unassigned", exact: true }));
+  await expect(root.locator(`[data-roster-bot-id="${alpha.id}"]`)).toBeVisible();
+  await sidebar.locator(`[data-roster-bot-id="${beta.id}"]`).dragTo(rootHeader);
   await expect(sectionRows.locator("[data-roster-bot-id]")).toHaveCount(0);
   await chief.dragTo(sectionRows.getByRole("button", { name: "Collapse Projects", exact: true }));
   await expect(sectionRows.locator(`[data-roster-bot-id="${chiefId}"]`)).toBeVisible();

@@ -58,7 +58,7 @@ test("pinned bots and sidebar sections persist", async ({ page }, testInfo) => {
     .getByRole("menu", { name: "Move to", exact: true })
     .getByRole("menuitem", { name: "Unassigned", exact: true })
     .click();
-  await expect(sidebar.locator('[data-sidebar-group="unassigned"]')).toContainText("Chief");
+  await expect(sidebar.locator('[data-sidebar-group$=":heading"]')).toContainText("Chief");
 });
 
 test("deleting a section keeps its bots and groups", async ({ page }, testInfo) => {
@@ -91,7 +91,7 @@ test("deleting a section keeps its bots and groups", async ({ page }, testInfo) 
     .getByRole("menuitem", { name: "Delete section", exact: true })
     .click();
   const dialog = page.getByRole("alertdialog", { name: "Delete Projects?" });
-  await expect(dialog).toContainText("Its bots and groups are kept and leave the section.");
+  await expect(dialog).toContainText("Its chats are kept. Subsections move up one level.");
   await captureScreenshot(page, testInfo, "delete-section-dialog");
   await dialog.getByRole("button", { name: "Delete", exact: true }).click();
 

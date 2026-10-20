@@ -49,7 +49,7 @@ test("Mac shortcuts and explicit clipboard sync work through a sandboxed viewer"
     .toEqual(["From device"]);
   await page.getByRole("button", { name: "Clipboard", exact: true }).click();
   await viewer.locator("#screen").click();
-  await page.keyboard.press("Meta+v");
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+v" : "Control+v");
   await expect
     .poll(() =>
       viewer.locator("body").evaluate(() => (window as ViewerFixtureWindow).fixtureViewer.pasted),

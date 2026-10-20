@@ -1,4 +1,5 @@
-import { expect, type Page, test } from "@playwright/test";
+import type { Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import {
   activeBotId,
   captureScreenshot,
@@ -20,6 +21,7 @@ test("Team Computer gives bots a home folder plus shared space while Private sta
   await signup(page, `team-computer-${stamp}@rakazo.test`, "password12", "Team Computer");
   await completeOnboarding(page);
   const chiefId = activeBotId(page);
+  await rpc(page, "bots/setComputer", { botId: chiefId, mode: "team" });
 
   await openComputerPanel(page);
   await expect(page.getByText("Team Computer", { exact: true }).last()).toBeVisible();
@@ -89,6 +91,7 @@ test("user control leaves another Team bot's screen available", async ({ page },
   await completeOnboarding(page);
   const chiefId = activeBotId(page);
   const workerId = await createBot(page, "Worker", "team");
+  await rpc(page, "bots/setComputer", { botId: chiefId, mode: "team" });
 
   await openBot(page, "Chief");
   await page.getByTitle("Agent computer").click();
