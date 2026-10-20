@@ -35,7 +35,14 @@ export function ScreenClipboard({
         }}
       >
         <PopoverTrigger
-          render={<Button variant="outline" size="icon-sm" aria-label={t`Clipboard`} />}
+          render={
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className="bg-background text-foreground shadow-sm"
+              aria-label={t`Clipboard`}
+            />
+          }
         >
           <Clipboard size={16} />
         </PopoverTrigger>
