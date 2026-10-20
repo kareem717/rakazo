@@ -141,6 +141,7 @@ describeJourneys("required product journeys", () => {
     const cookie = await signup(app, `maintenance-${stamp}@rakazo.test`, "Maintenance");
     const outsider = await signup(app, `maintenance-other-${stamp}@rakazo.test`, "Other workspace");
     const bot = await rpc<Bot>(app, cookie, "bots/create", {
+      computerMode: "team",
       name: "Writer",
       title: "Writer",
       description: "Writes files",
@@ -376,6 +377,7 @@ describeJourneys("required product journeys", () => {
     expect(adaMe.spaceId).not.toBe(bobMe.spaceId);
 
     const chief = await rpc<Bot>(app, ada, "bots/create", {
+      computerMode: "team",
       name: "Chief",
       title: "Chief of staff",
       description: "Keeps work moving",
@@ -383,6 +385,7 @@ describeJourneys("required product journeys", () => {
       notifyOnFinish: true,
     });
     const coder = await rpc<Bot>(app, ada, "bots/create", {
+      computerMode: "team",
       name: "Coder",
       title: "Engineer",
       description: "Writes code",
@@ -390,6 +393,7 @@ describeJourneys("required product journeys", () => {
       notifyOnFinish: true,
     });
     const bobBot = await rpc<Bot>(app, bob, "bots/create", {
+      computerMode: "team",
       name: "Chief",
       title: "Chief of staff",
       description: "Bob's bot",
@@ -962,6 +966,7 @@ describeJourneys("required product journeys", () => {
       "Release Fence",
     );
     const writer = await rpc<Bot>(app, cookie, "bots/create", {
+      computerMode: "team",
       name: "Writer",
       title: "",
       description: "",
@@ -969,6 +974,7 @@ describeJourneys("required product journeys", () => {
       notifyOnFinish: true,
     });
     const researcher = await rpc<Bot>(app, cookie, "bots/create", {
+      computerMode: "team",
       name: "Researcher",
       title: "",
       description: "",
@@ -1113,6 +1119,7 @@ describeJourneys("required product journeys", () => {
       "Takeover Owner Race",
     );
     const writer = await rpc<Bot>(app, cookie, "bots/create", {
+      computerMode: "team",
       name: "Writer",
       title: "",
       description: "",
@@ -1120,6 +1127,7 @@ describeJourneys("required product journeys", () => {
       notifyOnFinish: true,
     });
     const researcher = await rpc<Bot>(app, cookie, "bots/create", {
+      computerMode: "team",
       name: "Researcher",
       title: "",
       description: "",
@@ -1127,6 +1135,7 @@ describeJourneys("required product journeys", () => {
       notifyOnFinish: true,
     });
     const analyst = await rpc<Bot>(app, cookie, "bots/create", {
+      computerMode: "team",
       name: "Analyst",
       title: "",
       description: "",

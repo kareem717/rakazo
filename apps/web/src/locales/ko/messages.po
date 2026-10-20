@@ -4989,6 +4989,7 @@ msgstr "선택한 기억 서비스는 현재 빌드에서 사용할 수 없습�
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr ""
 
+#: src/components/ai/Reasoning.tsx
 #: src/components/call/CallCard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
