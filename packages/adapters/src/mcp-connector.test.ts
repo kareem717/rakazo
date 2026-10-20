@@ -107,6 +107,40 @@ function mcpFetch(
 }
 
 describe("MCP connector session cache", () => {
+  it("allows slow initialization and discovery within the discovery deadline", async () => {
+    vi.useFakeTimers();
+    const state = { failNext: false, initializations: 0 };
+    const fetcher = mcpFetch(state);
+    vi.stubGlobal("fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      const request = new Request(input, init);
+      const message = request.method === "POST" ? await request.clone().json() : undefined;
+      const delay =
+        message?.method === "initialize" ? 16_000 : message?.method === "tools/list" ? 11_000 : 0;
+      if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetcher(input, init);
+    });
+    const prisma = { botMcpServer: { findMany: vi.fn(async () => [ASSIGNMENT]) } };
+    const store = new EncryptedSecretStore("test-key");
+    const connector = new McpConnector(prisma as never, store, { network: TEST_NETWORK });
+    try {
+      const pending = connector.discoverTools({
+        operationId: "test",
+        traceId: "test",
+        spaceId: "w1",
+        userId: "u1",
+        botId: "bot-1",
+        signal: new AbortController().signal,
+      });
+      await vi.advanceTimersByTimeAsync(27_001);
+      await expect(pending).resolves.toMatchObject([{ name: "mcp__demo__echo" }]);
+      expect(state.initializations).toBe(1);
+    } finally {
+      await connector.close();
+      await store.close();
+      vi.useRealTimers();
+    }
+  });
+
   it("keeps sessions across unchanged TTL reads and reconnects on observed rotation", async () => {
     vi.useFakeTimers();
     const fake = infisicalFake();

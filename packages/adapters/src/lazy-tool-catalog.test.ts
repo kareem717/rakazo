@@ -501,6 +501,49 @@ describe("lazy tool catalog", () => {
     expect(() => assertConnectorToolArgs(schema, {})).toThrow(/invalid/i);
   });
 
+  it("reports nested argument paths inside a union so the caller can correct the request", () => {
+    const schema = {
+      anyOf: [
+        {
+          type: "object",
+          properties: {
+            action: { const: "list" },
+            filters: { type: "object", properties: { limit: { type: "integer", minimum: 1 } } },
+          },
+          required: ["action"],
+        },
+        {
+          type: "object",
+          properties: { action: { const: "detail" }, itemId: { type: "string" } },
+          required: ["action", "itemId"],
+        },
+      ],
+    };
+    expect(() =>
+      assertConnectorToolArgs(schema, { action: "list", filters: { limit: 1 } }),
+    ).not.toThrow();
+    expect(() =>
+      assertConnectorToolArgs(schema, { action: "list", filters: { limit: "many" } }),
+    ).toThrow(/filters\.limit/);
+    expect(() => assertConnectorToolArgs(schema, { action: "detail" })).toThrow(/itemId/);
+  });
+
+  it("includes the path of a union nested under an object property", () => {
+    const schema = {
+      type: "object",
+      properties: {
+        selection: {
+          anyOf: [
+            { type: "object", properties: { count: { type: "integer" } }, required: ["count"] },
+            { type: "object", properties: { name: { type: "string" } }, required: ["name"] },
+          ],
+        },
+      },
+      required: ["selection"],
+    };
+    expect(() => assertConnectorToolArgs(schema, { selection: {} })).toThrow(/selection\.count/);
+  });
+
   it("rejects schemas that combine patternProperties with additionalProperties false", () => {
     const schema = {
       type: "object",
