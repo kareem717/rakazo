@@ -4856,9 +4856,22 @@ export function createRouter(deps: RouterDeps) {
         }),
         complete: authed.mcp.oauth.complete.handler(async ({ context, input }) => {
           try {
+            const session = await deps.prisma.mcpOAuthSession.findFirst({
+              where: { id: input.sessionId, userId: context.actor.userId },
+              select: { spaceId: true },
+            });
+            const membership = session
+              ? await deps.prisma.spaceMember.findFirst({
+                  where: { spaceId: session.spaceId, userId: context.actor.userId },
+                  select: { spaceId: true },
+                })
+              : null;
+            if (!session || !membership) {
+              throw new Error("MCP OAuth session is invalid or expired");
+            }
             await mcpOAuth.complete({
               ...input,
-              spaceId: context.actor.spaceId,
+              spaceId: session.spaceId,
               userId: context.actor.userId,
             });
             return { ok: true as const };

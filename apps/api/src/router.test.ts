@@ -968,6 +968,87 @@ describe("MCP prepared credential updates", () => {
   });
 });
 
+describe("MCP OAuth callback space", () => {
+  const actor = {
+    spaceId: "selected-space",
+    userId: "user-1",
+    email: "user@rakazo.test",
+    isDeploymentOwner: true,
+  } satisfies Actor;
+  const input = { sessionId: "pending-session", code: "fake-code", state: "pending-session" };
+
+  function setup(options: { sessionOwner?: string; member?: boolean; spaceId?: string } = {}) {
+    const targetSpaceId = options.spaceId ?? "original-space";
+    const findFirst = vi.fn(async ({ where }: { where: { userId: string } }) =>
+      where.userId === (options.sessionOwner ?? actor.userId) ? { spaceId: targetSpaceId } : null,
+    );
+    const complete = vi.fn().mockResolvedValue(undefined);
+    const deps = {
+      prisma: {
+        mcpOAuthSession: { findFirst },
+        spaceMember: {
+          findFirst: vi.fn().mockResolvedValue(
+            options.member === false
+              ? null
+              : {
+                  spaceId: targetSpaceId,
+                },
+          ),
+        },
+      },
+      mcpOAuth: { complete },
+      env: { defaultProvider: "fake", defaultModel: "fake-model" },
+    } as unknown as RouterDeps;
+    const client = createRouterClient(createRouter(deps), { context: { actor } as never });
+    return { client, complete, findFirst };
+  }
+
+  it("finishes in the originating space after the selected space changes", async () => {
+    const { client, complete } = setup();
+    await client.mcp.oauth.complete(input);
+    expect(complete).toHaveBeenCalledWith({
+      ...input,
+      spaceId: "original-space",
+      userId: actor.userId,
+    });
+  });
+
+  it("still completes callbacks in the selected space", async () => {
+    const { client, complete } = setup({ spaceId: actor.spaceId });
+    await client.mcp.oauth.complete(input);
+    expect(complete).toHaveBeenCalledWith({
+      ...input,
+      spaceId: actor.spaceId,
+      userId: actor.userId,
+    });
+  });
+
+  it("does not use another user's pending authorization", async () => {
+    const { client, complete, findFirst } = setup({ sessionOwner: "another-user" });
+    await expect(client.mcp.oauth.complete(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(findFirst).toHaveBeenCalledWith({
+      where: { id: input.sessionId, userId: actor.userId },
+      select: { spaceId: true },
+    });
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("refuses a callback after membership in the original space is revoked", async () => {
+    const { client, complete } = setup({ member: false });
+    await expect(client.mcp.oauth.complete(input)).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(complete).not.toHaveBeenCalled();
+  });
+
+  it("keeps broker expiry and replay rejection intact", async () => {
+    const { client, complete } = setup();
+    complete.mockRejectedValueOnce(new Error("MCP OAuth session is invalid or expired"));
+    await expect(client.mcp.oauth.complete(input)).rejects.toMatchObject({
+      code: "BAD_REQUEST",
+      message: "MCP OAuth session is invalid or expired",
+    });
+  });
+});
+
 describe("MCP loopback endpoints", () => {
   const LOOPBACK = "http://localhost:3100/api/auth/get-session";
 
