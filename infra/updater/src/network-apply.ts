@@ -109,6 +109,7 @@ export class NetworkApplier {
     const result = await this.run("docker", [...this.base, ...args], {
       cwd: this.config.deployDir,
       timeoutMs,
+      output: "stdout",
     });
     if (!result.ok) throw new Error("Network deployment command failed");
     return result.output;
@@ -217,6 +218,7 @@ export class NetworkApplier {
     let frozen = false,
       restarted = false,
       previous: EgressConfig | undefined;
+    let preflightError = "Could not read the active network policy. Try again.";
     try {
       previous = parseEgressConfig(
         JSON.parse(await this.gateway(["cat", "/network-runtime/active.json"])),
@@ -227,6 +229,7 @@ export class NetworkApplier {
         { mode: 0o600 },
       );
       if (target.mode === "all") {
+        preflightError = "Could not verify Tailscale status. Check the connection and retry.";
         const status = JSON.parse(await this.gateway(["tailscale", "status", "--json"]));
         const peers = Object.values(status.Peer ?? {}) as {
           DNSName?: string;
@@ -247,6 +250,7 @@ export class NetworkApplier {
         )
           throw new Error("Connect Tailscale and select an online exit node before applying.");
       }
+      preflightError = "Could not pause computer operations. Try again.";
       await this.freeze(operation);
       frozen = true;
       try {
@@ -280,7 +284,9 @@ export class NetworkApplier {
         !restarted &&
         /^(Stop computers|Connect Tailscale|Network settings changed)/.test(error.message)
           ? error.message
-          : "Could not apply network settings.";
+          : restarted
+            ? "Could not apply network settings."
+            : preflightError;
       if (restarted && previous) {
         try {
           await this.command(["stop", "api", "worker", "web", "supervisor"], 120_000);

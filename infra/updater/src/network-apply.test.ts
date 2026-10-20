@@ -17,7 +17,12 @@ const target: EgressConfig = {
   transport: { type: "socks5", url: "socks5://proxy.example.test:1080" },
 };
 async function fixture(
-  options: { busy?: boolean; failFirstRestart?: boolean; failAllRestarts?: boolean } = {},
+  options: {
+    busy?: boolean;
+    failFirstRestart?: boolean;
+    failAllRestarts?: boolean;
+    tailscaleStatus?: string;
+  } = {},
 ) {
   const dir = await realpath(await mkdtemp(path.join(tmpdir(), "network-apply-")));
   directories.push(dir);
@@ -27,10 +32,14 @@ async function fixture(
   const modes: string[] = [];
   let restarts = 0,
     booted = previous;
-  const run: UpdaterCommandRunner = async (command, args) => {
+  const run: UpdaterCommandRunner = async (command, args, execution) => {
     expect(command).toBe("docker");
     commands.push(args);
     const ok = (output = "") => ({ ok: true, exitCode: 0, output });
+    if (args.includes("tailscale")) {
+      expect(execution.output).toBe("stdout");
+      return ok(options.tailscaleStatus);
+    }
     if (args.includes("cat")) return ok(JSON.stringify(booted));
     if (args.includes("--check-network-apply") && options.busy)
       return { ok: false, exitCode: 1, output: "private provider diagnostic" };
@@ -54,6 +63,44 @@ async function fixture(
   await applier.initialize();
   return { applier, dir, configPath, commands, modes };
 }
+it("verifies a large exit-node status response before applying everything", async () => {
+  const { applier, configPath, modes } = await fixture({
+    tailscaleStatus: JSON.stringify({
+      BackendState: "Running",
+      Peer: {
+        selected: { DNSName: "exit.example.test.", ExitNodeOption: true, Online: true },
+      },
+      User: { example: { ProfilePicURL: "x".repeat(100000) } },
+    }),
+  });
+  const all: EgressConfig = {
+    version: 1,
+    mode: "all",
+    transport: { type: "tailscale-exit-node", exitNode: "exit.example.test" },
+  };
+  await writeFile(configPath, JSON.stringify(all));
+  await applier.start({ revision: networkRevision(all) });
+  await applier.wait();
+  expect(applier.status.phase).toBe("succeeded");
+  expect(modes).toEqual(["all"]);
+});
+it("reports an unreadable Tailscale response without exposing command output", async () => {
+  const { applier, configPath, commands } = await fixture({
+    tailscaleStatus: "private invalid response",
+  });
+  const all: EgressConfig = {
+    version: 1,
+    mode: "all",
+    transport: { type: "tailscale-exit-node", exitNode: "exit.example.test" },
+  };
+  await writeFile(configPath, JSON.stringify(all));
+  await applier.start({ revision: networkRevision(all) });
+  await applier.wait();
+  expect(applier.status.error).toBe(
+    "Could not verify Tailscale status. Check the connection and retry.",
+  );
+  expect(commands.some((args) => args.includes("stop") || args.includes("up"))).toBe(false);
+});
 it("rejects caller commands, stale edits and paths outside the deployment", async () => {
   const { applier, commands, dir } = await fixture();
   await expect(

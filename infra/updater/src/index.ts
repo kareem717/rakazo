@@ -68,7 +68,13 @@ export interface CommandResult {
 export type UpdaterCommandRunner = (
   command: string,
   args: string[],
-  options: { cwd: string; timeoutMs: number; env?: Record<string, string> },
+  options: {
+    cwd: string;
+    timeoutMs: number;
+    env?: Record<string, string>;
+    /** Machine-readable stdout, kept separate from stderr and bounded by maxBuffer. */
+    output?: "stdout";
+  },
 ) => Promise<CommandResult>;
 
 const PASSTHROUGH_ENV = [
@@ -163,7 +169,11 @@ export const runHostCommand: UpdaterCommandRunner = (command, args, options) => 
     ) => {
       const output = truncateOutput(`${stdout}${stderr}`);
       if (!error) {
-        resolve({ ok: true, exitCode: 0, output });
+        resolve({
+          ok: true,
+          exitCode: 0,
+          output: options.output === "stdout" ? String(stdout) : output,
+        });
         return;
       }
       const exitCode = typeof error.code === "number" ? error.code : null;

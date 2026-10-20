@@ -481,6 +481,24 @@ describe("child process environment", () => {
 });
 
 describe("runHostCommand", () => {
+  it("preserves bounded machine-readable stdout without stderr or display truncation", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "rakazo-command-json-"));
+    temporaryDirectories.push(dir);
+    const docker = path.join(dir, "docker");
+    await writeFile(
+      docker,
+      `#!${process.execPath}\nprocess.stdout.write(JSON.stringify({data: "x".repeat(100000)}));\nprocess.stderr.write("Command warning");\n`,
+    );
+    await chmod(docker, 0o755);
+    const options = { cwd: dir, timeoutMs: 5_000, env: { PATH: dir } };
+    const machine = await runHostCommand("docker", ["status"], { ...options, output: "stdout" });
+    expect(machine.ok).toBe(true);
+    expect(JSON.parse(machine.output)).toEqual({ data: "x".repeat(100000) });
+    const display = await runHostCommand("docker", ["status"], options);
+    expect(display.output.startsWith("…")).toBe(true);
+    expect(display.output.endsWith("Command warning")).toBe(true);
+  });
+
   it("passes shell syntax to git as one argument and refuses any other program", async () => {
     const dir = await mkdtemp(path.join(os.tmpdir(), "rakazo-host-command-"));
     temporaryDirectories.push(dir);
