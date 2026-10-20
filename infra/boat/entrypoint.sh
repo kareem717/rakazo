@@ -44,8 +44,8 @@ case "$EGRESS_TRANSPORT" in
     proxy=$!
     ;;
   tailscale-exit-node)
-    # Bootstrap/control DNS is available before tailscaled establishes the exit route.
-    dnsmasq --keep-in-foreground --no-resolv --no-hosts --cache-size=0 --server=1.1.1.1 --server=1.0.0.1 --listen-address=127.0.0.1,10.202.0.1 --bind-interfaces --user=nobody > /state/egress-dns.log 2>&1 &
+    # Public DNS follows the exit route; unqualified Docker service names stay local.
+    dnsmasq --keep-in-foreground --no-resolv --no-hosts --cache-size=0 --server=1.1.1.1 --server=1.0.0.1 --server=//127.0.0.11 --listen-address=127.0.0.1,10.202.0.1 --bind-interfaces --user=nobody > /state/egress-dns.log 2>&1 &
     dns=$!
     printf 'nameserver 127.0.0.1\noptions timeout:2 attempts:3\n' > /etc/resolv.conf
     ;;
