@@ -917,4 +917,17 @@ export const NL_MESSAGES: Record<string, string> = {
   "Live calls require web or desktop on this version.":
     "Livegesprekken vereisen in deze versie de web- of desktopapp.",
   "Use standard call": "Standaardgesprek gebruiken",
+  Attempts: "Pogingen",
+  "Could not load run": "Uitvoering kon niet worden geladen",
+  Interrupted: "Onderbroken",
+  "Needs an answer": "Antwoord nodig",
+  "Needs you": "Heeft je nodig",
+  "No tool activity recorded": "Geen toolactiviteit vastgelegd",
+  "Open chat": "Chat openen",
+  "Recent activity": "Recente activiteit",
+  "Retry at {time}": "Nieuwe poging om {time}",
+  "Retrying {attempt}/{maxAttempts}…": "Nieuwe poging {attempt}/{maxAttempts}…",
+  "Run activity": "Uitvoeringsactiviteit",
+  "Waiting in line…": "In de wachtrij…",
+  "Could not start after {attempts} attempts.": "Starten mislukt na {attempts} pogingen.",
 };

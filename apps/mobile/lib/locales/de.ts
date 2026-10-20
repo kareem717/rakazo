@@ -960,4 +960,17 @@ export const DE_MESSAGES: Record<string, string> = {
   "Live calls require web or desktop on this version.":
     "Live-Anrufe erfordern in dieser Version die Web- oder Desktop-App.",
   "Use standard call": "Standardanruf verwenden",
+  Attempts: "Versuche",
+  "Could not load run": "Lauf konnte nicht geladen werden",
+  Interrupted: "Unterbrochen",
+  "Needs an answer": "Antwort erforderlich",
+  "Needs you": "Deine Hilfe ist erforderlich",
+  "No tool activity recorded": "Keine Werkzeugaktivität aufgezeichnet",
+  "Open chat": "Chat öffnen",
+  "Recent activity": "Letzte Aktivitäten",
+  "Retry at {time}": "Neuer Versuch um {time}",
+  "Retrying {attempt}/{maxAttempts}…": "Neuer Versuch {attempt}/{maxAttempts}…",
+  "Run activity": "Laufaktivität",
+  "Waiting in line…": "In der Warteschlange…",
+  "Could not start after {attempts} attempts.": "Start nach {attempts} Versuchen fehlgeschlagen.",
 };
