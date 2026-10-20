@@ -170,14 +170,14 @@ export function startCall(call: {
       set({ caption: heard.error });
     }
   });
-  watchThread(call.botId);
+  const callRpc = createSpaceRpc(selectedSpaceId());
+  watchThread(call.botId, callRpc);
   emit();
   const ringing = new AbortController();
   pickup = ringing;
   const ringingCallId = callId;
-  const callRpc = createSpaceRpc(selectedSpaceId());
   const opening = call.answered?.opening.trim() ?? "";
-  void Promise.all([pickUp(ringing.signal, { ring: !call.answered }), rpc.voice.callSettings()])
+  void Promise.all([pickUp(ringing.signal, { ring: !call.answered }), callRpc.voice.callSettings()])
     .then(async ([, settings]) => {
       if (ringing.signal.aborted || !state || callId !== ringingCallId) return;
       pickup = null;
@@ -382,17 +382,18 @@ export function setCallMinimized(minimized: boolean): void {
 }
 
 /** Live feed for the bot on the call, independent of whichever thread is on screen. */
-function watchThread(botId: string) {
+function watchThread(botId: string, callRpc: RpcClient) {
   const controller = new AbortController();
   feed = controller;
-  const load = async () => commit(await rpc.threads.get({ botId }, { signal: controller.signal }));
+  const load = async () =>
+    commit(await callRpc.threads.get({ botId }, { signal: controller.signal }));
   void runThreadSubscription({
     signal: controller.signal,
     loadInitial: load,
-    loadHead: () => rpc.threads.head({ botId }, { signal: controller.signal }),
+    loadHead: () => callRpc.threads.head({ botId }, { signal: controller.signal }),
     refresh: load,
     currentSnapshot: () => thread,
-    subscribe: (cursor, signal) => rpc.threads.subscribe({ botId, cursor }, { signal }),
+    subscribe: (cursor, signal) => callRpc.threads.subscribe({ botId, cursor }, { signal }),
     applyEvent: (event) => {
       if (isThreadSnapshotEvent(event)) commit(reduceThreadSnapshot(thread, event));
     },
