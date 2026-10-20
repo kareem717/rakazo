@@ -244,6 +244,22 @@ export function reduceLiveMessageBlocks(
   blocks: readonly MessageBlock[],
   update: LiveMessageUpdate,
 ): MessageBlock[] {
+  const reasoning = blocks.filter((block) => block.kind === "progress" && block.reasoning);
+  const narration = blocks.filter((block) => block.kind !== "progress" || !block.reasoning);
+  if (update.type === "progress" && update.payload?.reasoning === true) {
+    const text = typeof update.payload.text === "string" ? update.payload.text : "";
+    return [
+      ...(text ? [{ kind: "progress" as const, text, reasoning: true as const }] : []),
+      ...narration,
+    ];
+  }
+  return [...reasoning, ...reduceLiveNarrationBlocks(narration, update)];
+}
+
+function reduceLiveNarrationBlocks(
+  blocks: readonly MessageBlock[],
+  update: LiveMessageUpdate,
+): MessageBlock[] {
   const tail = blocks.at(-1);
   const segments = tail?.kind === "progress" ? blocks.slice(0, -1) : blocks;
   const priorText = liveMessageText(blocks);

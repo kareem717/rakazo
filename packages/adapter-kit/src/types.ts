@@ -569,6 +569,8 @@ export type AgentRuntimeEvent =
       text: string;
       /** Provider-generated tool status rather than assistant-authored narration. */
       activity?: true;
+      /** Provider-exposed reasoning summary delta, separate from reply text. */
+      reasoning?: true;
     }
   | { type: "tool"; name: string; args: Record<string, unknown>; executionId: string }
   | {

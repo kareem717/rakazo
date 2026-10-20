@@ -177,3 +177,16 @@ test("unpunctuated browser activity renders the live tool call", async ({ page }
   await expect(card).toContainText("Browser navigate");
   await captureScreenshot(page, testInfo, "live-browser-tool-event");
 });
+
+test("live reasoning stays visible beside tool calls", async ({ page }, testInfo) => {
+  await seedToolActivityOn(page);
+  await page.goto(`${fixture}?view=thread&phase=live&reasoning=1`);
+  const reasoning = page.getByTestId("reasoning");
+  await expect(reasoning).toBeVisible();
+  await expect(reasoning).toHaveJSProperty("open", true);
+  await expect(reasoning).toContainText("Check the available tools before reading the calendar.");
+  await expect(page.getByTestId("tool-activity").locator("summary")).toContainText("8 tools");
+  await captureScreenshot(page, testInfo, "live-reasoning-and-tools");
+  await reasoning.locator("summary").click();
+  await expect(reasoning).toHaveJSProperty("open", false);
+});

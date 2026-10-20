@@ -36,6 +36,7 @@ async function runTurn(
     doneText?: string;
     splitText?: boolean;
     priorProgressText?: string;
+    reasoningDeltas?: string[];
   } = {},
 ) {
   vi.mocked(loadBotMessageContext).mockResolvedValue({
@@ -60,6 +61,8 @@ async function runTurn(
     leaseFence: 0,
   };
   const runtimeRun = vi.fn(async function* (_request: AgentRunRequest) {
+    for (const text of options.reasoningDeltas ?? [])
+      yield { type: "progress" as const, text, reasoning: true as const };
     const narrations = Array.isArray(narration) ? narration : [narration];
     for (const [index, text] of narrations.entries()) {
       for (const chunk of options.splitText ? [...text] : [text]) {
@@ -426,4 +429,30 @@ describe("text from separate assistant turns", () => {
       .join("");
     expect(text).toBe(`${narration}\n\n${finalText}`);
   });
+});
+
+it("streams redacted reasoning separately from narration and final reply", async () => {
+  const secret = "fake-sensitive-token";
+  const { append, finalizeRun } = await runTurn(
+    "The tools are available.",
+    false,
+    "Checking.",
+    [secret],
+    "fyi",
+    {
+      reasoningDeltas: ["Inspect the connection ", "fake-sensitive-", "token before using a tool."],
+    },
+  );
+  const summaries = append.mock.calls
+    .map(([event]) => event)
+    .filter((event) => event.type === "thread.progress")
+    .map((event) => event.payload as { text: string; reasoning?: boolean })
+    .filter((payload) => payload.reasoning === true);
+  expect(summaries.length).toBeGreaterThan(0);
+  expect(JSON.stringify(summaries)).not.toContain(secret);
+  expect(JSON.stringify(summaries)).not.toContain("fake-sensitive");
+  expect(summaries.at(-1)?.text).toContain("before using a tool.");
+  const blocks = finalizeRun.mock.calls[0]![0].blocks;
+  expect(JSON.stringify(blocks)).not.toContain("Inspect the connection");
+  expect(JSON.stringify(blocks)).toContain("The tools are available.");
 });
