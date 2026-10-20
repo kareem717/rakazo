@@ -25,6 +25,7 @@ import {
   safeProxyHeaders,
   watchScreenAuthorization,
 } from "./src/screen-proxy.js";
+import { injectScreenViewerBridge, unavailableScreenHtml } from "./src/screen-viewer-bridge.js";
 
 const webPort = Number(process.env.WEB_PORT ?? 5173);
 const DESKTOP_STACK_PROBE_PATH = "/.well-known/rakazo-desktop-stack";
@@ -73,6 +74,15 @@ function attachDesktopStackProbe(
   });
 }
 
+function unavailableScreen(res: http.ServerResponse, status: 403 | 502) {
+  res.writeHead(status, {
+    ...safeScreenProxyResponseHeaders({}),
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store",
+  });
+  res.end(unavailableScreenHtml());
+}
+
 function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string, api: string) {
   server.middlewares.use(async (req, res, next) => {
     if (!req.url?.startsWith("/novnc/")) {
@@ -93,22 +103,20 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
     });
     if (res.destroyed) return;
     if (!target) {
-      res.statusCode = 403;
-      res.end("Invalid or expired screen capability");
+      unavailableScreen(res, 403);
       return;
     }
     let viewerAuth: Awaited<ReturnType<typeof boxScreenAuth>>;
     try {
       viewerAuth = await boxScreenAuth(target, req.url!);
     } catch {
-      res.statusCode = 502;
-      res.end("Screen unavailable");
+      unavailableScreen(res, 502);
       return;
     }
     const headers = {
       ...safeProxyHeaders(req.headers),
       ...(viewerAuth.cookie ? { cookie: viewerAuth.cookie } : {}),
-      ...(isCreateOSNovncHost(target.hostname) ? { "accept-encoding": "identity" } : {}),
+      "accept-encoding": "identity",
       host: `${target.hostname}:${target.port}`,
     };
     const transport = target.protocol === "https:" ? https : http;
@@ -150,8 +158,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
         res.destroy();
         return;
       }
-      res.statusCode = 502;
-      res.end("Screen unavailable");
+      unavailableScreen(res, 502);
     };
     function requestUpstream() {
       if (res.destroyed) return;
@@ -176,7 +183,7 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
             });
           }
           const responseHeaders = safeScreenProxyResponseHeaders(incoming.headers);
-          if (shouldInjectNovncStorageShim(responseHeaders, target.hostname)) {
+          if (shouldInjectNovncHtml(responseHeaders)) {
             const declaredLength = Number(incoming.headers["content-length"] ?? 0);
             if (Number.isFinite(declaredLength) && declaredLength > MAX_NOVNC_HTML_BYTES) {
               finishUnavailable("html_too_large");
@@ -187,8 +194,13 @@ function attachNovncProxy(server: ViteDevServer | PreviewServer, secret: string,
               .then((html) => {
                 if (downstreamFinished || res.destroyed || res.writableEnded) return;
                 downstreamFinished = true;
-                const body = injectNovncStorageShim(html);
+                const body = injectScreenViewerBridge(
+                  isCreateOSNovncHost(target.hostname) ? injectNovncStorageShim(html) : html,
+                );
                 delete responseHeaders["content-length"];
+                delete responseHeaders.etag;
+                delete responseHeaders["last-modified"];
+                responseHeaders["cache-control"] = "no-store";
                 res.writeHead(incoming.statusCode ?? 502, responseHeaders);
                 res.end(body);
               })
@@ -396,8 +408,7 @@ function isCreateOSNovncHost(hostname: string) {
   return NOVNC_STORAGE_SHIM_HOSTS.some((suffix) => hostname.endsWith(suffix));
 }
 
-function shouldInjectNovncStorageShim(headers: http.IncomingHttpHeaders, hostname: string) {
-  if (!isCreateOSNovncHost(hostname)) return false;
+function shouldInjectNovncHtml(headers: http.IncomingHttpHeaders) {
   if (headers["content-encoding"]) return false;
   const contentType = String(headers["content-type"] ?? "").toLowerCase();
   return contentType.includes("text/html") || contentType.includes("application/xhtml+xml");

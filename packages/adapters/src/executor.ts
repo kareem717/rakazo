@@ -290,7 +290,7 @@ import { createMediaGenerationProvider } from "./media-generation-factory.js";
 import { generateMediaFromTool } from "./media-generation-tools.js";
 import { loadAgentMemoryContext } from "./memory-context.js";
 import type { MemoryProviderResolver } from "./memory-provider-factory.js";
-import { selectMemoryTools } from "./memory-tools.js";
+import { appendMemoryFact, selectMemoryTools } from "./memory-tools.js";
 import {
   enabledOpenAiCompatibleModelIds,
   findConnectedModelCredential,
@@ -3007,7 +3007,18 @@ export function createRunExecutor(deps: ExecutorDeps) {
   const contextStrategy = deps.contextStrategy ?? DEFAULT_CONTEXT_STRATEGY;
   const web = deps.web ?? createWebProvider();
   const mediaGeneration = deps.mediaGeneration ?? createMediaGenerationProvider();
-  const browser = deps.browser ?? createBrowserProvider(undefined, { sandbox: deps.sandbox });
+  const browser =
+    deps.browser ??
+    createBrowserProvider(undefined, {
+      sandbox: deps.sandbox,
+      resolveDriver: async () => {
+        const settings = await deps.prisma.deploymentSettings.findUnique({
+          where: { id: "default" },
+          select: { browserDriver: true },
+        });
+        return settings?.browserDriver === "patchright" ? "patchright" : "cdp";
+      },
+    });
   const cloudAgent = deps.cloudAgent;
   const resolveConnectedModel = async (
     scope: { userId: string; spaceId: string },
@@ -4313,6 +4324,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
         };
         let pendingProgress = "";
         let lastProgressAt = 0;
+        const reasoningRedactor = createStreamingRedactor(runSecrets);
+        let pendingReasoning = "";
+        let reasoningText = "";
+        let lastReasoningAt = 0;
+        const flushReasoning = async () => {
+          if (!pendingReasoning || isBackgroundRunTrigger(run.trigger)) return;
+          reasoningText = (reasoningText + pendingReasoning).slice(-32_000);
+          pendingReasoning = "";
+          lastReasoningAt = Date.now();
+          await deps.events.append({
+            spaceId: run.spaceId,
+            threadId: thread.id,
+            botId: bot.id,
+            type: "thread.progress",
+            runId,
+            payload: { text: reasoningText, reasoning: true },
+          });
+        };
         let hasStreamedText = false;
         // Set by a tool call: the next text starts a new assistant turn and needs a break
         // from the earlier text that stayed in this reply (held-back narration).
@@ -5718,18 +5747,36 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }, finish);
           }
           if (name === "remember") {
-            await deps.memory.commit(
-              {
-                scope: "bot",
-                botId: bot.id,
-                path: String(args.path ?? "MEMORY.md"),
-                content: String(args.content ?? ""),
-                sourceRunId: runId,
-                sourceThreadId: thread.id,
-              },
-              context,
-            );
-            return finish({ ok: true });
+            const path = String(args.path ?? "").trim() || "MEMORY.md";
+            // A fact is added to the document, never replaces it. A concurrent save
+            // changes the revision, so re-read and append again.
+            for (let attempt = 1; ; attempt += 1) {
+              const snapshot = await deps.memory.read(
+                { scope: "bot", botId: bot.id, path },
+                context,
+              );
+              const existing = snapshot.documents[0];
+              const content = appendMemoryFact(existing?.content ?? "", String(args.content ?? ""));
+              if (content === (existing?.content ?? "")) return finish({ ok: true });
+              try {
+                await deps.memory.commit(
+                  {
+                    scope: "bot",
+                    botId: bot.id,
+                    path,
+                    content,
+                    expectedRevision: existing?.revision ?? 0,
+                    sourceRunId: runId,
+                    sourceThreadId: thread.id,
+                  },
+                  context,
+                );
+                return finish({ ok: true });
+              } catch (error) {
+                const message = error instanceof Error ? error.message : "";
+                if (message !== MEMORY_REVISION_CONFLICT_ERROR || attempt >= 3) throw error;
+              }
+            }
           }
           if (name === "save_shared_memory") {
             const invalid = sharedMemorySaveError(args);
@@ -7427,6 +7474,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
               recordExplicitNoResponse(assistantTurnText);
               assistantTurnText = "";
             }
+            if (event.type === "progress" && event.reasoning) {
+              if (isBackgroundRunTrigger(run.trigger)) continue;
+              pendingReasoning = (pendingReasoning + reasoningRedactor.push(event.text)).slice(
+                -32_000,
+              );
+              if (Date.now() - lastReasoningAt >= 250) await flushReasoning();
+              continue;
+            }
+            await flushReasoning();
             if (event.type === "text") {
               assistantTurnText += event.text;
               if (assistantTurnBreakPending && event.text) {
@@ -7765,6 +7821,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
           runComputer.throwIfFailed();
           if (approvalPausePending || !leaseValid) return;
           approvedEffectReplays.assertDrained();
+          pendingReasoning += reasoningRedactor.finish();
+          await flushReasoning();
           pendingProgress += progressRedactor.finish();
           await flushProgress();
 

@@ -168,3 +168,25 @@ test("the chat transcript shows tool activity when turned on and hides it when t
   await expect(transcript.getByText("writing that into my home now.")).toBeVisible();
   await expect(transcript.getByTestId("tool-activity")).toHaveCount(0);
 });
+
+test("unpunctuated browser activity renders the live tool call", async ({ page }, testInfo) => {
+  await seedToolActivityOn(page);
+  await page.goto(`${fixture}?view=thread&phase=live&events=unpunctuated`);
+  const card = page.getByTestId("tool-activity");
+  await expect(card).toBeVisible();
+  await expect(card).toContainText("Browser navigate");
+  await captureScreenshot(page, testInfo, "live-browser-tool-event");
+});
+
+test("live reasoning stays visible beside tool calls", async ({ page }, testInfo) => {
+  await seedToolActivityOn(page);
+  await page.goto(`${fixture}?view=thread&phase=live&reasoning=1`);
+  const reasoning = page.getByTestId("reasoning");
+  await expect(reasoning).toBeVisible();
+  await expect(reasoning).toHaveJSProperty("open", true);
+  await expect(reasoning).toContainText("Check the available tools before reading the calendar.");
+  await expect(page.getByTestId("tool-activity").locator("summary")).toContainText("8 tools");
+  await captureScreenshot(page, testInfo, "live-reasoning-and-tools");
+  await reasoning.locator("summary").click();
+  await expect(reasoning).toHaveJSProperty("open", false);
+});

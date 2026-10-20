@@ -6,6 +6,37 @@ test.use({
   permissions: ["microphone"],
 });
 
+test("a bot keeps a searched voice override after settings reload", async ({ page }, testInfo) => {
+  await signup(page, `bot-voice-${Date.now()}@rakazo.test`, "password12", "Voice tester");
+  await completeOnboarding(page);
+  await rpc(page, "voice/connect", { provider: "scripted", apiKey: "fake-scripted-voice-key" });
+  const bots = await rpc<Array<{ id: string }>>(page, "bots/list", {});
+  const bot = bots[0]!;
+  await page.reload();
+  await page.getByTestId("bot-settings-trigger").click();
+  await page.getByTestId("bot-voice-settings").locator("summary").click();
+  await page.getByLabel("Voice provider", { exact: true }).selectOption("scripted");
+  await page.getByRole("textbox", { name: "Search voices", exact: true }).fill("Scripted");
+  const picker = page.getByRole("combobox", { name: "Voice", exact: true });
+  await expect(picker).toBeEnabled();
+  await picker.selectOption("alloy-test");
+  await captureScreenshot(page, testInfo, "bot-voice-settings");
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await expect
+    .poll(async () =>
+      rpc<{ voiceId: string; voiceProvider: string }>(page, "bots/get", { botId: bot.id }),
+    )
+    .toMatchObject({ voiceId: "alloy-test", voiceProvider: "scripted" });
+  await page.reload();
+  await page.getByTestId("bot-settings-trigger").click();
+  await page.getByTestId("bot-voice-settings").locator("summary").click();
+  await expect(page.getByRole("combobox", { name: "Voice", exact: true })).toHaveValue(
+    "alloy-test",
+  );
+  const status = await rpc<{ voiceId: string }>(page, "voice/status", {});
+  expect(status.voiceId).toBe("alloy-test");
+});
+
 test("voice settings connect a key, speak a reply, and open a call", async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     Object.defineProperty(window, "SpeechRecognition", { value: undefined });

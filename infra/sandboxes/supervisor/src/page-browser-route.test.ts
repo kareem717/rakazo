@@ -28,7 +28,7 @@ beforeEach(() => {
       Duplex.from({
         readable: Readable.from([
           Buffer.from(
-            options.Cmd.includes("/usr/local/bin/rakazo-page-browser")
+            options.Cmd.some((value) => value.endsWith("-browser"))
               ? JSON.stringify({
                   ok: true,
                   url: "https://example.test",
@@ -113,6 +113,74 @@ it.each(["http", "https"])(
     expect(response.status).toBeGreaterThanOrEqual(400);
     expect(mock.exec).not.toHaveBeenCalled();
     expect(mock.inspect).not.toHaveBeenCalled();
+  },
+);
+
+it("selects the optional driver and preserves the backend MFA marker over private stdin", async () => {
+  const response = await supervisorApp.request("/computers/driver/browser", {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${resolveSupervisorToken(process.env)}`,
+      "content-type": "application/json",
+      "x-rakazo-bot-id": "home",
+      "x-rakazo-space-id": "space",
+      "x-rakazo-screen-id": "driver",
+      "x-rakazo-screen-lease-id": "run:1",
+    },
+    body: JSON.stringify({
+      command: "act",
+      driver: "patchright",
+      actions: [
+        {
+          kind: "fill",
+          ref: "e1",
+          text: "123456",
+          origin: "https://example.test",
+          secretField: "mfa",
+        },
+      ],
+    }),
+  });
+  expect(response.status).toBe(200);
+  expect(mock.exec.mock.calls.at(-1)?.[0].Cmd.slice(-3)).toEqual([
+    "/opt/rakazo/patchright/bin/python",
+    "/usr/local/bin/rakazo-patchright-browser",
+    "act",
+  ]);
+  expect(mock.stdin.join("")).toContain('"secretField":"mfa"');
+});
+
+it.each([126, 127])(
+  "refuses an unavailable optional driver without claiming an action ran (%s)",
+  async (code) => {
+    const defaultExec = mock.exec.getMockImplementation()!;
+    mock.exec.mockImplementation(async (options: { Cmd: string[] }) => {
+      const execution = await defaultExec(options);
+      return options.Cmd.includes("/usr/local/bin/rakazo-patchright-browser")
+        ? { ...execution, inspect: async () => ({ ExitCode: code }) }
+        : execution;
+    });
+    const response = await supervisorApp.request(`/computers/missing-driver-${code}/browser`, {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${resolveSupervisorToken(process.env)}`,
+        "content-type": "application/json",
+        "x-rakazo-bot-id": "home",
+        "x-rakazo-space-id": "space",
+      },
+      body: JSON.stringify({
+        command: "act",
+        driver: "patchright",
+        actions: [{ kind: "click", ref: "e1" }],
+      }),
+    });
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      completed: 0,
+      uncertain: false,
+      fallback: "computer_act",
+      error: expect.stringContaining("Update its image or choose Standard"),
+    });
   },
 );
 

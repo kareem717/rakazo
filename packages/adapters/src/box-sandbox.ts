@@ -145,6 +145,19 @@ export class BoxSandboxProvider implements SandboxProvider {
     };
   }
 
+  async isRunning(computer: ComputerRef, context: AdapterContext): Promise<boolean> {
+    try {
+      const current = await this.client.get(
+        { boxId: this.id(computer) },
+        { signal: context.signal },
+      );
+      return ["ready", "idle", "running"].includes(current.box.state);
+    } catch (error) {
+      if (isUnrecoverableBoxError(error)) return false;
+      throw error;
+    }
+  }
+
   async provision(
     request: {
       botId: string;
@@ -357,8 +370,25 @@ export class BoxSandboxProvider implements SandboxProvider {
         new URL("../../../infra/sandboxes/computer/rakazo-page-browser", import.meta.url),
       );
       for (const [name, content] of [
-        ["helper.py", helper],
+        ["rakazo-page-browser", helper],
         ["args.json", Buffer.from(`${JSON.stringify(request)}\n`)],
+        ...(request.driver === "patchright"
+          ? await Promise.all(
+              [
+                "rakazo-patchright-browser",
+                "install-browser-driver.py",
+                "requirements-patchright.txt",
+              ].map(
+                async (name) =>
+                  [
+                    name,
+                    await readFile(
+                      new URL(`../../../infra/sandboxes/computer/${name}`, import.meta.url),
+                    ),
+                  ] as const,
+              ),
+            )
+          : []),
       ] as const) {
         await this.client.writeFile(
           {
@@ -372,7 +402,36 @@ export class BoxSandboxProvider implements SandboxProvider {
           { signal: context.signal },
         );
       }
-      const command = `DISPLAY=${shellQuote(display)} RAKAZO_BROWSER_ARGS_STDIN=1 python3 ${shellQuote(`${directory}/helper.py`)} ${shellQuote(request.command)} < ${shellQuote(`${directory}/args.json`)}`;
+      let python = "python3";
+      let program = "rakazo-page-browser";
+      if (request.driver === "patchright") {
+        const installed = await this.runCommand(
+          id,
+          `set -eu; if ! command -v uv >/dev/null 2>&1 && ! python3 -c 'import ensurepip' >/dev/null 2>&1; then sudo -n apt-get update -qq; sudo -n env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-venv; fi; python3 ${shellQuote(`${directory}/install-browser-driver.py`)} --requirements ${shellQuote(`${directory}/requirements-patchright.txt`)}`,
+          undefined,
+          300_000,
+          context.signal,
+        );
+        python = installed.stdout.trim().split("\n").at(-1) ?? "";
+        if (
+          installed.exitCode !== 0 ||
+          installed.timedOut ||
+          !/^\/home\/user\/\.local\/share\/rakazo\/browser-drivers\/patchright-[a-f0-9]{16}\/bin\/python$/.test(
+            python,
+          )
+        ) {
+          return {
+            ok: false,
+            completed: 0,
+            uncertain: false,
+            fallback: "computer_act",
+            error:
+              "Patchright could not be installed on this computer. Choose Standard or retry setup.",
+          };
+        }
+        program = "rakazo-patchright-browser";
+      }
+      const command = `DISPLAY=${shellQuote(display)} RAKAZO_BROWSER_ARGS_STDIN=1 ${shellQuote(python)} ${shellQuote(`${directory}/${program}`)} ${shellQuote(request.command)} < ${shellQuote(`${directory}/args.json`)}`;
       const result = await this.runCommand(id, command, undefined, 30_000, context.signal);
       if (result.timedOut || result.exitCode !== 0)
         throw new Error("Page browser operation failed");

@@ -1,4 +1,5 @@
 import type {
+  BrowserDriver,
   CacheCapabilities as ConnectionCacheCapabilities,
   ConnectionCatalogItem,
   SandboxKind,
@@ -568,6 +569,8 @@ export type AgentRuntimeEvent =
       text: string;
       /** Provider-generated tool status rather than assistant-authored narration. */
       activity?: true;
+      /** Provider-exposed reasoning summary delta, separate from reply text. */
+      reasoning?: true;
     }
   | { type: "tool"; name: string; args: Record<string, unknown>; executionId: string }
   | {
@@ -968,10 +971,11 @@ export interface BrowserActResult {
 }
 
 /** A sandbox must route these commands through its owned screen, never generic host execution. */
-export type PageBrowserCommand =
+export type PageBrowserCommand = (
   | { command: "navigate"; url: string }
   | { command: "snapshot" }
-  | { command: "act"; actions: BrowserActStep[] };
+  | { command: "act"; actions: BrowserActStep[] }
+) & { driver?: BrowserDriver };
 
 export type PageBrowserResult = Partial<BrowserSnapshotResult & BrowserActResult> & { ok: boolean };
 

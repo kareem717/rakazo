@@ -10,6 +10,7 @@ import { redactAgentCommandResult } from "./agent-environment.js";
 import {
   commandCredentialRedactions,
   forgetBotSecret,
+  listBotSecretMetadata,
   listBotSecrets,
   loadBotCommandEnvironment,
   requestWithBotSecret,
@@ -103,6 +104,31 @@ function save(
 }
 
 describe("storing a command variable", () => {
+  it("keeps a large bot vault usable through its limit and allows replacement at capacity", async () => {
+    const db = fakeDatabase();
+    for (let index = 0; index < 499; index++) {
+      db.rows().push({
+        ...scope,
+        id: `login-${index}`,
+        name: `account_${String(index).padStart(3, "0")}`,
+        origin: "https://example.test",
+        auth: { type: "login" },
+        ciphertext: "fixture-existing-login",
+      });
+    }
+    await save(db, "account_499", "fake-value-499");
+    expect(await listBotSecrets(db.prisma, scope)).toHaveLength(500);
+    expect(await listBotSecretMetadata(db.prisma, scope)).toHaveLength(500);
+    const environment = await loadBotCommandEnvironment(db.prisma, secretStore, scope);
+    expect(environment.ACCOUNT_499).toBe("fake-value-499");
+    await expect(save(db, "overflow", "fake-extra")).rejects.toThrow("Credential limit reached");
+    await save(db, "account_499", "fake-replacement");
+    expect((await loadBotCommandEnvironment(db.prisma, secretStore, scope)).ACCOUNT_499).toBe(
+      "fake-replacement",
+    );
+    expect(await listBotSecrets(db.prisma, { ...scope, botId: "another-bot" })).toHaveLength(0);
+  });
+
   it("stores the value with no site and decrypts it back", async () => {
     const db = fakeDatabase();
     await save(db, "netbird-setup-key", "fake-setup-key-1");

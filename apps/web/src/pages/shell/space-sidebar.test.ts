@@ -8,7 +8,7 @@ function chat(id: string, name: string) {
     title: "",
     preview: "",
     pinned: false,
-    sectionId: null,
+    sectionId: null as string | null,
     parentBotId: null,
   };
 }
@@ -40,7 +40,7 @@ describe("sidebarGroupsForSpaces", () => {
       expect.objectContaining({ emptySpaceId: "space-2", title: "Support" }),
       expect.objectContaining({
         sectionId: "saved",
-        title: "Support · Archived projects",
+        title: "Archived projects",
         bots: [],
         emptySpaceId: undefined,
       }),
@@ -68,11 +68,12 @@ describe("sidebarGroupsForSpaces", () => {
       ],
     };
     expect(sidebarGroupsForSpaces([input], "").map((group) => group.key)).toEqual([
+      "space:space-1:heading",
       "section:s1",
       "section:s2",
-      "unassigned",
     ]);
     expect(sidebarGroupsForSpaces([input], "Alpha").map((group) => group.key)).toEqual([
+      "space:space-1:heading",
       "section:s1",
     ]);
   });
@@ -170,5 +171,24 @@ describe("commitSpaceRename", () => {
     ).rejects.toThrow("Space deletion is already in progress");
     expect(apply).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
+  });
+});
+
+it("keeps nested destinations and ancestor collapse keys in the same space", () => {
+  const input = {
+    ...space("work", "Work"),
+    bots: [{ ...chat("a", "Alpha"), sectionId: "child" }],
+    botSections: [
+      { id: "child", name: "Inbox", parentId: "parent" },
+      { id: "parent", name: "Projects" },
+    ],
+  };
+  const groups = sidebarGroupsForSpaces([input, space("personal", "Personal")], "Alpha");
+  expect(groups.map((group) => group.sectionId)).toEqual([null, "parent", "child"]);
+  expect(groups[2]).toMatchObject({
+    depth: 2,
+    title: "Inbox",
+    ancestorKeys: ["space:work:heading", "space:work:section:parent"],
+    canOpenSpaceSettings: false,
   });
 });

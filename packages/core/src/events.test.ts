@@ -120,6 +120,22 @@ describe("response streaming preference", () => {
 });
 
 describe("reduceLiveMessageBlocks", () => {
+  it("shows tool calls even when no narration arrived first", () => {
+    expect(reduceLiveMessageBlocks([], { type: "tool", name: "browser_snapshot" })).toEqual([
+      { kind: "steps", steps: [{ label: "Browser snapshot", count: 1 }] },
+    ]);
+  });
+
+  it("shows tools immediately after activity text without sentence punctuation", () => {
+    const activity = reduceLiveMessageBlocks([], {
+      type: "progress",
+      payload: { text: "Opening page: https://example.test", activity: true },
+    });
+    expect(reduceLiveMessageBlocks(activity, { type: "tool", name: "browser_navigate" })).toEqual([
+      { kind: "steps", steps: [{ label: "Browser navigate", count: 1 }] },
+    ]);
+  });
+
   it("preserves structured live activity markers", () => {
     expect(
       reduceLiveMessageBlocks([], {
@@ -814,4 +830,26 @@ describe("sanitizeUtf16ForJson", () => {
       },
     });
   });
+});
+
+it("keeps live reasoning apart from reply deltas and visible tool steps", () => {
+  const reasoning = {
+    kind: "progress",
+    text: "Check the available tools.",
+    reasoning: true,
+  } as const;
+  let blocks = reduceLiveMessageBlocks([], { type: "progress", payload: reasoning });
+  expect(blocks).toEqual([reasoning]);
+  blocks = reduceLiveMessageBlocks(blocks, { type: "tool", name: "list_tools" });
+  blocks = reduceLiveMessageBlocks(blocks, { type: "progress", payload: { delta: "The tools " } });
+  blocks = reduceLiveMessageBlocks(blocks, {
+    type: "progress",
+    payload: { text: "Now inspect the result.", reasoning: true },
+  });
+  blocks = reduceLiveMessageBlocks(blocks, { type: "progress", payload: { delta: "are ready." } });
+  expect(blocks).toEqual([
+    { ...reasoning, text: "Now inspect the result." },
+    { kind: "steps", steps: [{ label: "List tools", count: 1 }] },
+    { kind: "progress", text: "The tools are ready." },
+  ]);
 });

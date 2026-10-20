@@ -116,3 +116,29 @@ test("computer maintenance shows durable background progress and failure recover
   await expect(dialog).not.toBeVisible();
   await expect(page.getByRole("button", { name: /Recovering Team Computer/ })).toHaveCount(0);
 });
+
+test("computer can be stopped from its menu after confirmation", async ({ page }, testInfo) => {
+  await signup(page, `computer-stop-${Date.now()}@rakazo.test`, "password12", "Computer stop");
+  await completeOnboarding(page);
+  const botId = activeBotId(page);
+  await page.getByTitle("Agent computer").click();
+  await page.getByTestId("computer-preview").hover();
+  await page.getByTestId("computer-preview-open").click();
+  await page.getByTestId("computer-more-button").click();
+  await page.getByRole("menuitem", { name: "Stop computer", exact: true }).click();
+  const dialog = page.getByRole("alertdialog");
+  await expect(dialog.getByRole("heading")).toHaveText("Stop computer?");
+  await expect(dialog).toContainText("Save open files first.");
+  await captureScreenshot(page, testInfo, "computer-stop-confirmation");
+  await dialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.getByTestId("computer-more-button").click();
+  await page.getByRole("menuitem", { name: "Stop computer", exact: true }).click();
+  const stopped = page.waitForResponse((response) => response.url().endsWith("/rpc/computer/stop"));
+  await dialog.getByRole("button", { name: "Stop computer", exact: true }).click();
+  const response = await stopped;
+  expect(response.status()).toBe(200);
+  expect((await response.json()).json.state).toBe("stopped");
+  const status = await page.request.post("/rpc/computer/status", { data: { json: { botId } } });
+  expect((await status.json()).json.state).toBe("stopped");
+  await expect(dialog).not.toBeVisible();
+});

@@ -70,6 +70,62 @@ describe("account preferences", () => {
     return { update, updateMany, deps, actor, handler: new RPCHandler(createRouter(deps)) };
   }
 
+  it("restricts network configuration to the deployment owner", async () => {
+    const { deps, actor } = preferencesDeps("robot");
+    const read = vi.spyOn(adapters, "readNetworkSettings").mockResolvedValue({ available: false });
+    const save = vi.spyOn(adapters, "saveNetworkSettings").mockResolvedValue({ available: false });
+    const connection = vi
+      .spyOn(adapters, "networkConnection")
+      .mockResolvedValue({ available: false });
+    const apply = vi.spyOn(adapters, "networkApplyStatus").mockResolvedValue({
+      available: false,
+      phase: "idle",
+      operationId: null,
+      revision: null,
+      error: null,
+    });
+    try {
+      const member = createRouterClient(createRouter(deps), {
+        context: { actor: { ...actor, isDeploymentOwner: false } } as never,
+      });
+      await expect(member.network.applyPreview()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.get()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.connection()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.connect()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(connection).not.toHaveBeenCalled();
+      await expect(member.network.applyStatus()).rejects.toMatchObject({ code: "FORBIDDEN" });
+      await expect(member.network.apply({ revision: "0".repeat(64) })).rejects.toMatchObject({
+        code: "FORBIDDEN",
+      });
+      expect(apply).not.toHaveBeenCalled();
+      await expect(
+        member.network.save({ config: { version: 1, mode: "direct" }, revision: "0".repeat(64) }),
+      ).rejects.toMatchObject({ code: "FORBIDDEN" });
+      expect(read).not.toHaveBeenCalled();
+      expect(save).not.toHaveBeenCalled();
+      const owner = createRouterClient(createRouter(deps), { context: { actor } as never });
+      await expect(owner.network.get()).resolves.toEqual({ available: false });
+      await expect(owner.network.connection()).resolves.toEqual({ available: false });
+      await owner.network.connect();
+      expect(connection).toHaveBeenLastCalledWith(true);
+      await owner.network.applyStatus();
+      await owner.network.apply({ revision: "0".repeat(64) });
+      expect(apply).toHaveBeenLastCalledWith("0".repeat(64), undefined, undefined);
+      await owner.network.apply({ revision: "0".repeat(64), stopComputers: true });
+      expect(apply).toHaveBeenLastCalledWith("0".repeat(64), undefined, true);
+      await owner.network.save({
+        config: { version: 1, mode: "direct" },
+        revision: "0".repeat(64),
+      });
+      expect(save).toHaveBeenCalledOnce();
+    } finally {
+      read.mockRestore();
+      save.mockRestore();
+      connection.mockRestore();
+      apply.mockRestore();
+    }
+  });
+
   it("reports model credential store outages as service unavailable", async () => {
     const { deps, actor } = preferencesDeps("robot");
     Object.assign(deps.prisma, {
@@ -1887,6 +1943,16 @@ describe("computer terminal and file transfer", () => {
       scope: { botId: "bot-1", controlLeaseId: "lease-1" },
       target: { hostname: "screen.example", interactive: true },
     });
+  });
+
+  it("returns a recoverable conflict when the terminal's screen lease is busy", async () => {
+    const { sandbox, prisma, call } = setup(controlled);
+    sandbox.connectTerminal.mockRejectedValueOnce(new ComputerScreenUnavailableError());
+    await expect(call("terminalUrl", {})).resolves.toMatchObject({
+      status: 409,
+      body: { json: { code: "CONFLICT", message: COMPUTER_SCREEN_UNAVAILABLE } },
+    });
+    expect(prisma.computer.updateMany).not.toHaveBeenCalled();
   });
 
   it("clears the row when the provider reclaimed the sandbox before the terminal opened", async () => {

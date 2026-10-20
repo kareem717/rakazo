@@ -114,6 +114,19 @@ export class LinuxDesktop {
 
   async connectTerminal(computer: ComputerRef, request: TerminalRequest, context: AdapterContext) {
     const screen = await this.ensure(computer, context);
+    // Taking control grants the backend lease before the screen transport is ready.
+    // A shell may open first, so publish the same fenced control token here too.
+    await this.run(
+      computer,
+      desktopControlCommand(
+        screen.key,
+        context.screenLeaseId,
+        screen.env,
+        true,
+        request.controlToken,
+      ),
+      context,
+    );
     const terminalToken = randomUUID();
     await this.run(
       computer,

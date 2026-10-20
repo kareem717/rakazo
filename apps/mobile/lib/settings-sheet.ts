@@ -12,6 +12,7 @@ const settingsScreens = new Set([
   "integrations",
   "language",
   "models",
+  "network",
   "voice",
 ]);
 

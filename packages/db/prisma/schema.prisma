@@ -299,6 +299,7 @@ model DeploymentSettings {
   defaultModelId                  String?
   deploymentModelCredentialCipher String?
   computerHost                    String?
+  browserDriver                   String   @default("cdp")
   createdAt                       DateTime @default(now())
   updatedAt                       DateTime @updatedAt
 
@@ -423,6 +424,7 @@ model Bot {
   computer          Computer?         @relation(fields: [computerId], references: [id], onDelete: SetNull)
   computerSwitching Boolean           @default(false)
   voiceId           String?
+  voiceProvider     String?
   autoSpeak         Boolean           @default(false)
   modelProvider     String?
   modelId           String?
@@ -471,8 +473,12 @@ model BotSection {
   updatedAt DateTime    @updatedAt
   bots      Bot[]
   groups    ChatGroup[]
+  parentId  String?
+  parent    BotSection? @relation("SectionChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children  BotSection[] @relation("SectionChildren")
 
-  @@unique([spaceId, userId, name])
+  // Root and child sibling-name uniqueness are enforced by partial SQL indexes.
+  @@index([parentId])
   @@index([spaceId, userId, position, createdAt])
   @@map("bot_sections")
 }

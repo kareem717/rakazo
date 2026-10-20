@@ -1,5 +1,10 @@
 import type { Actor, Bot, BotSection, MessageBlock, SpaceBot } from "@rakazo/contracts";
-import { BOT_COLORS, canonicalPiProviderId, InstructionVersionSchema } from "@rakazo/contracts";
+import {
+  BOT_COLORS,
+  canonicalPiProviderId,
+  DEFAULT_COMPUTER_MODE,
+  InstructionVersionSchema,
+} from "@rakazo/contracts";
 import {
   BACKGROUND_RUN_TRIGGERS,
   isBackgroundRunTrigger,
@@ -7,11 +12,11 @@ import {
   ringingCall,
   userVisibleMessages,
 } from "@rakazo/core";
-import type { PrismaClient } from "./client.js";
+import type { Prisma, PrismaClient } from "./client.js";
 import type { ComputerMode } from "./computers.js";
 import { ensureComputerRecord, parseComputerMode } from "./computers.js";
 import { createThreadMessageInTransaction } from "./messages.js";
-import { BotSectionNameConflictError, IsolationError } from "./scope.js";
+import { BotSectionNameConflictError, InvalidSectionParentError, IsolationError } from "./scope.js";
 import { lockSpaceForContentCreation } from "./spaces.js";
 import { activeRunSelection, latestBotRunSelection, previewFromBlocks } from "./thread-listing.js";
 import { withTransactionRetry } from "./transaction-retry.js";
@@ -73,6 +78,7 @@ function mapBot(
     thread: { id: string; unread: boolean } | null;
     computer: { scope: string } | null;
     voiceId?: string | null;
+    voiceProvider?: string | null;
     autoSpeak?: boolean;
     modelProvider?: string | null;
     modelId?: string | null;
@@ -118,6 +124,7 @@ function mapBot(
     createdAt: bot.createdAt.toISOString(),
     updatedAt: updatedAt.toISOString(),
     voiceId: bot.voiceId ?? null,
+    voiceProvider: bot.voiceProvider ?? null,
     autoSpeak: bot.autoSpeak ?? false,
     modelProvider: bot.modelProvider ? canonicalPiProviderId(bot.modelProvider) : null,
     modelId: bot.modelId ?? null,
@@ -136,6 +143,47 @@ export function createRepos(
   prisma: PrismaClient,
   capabilities: { phoneCallsEnabled?: boolean; phoneCallRingSeconds?: number } = {},
 ) {
+  async function requireSectionParent(
+    tx: Prisma.TransactionClient,
+    actor: Actor,
+    parentId: string | null,
+    sectionId?: string,
+  ) {
+    const visited = new Set(sectionId ? [sectionId] : []);
+    let current = parentId;
+    while (current) {
+      if (visited.has(current)) throw new InvalidSectionParentError();
+      visited.add(current);
+      const parent = await tx.botSection.findFirst({
+        where: {
+          id: current,
+          spaceId: actor.spaceId,
+          userId: actor.userId,
+        },
+      });
+      if (!parent) throw new IsolationError();
+      current = parent.parentId;
+    }
+  }
+
+  function sectionDto(section: {
+    id: string;
+    name: string;
+    parentId: string | null;
+    position: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }): BotSection {
+    return {
+      id: section.id,
+      name: section.name,
+      parentId: section.parentId,
+      position: section.position,
+      createdAt: section.createdAt.toISOString(),
+      updatedAt: section.updatedAt.toISOString(),
+    };
+  }
+
   async function listBotSectionsForSpaces(
     actor: Actor,
     spaceIds: string[],
@@ -149,6 +197,7 @@ export function createRepos(
       id: section.id,
       spaceId: section.spaceId,
       name: section.name,
+      parentId: section.parentId,
       position: section.position,
       createdAt: section.createdAt.toISOString(),
       updatedAt: section.updatedAt.toISOString(),
@@ -219,101 +268,80 @@ export function createRepos(
 
     async createBotSection(
       actor: Actor,
-      input: { botId?: string; groupId?: string; name: string },
+      input: { botId?: string; groupId?: string; name: string; parentId?: string | null },
     ) {
-      const { name } = input;
       return prisma.$transaction(async (tx) => {
-        const target = input.botId
-          ? await tx.bot.findFirst({
-              where: {
-                id: input.botId,
-                spaceId: actor.spaceId,
-                userId: actor.userId,
-                archivedAt: null,
-              },
-              select: { id: true },
-            })
-          : await tx.chatGroup.findFirst({
-              where: {
-                id: input.groupId,
-                spaceId: actor.spaceId,
-                userId: actor.userId,
-                archivedAt: null,
-              },
-              select: { id: true },
-            });
-        if (!target) throw new IsolationError();
-
-        const aggregate = await tx.botSection.aggregate({
-          where: { spaceId: actor.spaceId, userId: actor.userId },
-          _max: { position: true },
+        await lockSpaceForContentCreation(tx, actor);
+        const parentId = input.parentId ?? null;
+        await requireSectionParent(tx, actor, parentId);
+        const targetWhere = { spaceId: actor.spaceId, userId: actor.userId, archivedAt: null };
+        if (input.botId && input.groupId) throw new IsolationError();
+        if (
+          input.botId &&
+          !(await tx.bot.findFirst({ where: { ...targetWhere, id: input.botId } }))
+        ) {
+          throw new IsolationError();
+        }
+        if (
+          input.groupId &&
+          !(await tx.chatGroup.findFirst({ where: { ...targetWhere, id: input.groupId } }))
+        ) {
+          throw new IsolationError();
+        }
+        const where = { spaceId: actor.spaceId, userId: actor.userId };
+        const existing = await tx.botSection.findFirst({
+          where: { ...where, name: input.name, parentId },
         });
-        await tx.botSection.createMany({
-          data: {
-            spaceId: actor.spaceId,
-            userId: actor.userId,
-            name,
-            position: (aggregate._max.position ?? -1) + 1,
-          },
-          skipDuplicates: true,
-        });
-        const section = await tx.botSection.findUniqueOrThrow({
-          where: {
-            spaceId_userId_name: {
-              spaceId: actor.spaceId,
-              userId: actor.userId,
-              name,
+        const aggregate = await tx.botSection.aggregate({ where, _max: { position: true } });
+        const section =
+          existing ??
+          (await tx.botSection.create({
+            data: {
+              ...where,
+              name: input.name,
+              parentId,
+              position: (aggregate._max.position ?? -1) + 1,
             },
-          },
-        });
+          }));
         if (input.botId) {
-          await tx.bot.update({ where: { id: target.id }, data: { sectionId: section.id } });
-        } else {
+          await tx.bot.update({ where: { id: input.botId }, data: { sectionId: section.id } });
+        } else if (input.groupId) {
           await tx.chatGroup.update({
-            where: { id: target.id },
+            where: { id: input.groupId },
             data: { sectionId: section.id },
           });
         }
-        return {
-          id: section.id,
-          name: section.name,
-          position: section.position,
-          createdAt: section.createdAt.toISOString(),
-          updatedAt: section.updatedAt.toISOString(),
-        } satisfies BotSection;
+        return sectionDto(section);
       });
     },
 
-    async updateBotSection(actor: Actor, input: { sectionId: string; name: string }) {
-      const existing = await prisma.botSection.findFirst({
-        where: {
-          id: input.sectionId,
-          spaceId: actor.spaceId,
-          userId: actor.userId,
-        },
-      });
-      if (!existing) throw new IsolationError();
-      if (existing.name === input.name) {
-        return {
-          id: existing.id,
-          name: existing.name,
-          position: existing.position,
-          createdAt: existing.createdAt.toISOString(),
-          updatedAt: existing.updatedAt.toISOString(),
-        } satisfies BotSection;
-      }
+    async updateBotSection(
+      actor: Actor,
+      input: { sectionId: string; name?: string; parentId?: string | null },
+    ) {
       try {
-        const section = await prisma.botSection.update({
-          where: { id: existing.id },
-          data: { name: input.name },
+        return await prisma.$transaction(async (tx) => {
+          await lockSpaceForContentCreation(tx, actor);
+          const existing = await tx.botSection.findFirst({
+            where: {
+              id: input.sectionId,
+              spaceId: actor.spaceId,
+              userId: actor.userId,
+            },
+          });
+          if (!existing) throw new IsolationError();
+          if (input.parentId !== undefined) {
+            await requireSectionParent(tx, actor, input.parentId, existing.id);
+          }
+          const section = await tx.botSection.update({
+            where: { id: existing.id },
+            data: {
+              name: input.name,
+              parentId: input.parentId,
+            },
+          });
+          return sectionDto(section);
         });
-        return {
-          id: section.id,
-          name: section.name,
-          position: section.position,
-          createdAt: section.createdAt.toISOString(),
-          updatedAt: section.updatedAt.toISOString(),
-        } satisfies BotSection;
       } catch (error) {
         if (isUniqueViolation(error)) throw new BotSectionNameConflictError();
         throw error;
@@ -323,6 +351,7 @@ export function createRepos(
     /** Delete one of the actor's sections; its bots and groups stay, unsectioned (FK SetNull). */
     async deleteBotSection(actor: Actor, input: { sectionId: string }) {
       return prisma.$transaction(async (tx) => {
+        await lockSpaceForContentCreation(tx, actor);
         // The row lock blocks concurrent moves into this section until the delete commits.
         const locked = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT id
@@ -336,6 +365,27 @@ export function createRepos(
         const where = { sectionId: input.sectionId };
         const releasedBots = await tx.bot.count({ where });
         const releasedGroups = await tx.chatGroup.count({ where });
+        // Promote children to the deleted section's parent. Abort atomically if a
+        // sibling name conflicts; never silently rename or delete a subsection.
+        const section = await tx.botSection.findUniqueOrThrow({ where: { id: input.sectionId } });
+        const children = await tx.botSection.findMany({ where: { parentId: section.id } });
+        for (const child of children) {
+          if (
+            await tx.botSection.findFirst({
+              where: {
+                spaceId: actor.spaceId,
+                userId: actor.userId,
+                parentId: section.parentId,
+                name: child.name,
+              },
+            })
+          )
+            throw new BotSectionNameConflictError();
+          await tx.botSection.update({
+            where: { id: child.id },
+            data: { parentId: section.parentId },
+          });
+        }
         await tx.botSection.delete({ where: { id: input.sectionId } });
         return { id: input.sectionId, releasedBots, releasedGroups };
       });
@@ -585,7 +635,7 @@ export function createRepos(
               ...input.initialMessage,
             });
           }
-          if (input.computerMode === "dedicated") {
+          if ((input.computerMode ?? DEFAULT_COMPUTER_MODE) === "dedicated") {
             const dedicated = await ensureComputerRecord(tx, {
               mode: "dedicated",
               spaceId: actor.spaceId,

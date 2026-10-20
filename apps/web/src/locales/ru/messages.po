@@ -125,7 +125,6 @@ msgid "{count} years"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{days}d ago"
 msgstr "{days} дн. назад"
 
@@ -134,12 +133,10 @@ msgid "{hidden, plural, one {+# earlier step} other {+# earlier steps}}"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{hours}h ago"
 msgstr "{hours} ч назад"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{minutes}m ago"
 msgstr "{minutes} мин назад"
 
@@ -319,10 +316,6 @@ msgstr "Токен доступа (необязательно)"
 msgid "Account"
 msgstr "Аккаунт"
 
-#: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "Учетная запись по умолчанию"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -342,7 +335,7 @@ msgstr "Аккаунты"
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
-#. placeholder {0}: sectionMenu.section.name
+#. placeholder {0}: section.name
 #: src/pages/BotContextMenu.tsx
 #: src/pages/Shell.tsx
 msgid "Actions for {0}"
@@ -635,6 +628,10 @@ msgstr "Заголовок ключа API"
 msgid "API URL"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "App and computer traffic uses the exit node. Local traffic stays direct."
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "Внешний вид"
@@ -642,6 +639,18 @@ msgstr "Внешний вид"
 #: src/components/AskCard.tsx
 msgid "Apply"
 msgstr "Применить"
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply network settings?"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
@@ -651,6 +660,10 @@ msgstr "Границы одобрения"
 #: src/pages/shell/message-cards.tsx
 msgid "Approve"
 msgstr "Утвердить"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Approve this device in Tailscale."
+msgstr ""
 
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
@@ -906,6 +919,18 @@ msgstr "Просмотреть MCP-серверы"
 msgid "Browser"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Browser + tools"
+msgstr ""
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Browser only"
+msgstr ""
+
 #: src/pages/KnowledgeSection.tsx
 msgid "Built-in"
 msgstr "Встроенный"
@@ -943,6 +968,7 @@ msgstr "Не может читать изображения"
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/ComputerUpdateProgress.tsx
 #: src/components/markdown-link-prompt.tsx
+#: src/components/NetworkApplySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/KnowledgeSection.tsx
@@ -1034,6 +1060,10 @@ msgstr "Проверьте наличие обновлений"
 msgid "Check in."
 msgstr "Проверить."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "Проверьте API-ключ или вход и повторите тест."
@@ -1106,6 +1136,14 @@ msgstr "ID клиента"
 #: src/components/integrations/IntegrationSetup.tsx
 msgid "Client secret"
 msgstr "Секрет клиента"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
+msgstr ""
 
 #: src/components/ErrorBoundary.tsx
 #: src/pages/KnowledgeSection.tsx
@@ -1326,6 +1364,10 @@ msgstr "Подключите MCP-сервер «{name}»"
 msgid "Connect OAuth"
 msgstr "Подключить OAuth"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Connect Tailscale"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Connect Treg"
 msgstr "Подключить Treg"
@@ -1359,6 +1401,10 @@ msgstr "Подключено. Его инструменты доступны и�
 msgid "Connecting…"
 msgstr "Подключение…"
 
+#: src/components/NetworkSettings.tsx
+msgid "Connection"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Connection test failed."
 msgstr "Тест соединения не удался."
@@ -1382,6 +1428,10 @@ msgstr "Продолжить"
 msgid "Continue in Background"
 msgstr "Продолжить в фоне"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Continue in Tailscale"
+msgstr ""
+
 #. placeholder {0}: reset.sso.name
 #: src/pages/Auth.tsx
 msgid "Continue with {0}"
@@ -1397,6 +1447,7 @@ msgstr "Продолжить по электронной почте"
 msgid "Copied"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -1407,6 +1458,10 @@ msgstr "Копировать"
 msgid "Copy .env example"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Copy selection"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "Не удалось добавить"
@@ -1414,6 +1469,10 @@ msgstr "Не удалось добавить"
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not add MCP server"
 msgstr "Не удалось добавить сервер MCP."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr ""
 
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
@@ -1476,6 +1535,10 @@ msgstr "Не удалось подключить этого голосового
 #: src/pages/Shell.tsx
 msgid "Could not connect to the computer screen"
 msgstr "Не удалось подключиться к экрану компьютера"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Could not connect to the network gateway"
+msgstr ""
 
 #: src/components/AccountAccess.tsx
 #: src/lib/account-security.ts
@@ -1637,6 +1700,10 @@ msgstr "Не удалось загрузить серверы MCP."
 msgid "Could not load model settings"
 msgstr "Не удалось загрузить настройки модели."
 
+#: src/components/NetworkSettings.tsx
+msgid "Could not load network settings"
+msgstr ""
+
 #: src/pages/RoutineRunHistory.tsx
 msgid "Could not load run history"
 msgstr "Не удалось загрузить историю запусков"
@@ -1670,9 +1737,17 @@ msgstr "Не удалось загрузить статус обновления
 msgid "Could not load voice settings"
 msgstr "Не удалось загрузить голосовые настройки."
 
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
+
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
 msgstr "Не удалось выйти. Попробуйте ещё раз."
+
+#: src/pages/Shell.tsx
+msgid "Could not move section"
+msgstr ""
 
 #: src/pages/BillingSettingsPanel.tsx
 #: src/pages/Paywall.tsx
@@ -1695,9 +1770,17 @@ msgstr "Не удалось открыть терминал"
 msgid "Could not play a test clip"
 msgstr "Не удалось воспроизвести тестовый клип."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not prepare network restart"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "Не удалось связаться с сервером модели."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr ""
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -1773,6 +1856,10 @@ msgstr "Не удалось сохранить группу"
 #: src/pages/Onboarding.tsx
 msgid "Could not save model"
 msgstr "Не удалось сохранить модель"
+
+#: src/components/NetworkSettings.tsx
+msgid "Could not save network settings"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Could not save routine"
@@ -1977,6 +2064,10 @@ msgstr "Поддержка клиентов"
 msgid "Customize bot avatar"
 msgstr "Настроить аватар бота"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "Тёмная"
@@ -2117,6 +2208,10 @@ msgstr "Обновление настольного приложения"
 #: src/pages/Shell.tsx
 msgid "Details"
 msgstr "Подробности"
+
+#: src/components/NetworkSettings.tsx
+msgid "Direct"
+msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
 msgid "Direct MCP"
@@ -2347,6 +2442,10 @@ msgstr "Каждый месяц"
 msgid "Every week"
 msgstr "Каждую неделю"
 
+#: src/components/NetworkSettings.tsx
+msgid "Everything"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Executor token"
 msgstr "Токен Executor"
@@ -2460,6 +2559,10 @@ msgstr "Найти модели"
 msgid "Finding…"
 msgstr "Поиск…"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Finish connecting in Tailscale."
+msgstr ""
+
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -2506,6 +2609,10 @@ msgstr ""
 #. placeholder {0}: filters.dateRange.from
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
 msgstr ""
 
 #: src/pages/WindowChrome.tsx
@@ -2745,8 +2852,8 @@ msgid "Isolated preview — no access to your account"
 msgstr ""
 
 #: src/pages/Shell.tsx
-msgid "Its bots and groups are kept and leave the section."
-msgstr "Боты и группы из него сохранятся и выйдут из раздела."
+msgid "Its chats are kept. Subsections move up one level."
+msgstr ""
 
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
@@ -2761,7 +2868,6 @@ msgid "Jump to replied message: {excerpt}"
 msgstr "Перейти к исходному сообщению: {excerpt}"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "just now"
 msgstr "только что"
 
@@ -3199,6 +3305,7 @@ msgid "Move them to your shared memory."
 msgstr "Переместите их в свою общую память."
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 msgid "Move to"
 msgstr "Переместить в"
 
@@ -3249,6 +3356,14 @@ msgstr "Требуется передача управления"
 msgid "Needs you"
 msgstr "Требуется ваше участие"
 
+#: src/components/NetworkSettings.tsx
+msgid "Network"
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Network settings are managed on the server."
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx
 msgid "New bot"
 msgstr "Новый бот"
@@ -3267,6 +3382,7 @@ msgid "New password"
 msgstr "Новый пароль"
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "New section"
 msgstr "Новый раздел"
@@ -3278,6 +3394,10 @@ msgstr "Новый навык"
 #: src/pages/shell/dialogs.tsx
 msgid "New space"
 msgstr "Новое пространство"
+
+#: src/pages/Shell.tsx
+msgid "New subsection"
+msgstr ""
 
 #: src/pages/Board.tsx
 msgid "New ticket"
@@ -3409,6 +3529,15 @@ msgstr "Нет доступных инструментов."
 msgid "No trigger"
 msgstr "Нет триггера"
 
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/dialogs.tsx
+msgid "None"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
 msgstr "Пока нет"
@@ -3465,6 +3594,10 @@ msgstr "Соединение OAuth не удалось"
 #: src/pages/McpServersOverlay.tsx
 msgid "OAuth expired"
 msgstr "Срок действия OAuth истек"
+
+#: src/components/NetworkSettings.tsx
+msgid "Offline"
+msgstr ""
 
 #: src/pages/RoutineEditor.tsx
 msgid "On a schedule"
@@ -3599,6 +3732,10 @@ msgstr ""
 msgid "PagerDuty incident"
 msgstr "Инцидент PagerDuty"
 
+#: src/pages/shell/dialogs.tsx
+msgid "Parent section"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Park"
 msgstr "Приостановить"
@@ -3628,10 +3765,18 @@ msgstr "Пароли не совпадают"
 msgid "Past due"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "Вставьте запасной ключ"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3849,11 +3994,19 @@ msgstr "Пересоздать неработающий компьютер."
 msgid "Recreating the computer"
 msgstr "Повторное создание компьютера"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
+msgstr ""
+
 #: src/App.tsx
 #: src/components/ErrorBoundary.tsx
 #: src/pages/RoutineRunHistory.tsx
 msgid "Refresh"
 msgstr "Обновить"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Refresh connection"
+msgstr ""
 
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Refresh view"
@@ -3880,6 +4033,7 @@ msgid "Release interrupted computer?"
 msgstr "Освободить прерванный компьютер?"
 
 #: src/components/InstructionSettings.tsx
+#: src/components/NetworkSettings.tsx
 msgid "Reload"
 msgstr "Перезагрузить"
 
@@ -4032,6 +4186,10 @@ msgstr "Сброс…"
 msgid "Resize panel"
 msgstr "Изменить размер панели"
 
+#: src/components/NetworkSettings.tsx
+msgid "Restart required"
+msgstr ""
+
 #: src/components/DesktopUpdates.tsx
 msgid "Restart to update"
 msgstr "Перезапустить для обновления"
@@ -4067,6 +4225,10 @@ msgstr ""
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "Повторить"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Retry connection"
+msgstr ""
 
 #: src/App.tsx
 #: src/pages/PeerMessagesOverlay.tsx
@@ -4124,6 +4286,10 @@ msgstr "Задачи"
 msgid "Routines that run while you're away"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Routing"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "Run at"
 msgstr "Запустить в"
@@ -4157,6 +4323,7 @@ msgid "Runs when this bot receives a verified message from this provider."
 msgstr "Запускается, когда этот бот получает проверенное сообщение от этого провайдера."
 
 #: src/components/AskCard.tsx
+#: src/components/NetworkSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/Board.tsx
 #: src/pages/ExternalConversationSettings.tsx
@@ -4181,6 +4348,14 @@ msgstr ""
 msgid "Save new value"
 msgstr ""
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Save open files first. The app will wait for active work, save and stop computers, then restart."
+msgstr ""
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Save open files first. The workspace will be saved before stopping."
+msgstr ""
+
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "Сохранить рабочее пространство и установить актуальное ПО."
@@ -4202,6 +4377,10 @@ msgstr "Сохранено."
 #: src/pages/RoutineEditor.tsx
 msgid "Saved. Rotate to reveal."
 msgstr "Сохранено. Поверните, чтобы раскрыть."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Saving and stopping computers…"
+msgstr ""
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Saving your workspace"
@@ -4271,6 +4450,14 @@ msgstr "Поиск поставщиков"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4475,14 @@ msgstr "Выберите бота"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "Выберите подключённую модель"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4514,6 +4709,10 @@ msgstr "Slack не включен"
 msgid "Slide up to lock"
 msgstr "Проведите вверх, чтобы закрепить"
 
+#: src/components/NetworkSettings.tsx
+msgid "SOCKS URL"
+msgstr ""
+
 #: src/components/SoftwareUpdateSection.tsx
 msgid "Software update"
 msgstr "Обновление программного обеспечения"
@@ -4535,6 +4734,7 @@ msgstr "Пространство изменилось. Откройте разд
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "Пространство изменилось. Откройте раздел «Модели» снова, чтобы сохранить список резервных моделей."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "Пространство по умолчанию"
@@ -4567,9 +4767,17 @@ msgstr "говорит"
 msgid "Speech model"
 msgstr "Речевая модель"
 
+#: src/components/NetworkSettings.tsx
+msgid "SSH target"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO временно недоступен. Попробуйте снова."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"
@@ -4603,6 +4811,18 @@ msgstr "Шаги"
 msgid "Stop"
 msgstr "Остановить"
 
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stop computer"
+msgstr ""
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stop computer?"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers and restart the deployment to apply."
+msgstr ""
+
 #: src/pages/Shell.tsx
 msgid "Stop speaking"
 msgstr "Остановить озвучивание"
@@ -4615,6 +4835,10 @@ msgstr "Остановить обучение"
 #: src/lib/browser-notifications.ts
 msgid "Stopped."
 msgstr "Остановлено."
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stopping…"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Stored encrypted"
@@ -4659,9 +4883,30 @@ msgstr "Сменить бота"
 msgid "Switching…"
 msgstr "Переключение…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "Системная"
+
+#. placeholder {0}: connection.tailnet
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connected · {0}"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connection is managed on the server."
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Tailscale exit node"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale is not connected."
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Take control"
@@ -4958,6 +5203,7 @@ msgid "Unavailable"
 msgstr "Недоступно"
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "Отменить"
 
@@ -5088,6 +5334,14 @@ msgstr "Использовать рекомендации по умолчани�
 msgid "Use Protected input for passwords."
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Use Tailscale"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Use this model"
 msgstr "Используйте эту модель"
@@ -5133,11 +5387,16 @@ msgstr ""
 msgid "View chat"
 msgstr "Открыть чат"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "Голос"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

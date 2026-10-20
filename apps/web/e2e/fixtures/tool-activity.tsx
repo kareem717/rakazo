@@ -1,7 +1,9 @@
 import { I18nProvider } from "@lingui/react";
 import type { MessageBlock } from "@rakazo/contracts";
+import { reduceLiveMessageBlocks } from "@rakazo/core";
 import { useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
+import { Reasoning } from "../../src/components/ai/Reasoning";
 import {
   StandaloneToolActivity,
   ToolOnlyNarration,
@@ -42,10 +44,29 @@ const stepsBlock: MessageBlock = {
   ...(live ? {} : { durationMs: 12_400 }),
 };
 
+const eventBlocks = reduceLiveMessageBlocks(
+  reduceLiveMessageBlocks([], {
+    type: "progress",
+    payload: { text: "Opening page: https://example.test", activity: true },
+  }),
+  { type: "tool", name: "browser_navigate" },
+);
+
 // A live run that has only called tools so far, or the finished reply with its tool card.
-const botBlocks: MessageBlock[] = live
-  ? [stepsBlock]
-  : [stepsBlock, { kind: "text", text: REPLY_TEXT }];
+const botBlocks: MessageBlock[] = params.has("reasoning")
+  ? [
+      {
+        kind: "progress",
+        text: "Check the available tools before reading the calendar.",
+        reasoning: true,
+      },
+      stepsBlock,
+    ]
+  : params.get("events") === "unpunctuated"
+    ? eventBlocks
+    : live
+      ? [stepsBlock]
+      : [stepsBlock, { kind: "text", text: REPLY_TEXT }];
 
 function BotMessage({ blocks }: { blocks: MessageBlock[] }) {
   const showToolActivity = useSyncExternalStore(subscribeToolActivity, getToolActivityEnabled);
@@ -57,6 +78,8 @@ function BotMessage({ blocks }: { blocks: MessageBlock[] }) {
   return (
     <>
       {visible.map((block, i) => {
+        if (block.kind === "progress" && block.reasoning)
+          return <Reasoning key={i} text={block.text} />;
         if (block.kind === "steps") {
           return (
             <StandaloneToolActivity

@@ -1,6 +1,7 @@
 import * as z from "zod";
 import { AGENT_SECRET_NAME_PATTERN } from "./agent-secret-name.js";
 import { BotAvatarValueSchema } from "./bot-avatar.js";
+import { BrowserDriverSchema } from "./browser-driver.js";
 import { DisabledBuiltinToolsSchema } from "./builtin-tools.js";
 import {
   CLOUDFLARE_AI_GATEWAY_CONFIG_MESSAGE,
@@ -15,6 +16,7 @@ import { RunTriggerSchema } from "./runs.js";
 
 export const ComputerModeSchema = z.enum(["team", "dedicated"]);
 export type ComputerMode = z.infer<typeof ComputerModeSchema>;
+export const DEFAULT_COMPUTER_MODE: ComputerMode = "dedicated";
 
 export const MemoryScopeSchema = z.enum(["isolated", "shared"]);
 export type MemoryScopeValue = z.infer<typeof MemoryScopeSchema>;
@@ -99,6 +101,7 @@ export const BotSchema = z.object({
   updatedAt: z.string(),
   createdAt: z.string(),
   voiceId: z.string().nullable(),
+  voiceProvider: z.string().nullable().optional(),
   autoSpeak: z.boolean(),
   modelProvider: z.string().nullable(),
   modelId: z.string().nullable(),
@@ -200,6 +203,7 @@ export const BotSectionName = z.string().trim().min(1).max(60);
 
 export const BotSectionSchema = z.object({
   id: Id,
+  parentId: Id.nullable().optional(),
   name: z.string(),
   position: z.number().int().nonnegative(),
   createdAt: z.string(),
@@ -351,7 +355,7 @@ export const CreateBotInput = z.object({
   instructions: z.string().max(BOT_INSTRUCTIONS_MAX_LENGTH).default(""),
   notifyOnFinish: z.boolean().default(true),
   color: BotAvatarValueSchema.optional(),
-  computerMode: ComputerModeSchema.default("team"),
+  computerMode: ComputerModeSchema.default(DEFAULT_COMPUTER_MODE),
   /** Idempotency key within a space (unique with spaceId). */
   spawnKey: z.string().trim().min(1).max(120).optional(),
 });
@@ -384,6 +388,7 @@ export const UpdateBotInput = z
     memoryScope: MemoryScopeSchema.nullable().optional(),
     sectionId: Id.nullable().optional(),
     voiceId: z.string().max(120).nullable().optional(),
+    voiceProvider: z.string().trim().min(1).max(80).nullable().optional(),
     autoSpeak: z.boolean().optional(),
     modelProvider: z.string().trim().min(1).max(80).nullable().optional(),
     modelId: z.string().trim().min(1).max(200).nullable().optional(),
@@ -1310,6 +1315,7 @@ export const VoiceStatusSchema = z.object({
 export type VoiceStatus = z.infer<typeof VoiceStatusSchema>;
 
 export const DeploymentSettingsSchema = z.object({
+  browserDriver: BrowserDriverSchema.default("cdp"),
   ownerUserId: Id.nullable(),
   signupsEnabled: z.boolean(),
   signupAllowlist: z.array(z.string()),

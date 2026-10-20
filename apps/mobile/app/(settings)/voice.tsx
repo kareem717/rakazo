@@ -3,8 +3,9 @@ import {
   DEFAULT_COMPATIBLE_TTS_MODEL,
   OPENAI_COMPATIBLE_PROVIDER_ID,
 } from "@rakazo/contracts";
+import { voiceChoices } from "@rakazo/core";
 import { useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -63,6 +64,7 @@ export default function VoiceSettings() {
   const [credentials, setCredentials] = useState<VoiceCredential[]>([]);
   const [status, setStatus] = useState<VoiceStatus | null>(null);
   const [voices, setVoices] = useState<VoiceInfo[]>([]);
+  const [voiceQuery, setVoiceQuery] = useState("");
   const [provider, setProvider] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [voiceId, setVoiceId] = useState("");
@@ -85,6 +87,27 @@ export default function VoiceSettings() {
   const [error, setError] = useState<string | null>(null);
   const deviceVoiceRevision = useRef(0);
   const deviceVoiceSaveInFlight = useRef(false);
+
+  useEffect(() => {
+    if (!voiceQuery.trim() || !provider) return;
+    let current = true;
+    const timeout = setTimeout(() => {
+      void rpc<VoiceInfo[]>("voice/voices", { provider, query: voiceQuery.trim() })
+        .then((listed) => {
+          if (current) setVoices(listed);
+        })
+        .catch((err: unknown) => {
+          if (current) {
+            setVoices([]);
+            setError(errorText(err, t("Could not load voices")));
+          }
+        });
+    }, 300);
+    return () => {
+      current = false;
+      clearTimeout(timeout);
+    };
+  }, [provider, voiceQuery, t]);
 
   const load = useCallback(async (nextProvider?: string) => {
     const [nextCatalog, nextCredentials, nextStatus] = await Promise.all([
@@ -217,6 +240,7 @@ export default function VoiceSettings() {
     try {
       if (wasDeviceVoice && !(await saveDeviceVoice(false))) return;
       setProvider(nextProvider);
+      setVoiceQuery("");
       const cred = credentials.find((entry) => entry.provider === nextProvider);
       if (cred?.voiceId && status?.provider !== nextProvider) {
         try {
@@ -513,9 +537,29 @@ export default function VoiceSettings() {
                 />
               </>
             ) : null}
-            {voices.length ? (
+            {credential ? (
+              <TextInput
+                accessibilityLabel={t("Search voices")}
+                value={voiceQuery}
+                onChangeText={(value) => {
+                  setVoiceQuery(value);
+                  if (!value.trim())
+                    void load(provider).catch((err: unknown) =>
+                      setError(errorText(err, t("Could not load voices"))),
+                    );
+                }}
+                placeholder={t("Search voices or paste a voice link")}
+                autoCapitalize="none"
+                autoCorrect={false}
+                maxLength={2048}
+                style={styles.input}
+                placeholderTextColor={native.tertiaryLabel}
+                editable={pending === null}
+              />
+            ) : null}
+            {voices.length || voiceId ? (
               <View style={[styles.group, styles.voices]}>
-                {voices.map((voice, index) => (
+                {voiceChoices(voices, voiceId).map((voice, index) => (
                   <Pressable
                     key={voice.id}
                     accessibilityRole="button"

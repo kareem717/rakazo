@@ -63,6 +63,7 @@ import {
   runThreadSubscription,
   SLASH_ACTIONS,
   searchHitThreadTarget,
+  sectionDestinations,
   serializeComposerPrompt,
   speechFromBlocks,
   timeSeparatorIds,
@@ -78,6 +79,9 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
   GroupAvatar,
   InputGroup,
@@ -142,6 +146,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
 import { ActiveBotGlyph, CollaborationMarker } from "../components/ai/CollaborationMarker";
+import { Reasoning } from "../components/ai/Reasoning";
 import { CloudAgentCard } from "../components/CloudAgentCard";
 import { ComputerMaintenanceActions } from "../components/ComputerMaintenanceActions";
 import {
@@ -158,6 +163,7 @@ import {
   useHoldToTalk,
 } from "../components/composer/HoldToTalk";
 import { ComputerWorkspace } from "../components/computer/ComputerWorkspace";
+import { ScreenFrame } from "../components/computer/ScreenFrame";
 import { lazyOverlay } from "../components/ErrorBoundary";
 import { MessageHoverMetadata } from "../components/MessageHoverMetadata";
 import {
@@ -328,7 +334,7 @@ import {
   McpApprovalCard,
 } from "./shell/message-cards";
 import type { RosterDropTarget } from "./shell/roster-drop";
-import { resolveRosterDrop } from "./shell/roster-drop";
+import { canDropSection, resolveRosterDrop } from "./shell/roster-drop";
 import { commitSpaceRename, sidebarGroupsForSpaces } from "./shell/space-sidebar";
 import { WindowChrome } from "./WindowChrome";
 
@@ -484,6 +490,9 @@ function SpaceShell() {
   const botOrderEpochRef = useRef(0);
   const pendingBotOrderRef = useRef<string[] | null>(null);
   const savingBotOrderRef = useRef(false);
+  const [draggedSection, setDraggedSection] = useState<{ id: string; spaceId: string } | null>(
+    null,
+  );
   const [botSections, setBotSections] = useState<BotSection[]>([]);
   const [spaces, setSpaces] = useState<Space[]>([]);
   const [archivedBots, setArchivedBots] = useState<Bot[]>([]);
@@ -648,9 +657,10 @@ function SpaceShell() {
   const memoryProviderConfigRevision = useRef(0);
   const call = useCallSession();
   /** Calls a bot, or opens voice settings first when no voice is connected. */
-  const callBot = (bot: Bot) => {
+  const callBot = async (bot: Bot) => {
     if (!bootstrapMe?.phoneCallsEnabled) return;
-    if (!voiceStatus?.ready) {
+    const status = await rpc.voice.status({ botId: bot.id }).catch(() => null);
+    if (!status?.ready) {
       openSettings("voice");
       return;
     }
@@ -658,7 +668,7 @@ function SpaceShell() {
       botId: bot.id,
       botName: bot.name,
       botColor: bot.color,
-      transcribe: voiceStatus ? Boolean(voiceStatus.transcribe) : undefined,
+      transcribe: status.transcribe,
     });
   };
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus | null>(null);
@@ -732,7 +742,10 @@ function SpaceShell() {
     { kind: "bot"; chat: Bot } | { kind: "group"; chat: Group } | null
   >(null);
   const [newSectionTarget, setNewSectionTarget] = useState<
-    { kind: "bot"; chat: Bot } | { kind: "group"; chat: Group } | null
+    | { kind: "bot"; chat: Bot }
+    | { kind: "group"; chat: Group }
+    | { kind: "section"; parentId: string | null; spaceId: string }
+    | null
   >(null);
   const [renameSectionTarget, setRenameSectionTarget] = useState<{
     section: BotSection;
@@ -1214,7 +1227,7 @@ function SpaceShell() {
     return snap;
   }
 
-  async function refreshComputerScreen(id: string) {
+  async function refreshComputerScreen(id: string, recovering = false) {
     if (!computerVisible.current) return null;
     const request = ++screenRequest.current;
     return loadComputerScreen({
@@ -1224,6 +1237,7 @@ function SpaceShell() {
         (activeBotId.current === id || computerBotIdRef.current === id) &&
         computerVisible.current,
       commit: (screen) => {
+        if (recovering && screen.error) return;
         setScreenUrl(screen.url);
         setComputerError(screen.error);
         setComputerErrorFromScreen(Boolean(screen.error));
@@ -1405,10 +1419,19 @@ function SpaceShell() {
   }, []);
 
   useEffect(() => {
+    let current = true;
     void rpc.voice
-      .status()
-      .then(setVoiceStatus)
+      .status({ botId: active?.id })
+      .then((status) => {
+        if (current) setVoiceStatus(status);
+      })
       .catch(() => undefined);
+    return () => {
+      current = false;
+    };
+  }, [active?.id, active?.voiceId, active?.voiceProvider]);
+
+  useEffect(() => {
     const unsubSpeech = speaker.subscribe((state) => {
       setSpeakingMessageId(state.status === "idle" ? null : (state.messageId ?? null));
     });
@@ -3226,7 +3249,10 @@ function SpaceShell() {
                 />
               ) : null}
               {sidebarGroups.map((group) => {
-                const collapsed = Boolean(group.title) && collapsedSidebarSections.has(group.key);
+                if (group.ancestorKeys.some((key) => collapsedSidebarSections.has(key)) && !query)
+                  return null;
+                const collapsed =
+                  !query && Boolean(group.title) && collapsedSidebarSections.has(group.key);
                 const groupBotIds = group.bots.flatMap((item) =>
                   item.kind === "bot" ? [item.chat.id] : [],
                 );
@@ -3241,27 +3267,57 @@ function SpaceShell() {
                     row.item.kind === "bot" && row.parentId === parentId ? [row.item.chat.id] : [],
                   );
                 const hasSpaceActions = group.canOpenSpaceSettings;
+                const section = (
+                  group.spaceId === bootstrapMe?.spaceId
+                    ? botSections
+                    : (spaces.find((space) => space.id === group.spaceId)?.botSections ?? [])
+                ).find((item) => item.id === group.sectionId);
+                const hasHeaderActions = hasSpaceActions || Boolean(section);
+                const canMoveSectionHere =
+                  draggedSection &&
+                  (group.sectionId ||
+                    group.canOpenSpaceSettings ||
+                    group.key.endsWith("unassigned")) &&
+                  canDropSection({
+                    sectionId: draggedSection.id,
+                    sourceSpaceId: draggedSection.spaceId,
+                    targetSpaceId: group.spaceId,
+                    parentId: group.sectionId,
+                    sections:
+                      group.spaceId === bootstrapMe?.spaceId
+                        ? botSections
+                        : (spaces.find((space) => space.id === group.spaceId)?.botSections ?? []),
+                  });
                 const headerDropTarget: RosterDropTarget | null =
                   group.spaceId === bootstrapMe?.spaceId &&
                   !group.emptySpaceId &&
-                  (group.sectionId || group.key.endsWith("unassigned"))
+                  (group.sectionId ||
+                    group.canOpenSpaceSettings ||
+                    group.key.endsWith("unassigned"))
                     ? { kind: "section", sectionId: group.sectionId }
                     : null;
                 const headerDropKey = `header:${group.key}`;
                 return (
-                  <div key={group.key} data-sidebar-group={group.key}>
+                  <div
+                    key={group.key}
+                    data-sidebar-group={group.key}
+                    style={group.depth ? { marginInlineStart: group.depth * 14 } : undefined}
+                  >
                     {group.title || hasSpaceActions ? (
                       // biome-ignore lint/a11y/useSemanticElements: groups sidebar controls, not form fields; Move to remains the keyboard alternative.
                       <div
                         role="group"
                         data-roster-drop={rosterDropKey === headerDropKey ? "true" : undefined}
                         className={`${
-                          group.title && hasSpaceActions
+                          group.title && hasHeaderActions
                             ? "grid pt-3 pb-0.5"
                             : `flex items-center pt-3 pb-0.5${group.title ? "" : " justify-end"}`
                         } rounded-lg ${rosterDropKey === headerDropKey ? "bg-sidebar-accent" : ""}`}
                         onDragOver={(event) => {
-                          if (!headerDropTarget || !rosterDropAction(headerDropTarget, false))
+                          if (
+                            !canMoveSectionHere &&
+                            (!headerDropTarget || !rosterDropAction(headerDropTarget, false))
+                          )
                             return;
                           event.preventDefault();
                           event.dataTransfer.dropEffect = "move";
@@ -3271,6 +3327,21 @@ function SpaceShell() {
                           if (rosterDropKey === headerDropKey) setRosterDropKey(null);
                         }}
                         onDrop={(event) => {
+                          if (canMoveSectionHere && draggedSection) {
+                            event.preventDefault();
+                            void rpc.botSections
+                              .update(
+                                { sectionId: draggedSection.id, parentId: group.sectionId },
+                                { context: { spaceId: group.spaceId } },
+                              )
+                              .then(() => refreshBots())
+                              .catch((error) =>
+                                setSendError(errorText(error, t`Could not move section`)),
+                              );
+                            setDraggedSection(null);
+                            setRosterDropKey(null);
+                            return;
+                          }
                           if (!headerDropTarget) return;
                           event.preventDefault();
                           applyRosterDrop(headerDropTarget, false, groupBotIds);
@@ -3279,7 +3350,20 @@ function SpaceShell() {
                         {group.title ? (
                           <button
                             type="button"
-                            className={`flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/60 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${hasSpaceActions ? "col-start-1 row-start-1 w-full pe-8" : "flex-1"}`}
+                            draggable={Boolean(section)}
+                            data-sidebar-section-id={section?.id}
+                            onDragStart={(event) => {
+                              if (!section) return;
+                              setDraggedBotId(null);
+                              setDraggedSection({ id: section.id, spaceId: group.spaceId });
+                              event.dataTransfer.effectAllowed = "move";
+                              event.dataTransfer.setData("text/plain", section.id);
+                            }}
+                            onDragEnd={() => {
+                              setDraggedSection(null);
+                              setRosterDropKey(null);
+                            }}
+                            className={`flex min-w-0 items-center justify-between gap-2 rounded-lg px-2.5 py-1 text-[11px] font-semibold tracking-wider uppercase text-muted-foreground/60 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring ${hasHeaderActions ? "col-start-1 row-start-1 w-full pe-8" : "flex-1"}`}
                             onClick={() => {
                               if (group.emptySpaceId) {
                                 openSpaceChat(group.emptySpaceId, "/onboarding");
@@ -3349,7 +3433,7 @@ function SpaceShell() {
                             )}
                           </button>
                         ) : null}
-                        {hasSpaceActions ? (
+                        {hasHeaderActions ? (
                           <Button
                             variant="ghost"
                             size="icon-sm"
@@ -3358,9 +3442,22 @@ function SpaceShell() {
                                 ? "col-start-1 row-start-1 justify-self-end self-center"
                                 : undefined
                             }
-                            aria-label={t`Actions for ${group.spaceName}`}
+                            aria-label={
+                              section
+                                ? t`Actions for ${section.name}`
+                                : t`Actions for ${group.spaceName}`
+                            }
                             onClick={(event) => {
                               const rect = event.currentTarget.getBoundingClientRect();
+                              if (section) {
+                                sectionMenuAnchor.current = event.currentTarget;
+                                setSectionMenu({
+                                  section,
+                                  spaceId: group.spaceId,
+                                  position: { x: rect.left, y: rect.bottom },
+                                });
+                                return;
+                              }
                               spaceMenuAnchor.current = event.currentTarget;
                               setSpaceMenu({
                                 id: group.spaceId,
@@ -3472,6 +3569,7 @@ function SpaceShell() {
                               }
                               onDragStart={(event) => {
                                 if (item.kind !== "bot") return;
+                                setDraggedSection(null);
                                 setDraggedBotId(item.chat.id);
                                 event.dataTransfer.effectAllowed = "move";
                                 event.dataTransfer.setData("text/plain", item.chat.id);
@@ -4185,7 +4283,9 @@ function SpaceShell() {
                   ) : computer?.kind === "desktop" ? (
                     <DesktopKindEmptyState className="grid h-full place-items-center px-6 text-center text-sm text-muted-foreground/80" />
                   ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
-                    <iframe
+                    <ScreenFrame
+                      key={active.id}
+                      onReconnect={() => refreshComputerScreen(active.id, true)}
                       title={t`Bot screen preview`}
                       src={embeddedScreenUrl}
                       sandbox={screenIframeSandbox(embeddedScreenUrl)}
@@ -4671,6 +4771,18 @@ function SpaceShell() {
               {spaceMenuTarget ? (
                 <DropdownMenuItem
                   onClick={() => {
+                    setNewSectionTarget({
+                      kind: "section",
+                      parentId: null,
+                      spaceId: spaceMenuTarget.id,
+                    });
+                    setSpaceMenu(null);
+                  }}
+                >{t`New section`}</DropdownMenuItem>
+              ) : null}
+              {spaceMenuTarget ? (
+                <DropdownMenuItem
+                  onClick={() => {
                     setSpaceMenu(null);
                     openSpaceSettings(spaceMenuTarget.id);
                   }}
@@ -4784,13 +4896,29 @@ function SpaceShell() {
 
         {newSectionTarget ? (
           <NewBotSectionDialog
-            bot={newSectionTarget.chat}
+            bot={newSectionTarget.kind === "section" ? undefined : newSectionTarget.chat}
+            sections={
+              newSectionTarget.kind === "section" &&
+              newSectionTarget.spaceId !== bootstrapMe?.spaceId
+                ? spaces.find((space) => space.id === newSectionTarget.spaceId)?.botSections
+                : botSections
+            }
+            defaultParentId={newSectionTarget.kind === "section" ? newSectionTarget.parentId : null}
             onCancel={() => setNewSectionTarget(null)}
-            onConfirm={async (name) => {
+            onConfirm={async (name, parentId) => {
               await rpc.botSections.create(
-                newSectionTarget.kind === "bot"
-                  ? { botId: newSectionTarget.chat.id, name }
-                  : { groupId: newSectionTarget.chat.id, name },
+                {
+                  name,
+                  parentId,
+                  ...(newSectionTarget.kind === "bot"
+                    ? { botId: newSectionTarget.chat.id }
+                    : newSectionTarget.kind === "group"
+                      ? { groupId: newSectionTarget.chat.id }
+                      : {}),
+                },
+                newSectionTarget.kind === "section"
+                  ? { context: { spaceId: newSectionTarget.spaceId } }
+                  : undefined,
               );
               setNewSectionTarget(null);
               await refreshBots();
@@ -4820,7 +4948,7 @@ function SpaceShell() {
           <DeleteItemDialog
             item={deleteSectionTarget.section}
             noun="section"
-            description={<Trans>Its bots and groups are kept and leave the section.</Trans>}
+            description={<Trans>Its chats are kept. Subsections move up one level.</Trans>}
             onCancel={() => setDeleteSectionTarget(null)}
             onConfirm={async () => {
               await rpc.botSections.remove(
@@ -4857,6 +4985,50 @@ function SpaceShell() {
               sideOffset={0}
               className="w-[220px]"
             >
+              <DropdownMenuItem
+                onClick={() => {
+                  setNewSectionTarget({
+                    kind: "section",
+                    parentId: sectionMenu.section.id,
+                    spaceId: sectionMenu.spaceId,
+                  });
+                  setSectionMenu(null);
+                }}
+              >{t`New subsection`}</DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>{t`Move to`}</DropdownMenuSubTrigger>
+                <DropdownMenuSubContent className="max-h-[min(420px,calc(100vh-16px))] overflow-y-auto">
+                  {[
+                    { id: null, path: t`None` },
+                    ...sectionDestinations(
+                      sectionMenu.spaceId === bootstrapMe?.spaceId
+                        ? botSections
+                        : (spaces.find((space) => space.id === sectionMenu.spaceId)?.botSections ??
+                            []),
+                      sectionMenu.section.id,
+                    ),
+                  ].map((destination) => (
+                    <DropdownMenuItem
+                      key={destination.id ?? "root"}
+                      disabled={destination.id === (sectionMenu.section.parentId ?? null)}
+                      onClick={() => {
+                        void rpc.botSections
+                          .update(
+                            { sectionId: sectionMenu.section.id, parentId: destination.id },
+                            { context: { spaceId: sectionMenu.spaceId } },
+                          )
+                          .then(() => refreshBots())
+                          .catch((error) =>
+                            setSendError(errorText(error, t`Could not move section`)),
+                          );
+                        setSectionMenu(null);
+                      }}
+                    >
+                      {destination.path}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuItem
                 onClick={() => {
                   setRenameSectionTarget({
@@ -5020,7 +5192,10 @@ function SpaceShell() {
             onVoiceStatusMaybeChanged={async () => {
               try {
                 setVoiceStatus(
-                  await Promise.race([rpc.voice.status(), voiceStatusRefreshTimeout()]),
+                  await Promise.race([
+                    rpc.voice.status({ botId: active?.id }),
+                    voiceStatusRefreshTimeout(),
+                  ]),
                 );
               } catch {
                 // Prefer reopening Voice settings over starting a call with stale readiness.
@@ -5192,7 +5367,10 @@ function SpaceShell() {
                   <DesktopKindEmptyState className="grid h-full place-items-center px-8 text-center text-sm text-muted-foreground/80" />
                 ) : computer?.state === "running" && embeddedScreenUrl && !computerScreenError ? (
                   <>
-                    <iframe
+                    <ScreenFrame
+                      key={computerBot.id}
+                      interactive={hasControl && !recordingSkill}
+                      onReconnect={() => refreshComputerScreen(computerBot.id, true)}
                       title={t`Bot screen`}
                       src={embeddedScreenUrl}
                       sandbox={screenIframeSandbox(embeddedScreenUrl)}
@@ -7210,6 +7388,9 @@ const MessageView = memo(function MessageView({
                     />
                   </ToolActivityDisclosure>
                 );
+              }
+              if (block.kind === "progress" && block.reasoning) {
+                return <Reasoning key={i} text={block.text} />;
               }
               if (block.kind === "text" || block.kind === "progress") {
                 return (

@@ -1,4 +1,12 @@
 import type { ComputerMode, ComputerReleaseReason } from "@rakazo/contracts";
+import type { ScreenControlCommand, ScreenControlEvent } from "@rakazo/core";
+import {
+  createScreenRecovery,
+  screenConnectionState,
+  screenControlEvent,
+  screenControlScript,
+} from "@rakazo/core";
+import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useNavigation } from "expo-router";
 import type { RefObject } from "react";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -19,6 +27,7 @@ import {
 } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import { ComputerKeyboardBar } from "../components/computer-keyboard-bar";
+import { ComputerClipboardMenu } from "../components/computer-clipboard-menu";
 import { ComputerMaintenanceActions } from "../components/computer-maintenance-actions";
 import { ComputerModePicker } from "../components/computer-mode-picker";
 import { GlassIconButton } from "../components/glass-icon-button";
@@ -60,6 +69,8 @@ export default function Computer() {
   const stacked = stacksAtTextScale(useWindowDimensions().fontScale);
   const { botId, name: nameParam } = useLocalSearchParams<{ botId?: string; name?: string }>();
   const name = nameParam || t("Bot");
+  const screenTarget = useRef(botId);
+  screenTarget.current = botId;
   const [computer, setComputer] = useState<ComputerStatus | null>(null);
   const [screenUrl, setScreenUrl] = useState<string | null>(null);
   const [screenError, setScreenError] = useState<string | null>(null);
@@ -81,6 +92,10 @@ export default function Computer() {
   // Bumped to load the screen page again after the app returns from the background or the
   // WebView loses its renderer; either can leave the stream black until it reconnects.
   const [screenReload, setScreenReload] = useState(0);
+  const [screenConnectionRevision, setScreenConnectionRevision] = useState(0);
+  const [controlsReady, setControlsReady] = useState(false);
+  const clipboardCopyUntil = useRef(0);
+  const [clipboardSync, setClipboardSync] = useState(false);
 
   const embeddedScreenUrl = embeddableScreenUrl(screenUrl, currentApiBase());
   useEffect(() => setScreenError(null), [embeddedScreenUrl]);
@@ -96,7 +111,30 @@ export default function Computer() {
   heldScreenUrl.current = loadedScreenUrl;
   // The gate follows the page the WebView actually loaded. A capability refresh that
   // does not reload that page must not open a session the bridge will never acknowledge.
-  const keyboardSurfaceKey = `${computerOpen}:${hasControl}:${screenReload}:${loadedScreenUrl ?? ""}`;
+  const keyboardSurfaceKey = `${computerOpen}:${hasControl}:${screenReload}:${screenConnectionRevision}:${loadedScreenUrl ?? ""}`;
+  const controlPermission = useRef({ key: keyboardSurfaceKey, hasControl, sync: clipboardSync });
+  controlPermission.current = { key: keyboardSurfaceKey, hasControl, sync: clipboardSync };
+  useEffect(() => {
+    setControlsReady(false);
+    clipboardCopyUntil.current = 0;
+    setClipboardSync(false);
+  }, [keyboardSurfaceKey]);
+  function sendScreenControl(command: ScreenControlCommand) {
+    const permission = controlPermission.current;
+    if (!permission.hasControl || permission.key !== keyboardSurfaceKey) return;
+    if (command.request === "shortcut" && (command.key === "c" || command.key === "x"))
+      clipboardCopyUntil.current = Date.now() + 5_000;
+    screenWebViewRef.current?.injectJavaScript(screenControlScript(command));
+  }
+  function receiveScreenControl(event: ScreenControlEvent) {
+    const permission = controlPermission.current;
+    if (!permission.hasControl || permission.key !== keyboardSurfaceKey) return;
+    if (event.type === "ready") setControlsReady(true);
+    if (event.type === "clipboard") {
+      if (permission.sync || clipboardCopyUntil.current > Date.now())
+        void Clipboard.setStringAsync(event.text).catch(() => setClipboardSync(false));
+    }
+  }
   if (keyboardGate.current.key !== keyboardSurfaceKey) {
     keyboardGate.current = {
       key: keyboardSurfaceKey,
@@ -214,6 +252,19 @@ export default function Computer() {
     setScreenReload((count) => count + 1);
   }, [refresh]);
 
+  const recoverScreen = useCallback(async () => {
+    const { url } = await rpc<{ url: string | null }>("computer/screenUrl", { botId });
+    if (screenTarget.current !== botId || !refreshController.isActive()) return null;
+    const source = embeddableScreenUrl(url, currentApiBase());
+    if (source) {
+      heldScreenUrl.current = null;
+      setScreenUrl(url);
+      setScreenError(null);
+      setScreenConnectionRevision((value) => value + 1);
+    }
+    return source;
+  }, [botId, refreshController]);
+
   useEffect(() => {
     if (!computerOpen) return;
     let backgrounded = false;
@@ -328,12 +379,9 @@ export default function Computer() {
             key={screenReload}
             url={embeddedScreenUrl}
             interactive={false}
-            onRendererLost={() => void reloadScreen()}
+            onReconnect={recoverScreen}
             onError={() => {
               refreshController.invalidateScreen();
-              setScreenError(
-                t("Could not load the desktop. This device cannot reach the screen URL."),
-              );
             }}
           />
         ) : (
@@ -502,6 +550,13 @@ export default function Computer() {
                   ) : null}
                 </View>
                 <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                  {hasControl && controlsReady ? (
+                    <ComputerClipboardMenu
+                      sync={clipboardSync}
+                      onSync={setClipboardSync}
+                      onCommand={sendScreenControl}
+                    />
+                  ) : null}
                   {hasControl ? (
                     <ComputerReleaseActions
                       takeoverRequested={computer?.takeoverRequested ?? false}
@@ -536,20 +591,18 @@ export default function Computer() {
                     key={screenReload}
                     url={loadedScreenUrl}
                     interactive={hasControl}
+                    onReconnect={recoverScreen}
                     nativeKeyboard={hasControl}
                     keyboardSession={keyboardSession}
                     webViewRef={screenWebViewRef}
+                    onControlEvent={receiveScreenControl}
                     onKeyboardMessage={(data) => {
                       const gate = keyboardGate.current;
                       if (!isComputerKeyboardReadyMessage(data, String(gate.session))) return;
                       injectKeyboardCommands(gate.bridge.ready());
                     }}
-                    onRendererLost={() => void reloadScreen()}
                     onError={() => {
                       refreshController.invalidateScreen();
-                      setScreenError(
-                        t("Could not load the desktop. This device cannot reach the screen URL."),
-                      );
                     }}
                   />
                 ) : (
@@ -615,8 +668,9 @@ function ScreenWebView({
   keyboardSession,
   webViewRef,
   onKeyboardMessage,
-  onRendererLost,
   onError,
+  onReconnect,
+  onControlEvent,
 }: {
   url: string;
   interactive: boolean;
@@ -624,18 +678,44 @@ function ScreenWebView({
   keyboardSession?: string;
   webViewRef?: RefObject<WebView | null>;
   onKeyboardMessage?: (data: string) => void;
-  onRendererLost?: () => void;
   onError: () => void;
+  onReconnect: () => Promise<string | null>;
+  onControlEvent?: (event: ScreenControlEvent) => void;
 }) {
   const tokens = useMobileTokens();
   const sourceUrl = useRef(url);
   sourceUrl.current = retainScreenSource(sourceUrl.current, url);
+  const [revision, setRevision] = useState(0);
+  const reconnect = useRef(onReconnect);
+  reconnect.current = onReconnect;
+  const recovery = useRef<ReturnType<typeof createScreenRecovery> | null>(null);
+  useEffect(() => {
+    let active = true;
+    const controller = createScreenRecovery(async () => {
+      const next = await reconnect.current();
+      if (!next) throw new Error("Screen unavailable");
+      if (active) {
+        sourceUrl.current = next;
+        setRevision((value) => value + 1);
+      }
+    });
+    recovery.current = controller;
+    controller.url(sourceUrl.current);
+    return () => {
+      active = false;
+      controller.dispose();
+    };
+  }, []);
+  useEffect(() => {
+    recovery.current?.url(sourceUrl.current);
+  }, [url, revision]);
+
   return (
     <WebView
       ref={webViewRef}
       // Reload when control enables the native keyboard. The boot script only
       // runs on load, and a view-only page never attaches the key bridge.
-      key={`${nativeKeyboard ? "keys" : "view"}:${sourceUrl.current}`}
+      key={`${nativeKeyboard ? "keys" : "view"}:${revision}:${sourceUrl.current}`}
       source={{ uri: sourceUrl.current }}
       injectedJavaScriptBeforeContentLoaded={
         nativeKeyboard ? NATIVE_COMPUTER_KEYBOARD_BOOT : undefined
@@ -643,13 +723,23 @@ function ScreenWebView({
       injectedJavaScript={
         nativeKeyboard && keyboardSession ? computerKeyboardReadyProbe(keyboardSession) : undefined
       }
-      onMessage={
-        nativeKeyboard
-          ? (event) => {
-              onKeyboardMessage?.(event.nativeEvent.data);
-            }
-          : undefined
-      }
+      onMessage={(event) => {
+        try {
+          const state = screenConnectionState(JSON.parse(event.nativeEvent.data));
+          if (state) {
+            recovery.current?.state(state);
+            return;
+          }
+          const controls = screenControlEvent(JSON.parse(event.nativeEvent.data));
+          if (controls && interactive) {
+            onControlEvent?.(controls);
+            return;
+          }
+        } catch {
+          /* Other native bridges own their message formats. */
+        }
+        if (nativeKeyboard) onKeyboardMessage?.(event.nativeEvent.data);
+      }}
       style={{ flex: 1, backgroundColor: tokens.background }}
       pointerEvents={interactive ? "auto" : "none"}
       // A view-only screen is a picture: keep its page, including the hidden keyboard field,
@@ -666,10 +756,19 @@ function ScreenWebView({
       setSupportMultipleWindows={false}
       scrollEnabled={false}
       overScrollMode="never"
-      onError={onError}
-      onHttpError={onError}
-      onRenderProcessGone={onRendererLost}
-      onContentProcessDidTerminate={onRendererLost}
+      onLoadEnd={() =>
+        webViewRef?.current?.injectJavaScript(screenControlScript({ request: "status" }))
+      }
+      onError={() => {
+        recovery.current?.state("disconnected");
+        onError();
+      }}
+      onHttpError={() => {
+        recovery.current?.state("disconnected");
+        onError();
+      }}
+      onRenderProcessGone={() => recovery.current?.state("disconnected")}
+      onContentProcessDidTerminate={() => recovery.current?.state("disconnected")}
     />
   );
 }

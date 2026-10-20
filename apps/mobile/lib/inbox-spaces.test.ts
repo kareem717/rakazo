@@ -301,3 +301,25 @@ describe("removeInboxSpace", () => {
     expect(refresh).not.toHaveBeenCalled();
   });
 });
+
+it("renders nested sections and hides all descendants when a parent is collapsed", () => {
+  const current = space({
+    isDefault: true,
+    bots: [{ ...bot, sectionId: "leaf" }],
+    botSections: [
+      { id: "root", name: "Work", position: 0, createdAt: "", updatedAt: "" },
+      { id: "child", parentId: "root", name: "Inbox", position: 1, createdAt: "", updatedAt: "" },
+      { id: "leaf", parentId: "child", name: "Replies", position: 2, createdAt: "", updatedAt: "" },
+    ],
+  });
+  const expanded = spaceInboxItems([current]);
+  expect(expanded.filter((item) => item.type === "heading").map((item) => item.title)).toEqual([
+    "Work",
+    "Inbox",
+    "Replies",
+  ]);
+  expect(expanded.at(-1)).toMatchObject({ type: "bot", depth: 2 });
+  expect(
+    spaceInboxItems([current], new Set(), current.id, new Set([`${current.id}:section:root`])),
+  ).toEqual([expect.objectContaining({ type: "heading", title: "Work" })]);
+});

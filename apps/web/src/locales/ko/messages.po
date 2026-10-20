@@ -125,7 +125,6 @@ msgid "{count} years"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{days}d ago"
 msgstr "{days}일 전"
 
@@ -134,12 +133,10 @@ msgid "{hidden, plural, one {+# earlier step} other {+# earlier steps}}"
 msgstr ""
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{hours}h ago"
 msgstr "{hours}시간 전"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "{minutes}m ago"
 msgstr "{minutes}분 전"
 
@@ -319,10 +316,6 @@ msgstr "액세스 토큰(선택 사항)"
 msgid "Account"
 msgstr "계정"
 
-#: src/pages/shell/bot-panel.tsx
-msgid "Account default"
-msgstr "계정 기본값"
-
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 msgid "Account ID"
@@ -342,7 +335,7 @@ msgstr ""
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
-#. placeholder {0}: sectionMenu.section.name
+#. placeholder {0}: section.name
 #: src/pages/BotContextMenu.tsx
 #: src/pages/Shell.tsx
 msgid "Actions for {0}"
@@ -635,6 +628,10 @@ msgstr "API 키 헤더"
 msgid "API URL"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "App and computer traffic uses the exit node. Local traffic stays direct."
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Appearance"
 msgstr "모양"
@@ -642,6 +639,18 @@ msgstr "모양"
 #: src/components/AskCard.tsx
 msgid "Apply"
 msgstr "적용"
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply and restart"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Apply network settings?"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Applying network settings… Reconnecting automatically."
+msgstr ""
 
 #: src/components/teach/SkillDraftCard.tsx
 msgid "Approval boundaries"
@@ -651,6 +660,10 @@ msgstr "승인이 필요한 범위"
 #: src/pages/shell/message-cards.tsx
 msgid "Approve"
 msgstr "승인"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Approve this device in Tailscale."
+msgstr ""
 
 #: src/pages/shell/message-cards.tsx
 msgid "Approve this server to let your agent use its tools."
@@ -906,6 +919,18 @@ msgstr ""
 msgid "Browser"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Browser + tools"
+msgstr ""
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Browser driver"
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Browser only"
+msgstr ""
+
 #: src/pages/KnowledgeSection.tsx
 msgid "Built-in"
 msgstr "기본 제공"
@@ -943,6 +968,7 @@ msgstr "이미지를 읽을 수 없음"
 #: src/components/ComputerMaintenanceActions.tsx
 #: src/components/ComputerUpdateProgress.tsx
 #: src/components/markdown-link-prompt.tsx
+#: src/components/NetworkApplySettings.tsx
 #: src/components/teach/TeachComputerOverlay.tsx
 #: src/pages/Artifacts.tsx
 #: src/pages/KnowledgeSection.tsx
@@ -1034,6 +1060,10 @@ msgstr "업데이트 확인"
 msgid "Check in."
 msgstr "확인해 주세요."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Check restart status"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Check the API key or sign-in, then test again."
 msgstr "API 키 또는 로그인을 확인한 뒤 다시 테스트하세요."
@@ -1105,6 +1135,14 @@ msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
 msgid "Client secret"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Clipboard text"
 msgstr ""
 
 #: src/components/ErrorBoundary.tsx
@@ -1326,6 +1364,10 @@ msgstr "MCP 서버 ‘{name}’ 연결"
 msgid "Connect OAuth"
 msgstr "OAuth 연결"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Connect Tailscale"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Connect Treg"
 msgstr "Treg 연결"
@@ -1359,6 +1401,10 @@ msgstr "연결되었습니다. 다음 메시지부터 이 도구를 사용할 �
 msgid "Connecting…"
 msgstr "연결 중…"
 
+#: src/components/NetworkSettings.tsx
+msgid "Connection"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Connection test failed."
 msgstr "연결 테스트에 실패했습니다."
@@ -1382,6 +1428,10 @@ msgstr "계속"
 msgid "Continue in Background"
 msgstr ""
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Continue in Tailscale"
+msgstr ""
+
 #. placeholder {0}: reset.sso.name
 #: src/pages/Auth.tsx
 msgid "Continue with {0}"
@@ -1397,6 +1447,7 @@ msgstr "이메일로 계속하기"
 msgid "Copied"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
 #: src/pages/Shell.tsx
@@ -1407,6 +1458,10 @@ msgstr "복사"
 msgid "Copy .env example"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Copy selection"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Could not add"
 msgstr "추가하지 못했습니다."
@@ -1414,6 +1469,10 @@ msgstr "추가하지 못했습니다."
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not add MCP server"
 msgstr "MCP 서버를 추가하지 못했습니다."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not apply network settings"
+msgstr ""
 
 #: src/pages/shell/message-cards.tsx
 msgid "Could not approve this server"
@@ -1475,6 +1534,10 @@ msgstr "음성 서비스에 연결하지 못했습니다."
 
 #: src/pages/Shell.tsx
 msgid "Could not connect to the computer screen"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Could not connect to the network gateway"
 msgstr ""
 
 #: src/components/AccountAccess.tsx
@@ -1637,6 +1700,10 @@ msgstr "MCP 서버 목록을 불러오지 못했습니다."
 msgid "Could not load model settings"
 msgstr "AI 모델 설정을 불러오지 못했습니다."
 
+#: src/components/NetworkSettings.tsx
+msgid "Could not load network settings"
+msgstr ""
+
 #: src/pages/RoutineRunHistory.tsx
 msgid "Could not load run history"
 msgstr "실행 기록을 불러오지 못했습니다"
@@ -1670,9 +1737,17 @@ msgstr "업데이트 상태를 불러올 수 없습니다"
 msgid "Could not load voice settings"
 msgstr "음성 설정을 불러오지 못했습니다."
 
+#: src/components/VoicePicker.tsx
+msgid "Could not load voices"
+msgstr ""
+
 #: src/lib/sign-out.ts
 msgid "Could not log out. Try again."
 msgstr "로그아웃하지 못했습니다. 다시 시도해 주세요."
+
+#: src/pages/Shell.tsx
+msgid "Could not move section"
+msgstr ""
 
 #: src/pages/BillingSettingsPanel.tsx
 #: src/pages/Paywall.tsx
@@ -1695,9 +1770,17 @@ msgstr "터미널을 열 수 없습니다"
 msgid "Could not play a test clip"
 msgstr "샘플 음성을 재생하지 못했습니다."
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not prepare network restart"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Could not reach the model server."
 msgstr "모델 서버에 연결하지 못했습니다."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Could not reach the network restart service"
+msgstr ""
 
 #: src/lib/computer-sandbox.ts
 #: src/lib/user-error.ts
@@ -1773,6 +1856,10 @@ msgstr "그룹을 저장하지 못했습니다."
 #: src/pages/Onboarding.tsx
 msgid "Could not save model"
 msgstr "AI 모델을 저장하지 못했습니다."
+
+#: src/components/NetworkSettings.tsx
+msgid "Could not save network settings"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Could not save routine"
@@ -1977,6 +2064,10 @@ msgstr "고객 지원"
 msgid "Customize bot avatar"
 msgstr "봇 아바타 맞춤설정"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Cut"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Dark"
 msgstr "다크"
@@ -2117,6 +2208,10 @@ msgstr ""
 #: src/pages/Shell.tsx
 msgid "Details"
 msgstr "세부 정보"
+
+#: src/components/NetworkSettings.tsx
+msgid "Direct"
+msgstr ""
 
 #: src/components/integrations/IntegrationSetup.tsx
 msgid "Direct MCP"
@@ -2347,6 +2442,10 @@ msgstr "매월"
 msgid "Every week"
 msgstr "매주"
 
+#: src/components/NetworkSettings.tsx
+msgid "Everything"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "Executor token"
 msgstr "Executor 토큰"
@@ -2460,6 +2559,10 @@ msgstr "모델 찾기"
 msgid "Finding…"
 msgstr "찾는 중…"
 
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Finish connecting in Tailscale."
+msgstr ""
+
 #. placeholder {0}: new URL(oauth.verificationUri).hostname
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -2506,6 +2609,10 @@ msgstr ""
 #. placeholder {0}: filters.dateRange.from
 #: src/pages/ActivityList.tsx
 msgid "From {0}"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "From device"
 msgstr ""
 
 #: src/pages/WindowChrome.tsx
@@ -2745,8 +2852,8 @@ msgid "Isolated preview — no access to your account"
 msgstr ""
 
 #: src/pages/Shell.tsx
-msgid "Its bots and groups are kept and leave the section."
-msgstr "이 섹션의 Bot과 그룹은 유지되며 섹션에서 빠집니다."
+msgid "Its chats are kept. Subsections move up one level."
+msgstr ""
 
 #: src/pages/shell/dialogs.tsx
 msgid "Its conversation, files, and routines will be permanently deleted. Bots it created stay in your list."
@@ -2761,7 +2868,6 @@ msgid "Jump to replied message: {excerpt}"
 msgstr "답장한 메시지로 이동: {excerpt}"
 
 #: src/lib/relative-time.ts
-#: src/pages/ActivityList.tsx
 msgid "just now"
 msgstr "방금"
 
@@ -3199,6 +3305,7 @@ msgid "Move them to your shared memory."
 msgstr "공용 기억으로 옮깁니다."
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 msgid "Move to"
 msgstr "섹션으로 이동"
 
@@ -3249,6 +3356,14 @@ msgstr "인수 필요"
 msgid "Needs you"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Network"
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Network settings are managed on the server."
+msgstr ""
+
 #: src/pages/shell/bot-panel.tsx
 msgid "New bot"
 msgstr "새 Bot 만들기"
@@ -3267,6 +3382,7 @@ msgid "New password"
 msgstr "새 비밀번호"
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "New section"
 msgstr "새 섹션"
@@ -3278,6 +3394,10 @@ msgstr "새 스킬"
 #: src/pages/shell/dialogs.tsx
 msgid "New space"
 msgstr "새 스페이스"
+
+#: src/pages/Shell.tsx
+msgid "New subsection"
+msgstr ""
 
 #: src/pages/Board.tsx
 msgid "New ticket"
@@ -3409,6 +3529,15 @@ msgstr ""
 msgid "No trigger"
 msgstr "트리거 없음"
 
+#: src/components/VoicePicker.tsx
+msgid "No voices found"
+msgstr ""
+
+#: src/pages/Shell.tsx
+#: src/pages/shell/dialogs.tsx
+msgid "None"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "None yet"
 msgstr "아직 없음"
@@ -3464,6 +3593,10 @@ msgstr "OAuth 연결 실패"
 
 #: src/pages/McpServersOverlay.tsx
 msgid "OAuth expired"
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Offline"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -3599,6 +3732,10 @@ msgstr ""
 msgid "PagerDuty incident"
 msgstr "PagerDuty 인시던트"
 
+#: src/pages/shell/dialogs.tsx
+msgid "Parent section"
+msgstr ""
+
 #: src/pages/ScratchpadSection.tsx
 msgid "Park"
 msgstr "보류"
@@ -3628,10 +3765,18 @@ msgstr "비밀번호가 일치하지 않습니다"
 msgid "Past due"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste"
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Paste a replacement key"
 msgstr "새 API 키를 붙여넣으세요"
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Paste text"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Paste the OpenAI-compatible address from your server. Rakazo adds /v1 if needed."
@@ -3849,11 +3994,19 @@ msgstr "작동하지 않는 컴퓨터를 다시 만듭니다."
 msgid "Recreating the computer"
 msgstr ""
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Redo"
+msgstr ""
+
 #: src/App.tsx
 #: src/components/ErrorBoundary.tsx
 #: src/pages/RoutineRunHistory.tsx
 msgid "Refresh"
 msgstr "새로고침"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Refresh connection"
+msgstr ""
 
 #: src/components/teach/TeachComputerOverlay.tsx
 msgid "Refresh view"
@@ -3880,6 +4033,7 @@ msgid "Release interrupted computer?"
 msgstr ""
 
 #: src/components/InstructionSettings.tsx
+#: src/components/NetworkSettings.tsx
 msgid "Reload"
 msgstr "새로고침"
 
@@ -4032,6 +4186,10 @@ msgstr "재설정 중…"
 msgid "Resize panel"
 msgstr "패널 크기 조절"
 
+#: src/components/NetworkSettings.tsx
+msgid "Restart required"
+msgstr ""
+
 #: src/components/DesktopUpdates.tsx
 msgid "Restart to update"
 msgstr ""
@@ -4067,6 +4225,10 @@ msgstr ""
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "다시 시도"
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Retry connection"
+msgstr ""
 
 #: src/App.tsx
 #: src/pages/PeerMessagesOverlay.tsx
@@ -4124,6 +4286,10 @@ msgstr "자동 실행"
 msgid "Routines that run while you're away"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Routing"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 msgid "Run at"
 msgstr "실행 시간"
@@ -4157,6 +4323,7 @@ msgid "Runs when this bot receives a verified message from this provider."
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/NetworkSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/Board.tsx
 #: src/pages/ExternalConversationSettings.tsx
@@ -4181,6 +4348,14 @@ msgstr ""
 msgid "Save new value"
 msgstr ""
 
+#: src/components/NetworkApplySettings.tsx
+msgid "Save open files first. The app will wait for active work, save and stop computers, then restart."
+msgstr ""
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Save open files first. The workspace will be saved before stopping."
+msgstr ""
+
 #: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "작업 공간을 저장하고 최신 소프트웨어를 설치합니다."
@@ -4202,6 +4377,10 @@ msgstr "저장되었습니다."
 #: src/pages/RoutineEditor.tsx
 msgid "Saved. Rotate to reveal."
 msgstr "저장되었습니다. key를 교체하면 표시됩니다."
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Saving and stopping computers…"
+msgstr ""
 
 #: src/components/ComputerUpdateProgress.tsx
 msgid "Saving your workspace"
@@ -4271,6 +4450,14 @@ msgstr "AI 서비스 검색"
 msgid "Search runs"
 msgstr ""
 
+#: src/components/VoicePicker.tsx
+msgid "Search voices"
+msgstr ""
+
+#: src/components/VoicePicker.tsx
+msgid "Search voices or paste a voice link"
+msgstr ""
+
 #. placeholder {0}: filters.query.trim()
 #: src/pages/ActivityList.tsx
 msgid "Search: {0}"
@@ -4288,6 +4475,14 @@ msgstr "대화할 Bot을 선택하세요"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Select a connected model"
 msgstr "연결된 모델 선택"
+
+#: src/components/VoicePicker.tsx
+msgid "Select a voice"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Select all"
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Send"
@@ -4514,6 +4709,10 @@ msgstr ""
 msgid "Slide up to lock"
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "SOCKS URL"
+msgstr ""
+
 #: src/components/SoftwareUpdateSection.tsx
 msgid "Software update"
 msgstr "소프트웨어 업데이트"
@@ -4535,6 +4734,7 @@ msgstr "공간이 변경되었습니다. 백업 목록을 불러오려면 모델
 msgid "Space changed. Reopen Models to save its backup list."
 msgstr "공간이 변경되었습니다. 백업 목록을 저장하려면 모델 설정을 다시 여세요."
 
+#: src/components/VoicePicker.tsx
 #: src/pages/shell/bot-panel.tsx
 msgid "Space default"
 msgstr "스페이스 기본값"
@@ -4567,9 +4767,17 @@ msgstr ""
 msgid "Speech model"
 msgstr "음성 모델"
 
+#: src/components/NetworkSettings.tsx
+msgid "SSH target"
+msgstr ""
+
 #: src/lib/user-error.ts
 msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO를 일시적으로 사용할 수 없습니다. 다시 시도하세요."
+
+#: src/components/BrowserDriverSettings.tsx
+msgid "Standard"
+msgstr ""
 
 #: src/pages/Paywall.tsx
 msgid "Start {trialDays}-day free trial"
@@ -4603,6 +4811,18 @@ msgstr "실행 단계"
 msgid "Stop"
 msgstr "중지"
 
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stop computer"
+msgstr ""
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stop computer?"
+msgstr ""
+
+#: src/components/NetworkApplySettings.tsx
+msgid "Stop computers and restart the deployment to apply."
+msgstr ""
+
 #: src/pages/Shell.tsx
 msgid "Stop speaking"
 msgstr "읽기 중지"
@@ -4615,6 +4835,10 @@ msgstr "가르치기 종료"
 #: src/lib/browser-notifications.ts
 msgid "Stopped."
 msgstr "중지되었습니다."
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stopping…"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Stored encrypted"
@@ -4659,9 +4883,30 @@ msgstr ""
 msgid "Switching…"
 msgstr "전환 중…"
 
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Sync clipboard"
+msgstr ""
+
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "System"
 msgstr "시스템"
+
+#. placeholder {0}: connection.tailnet
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connected · {0}"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale connection is managed on the server."
+msgstr ""
+
+#: src/components/NetworkSettings.tsx
+msgid "Tailscale exit node"
+msgstr ""
+
+#: src/components/NetworkConnectionSettings.tsx
+msgid "Tailscale is not connected."
+msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Take control"
@@ -4958,6 +5203,7 @@ msgid "Unavailable"
 msgstr "사용할 수 없음"
 
 #: src/components/AskCard.tsx
+#: src/components/computer/ScreenClipboard.tsx
 msgid "Undo"
 msgstr "실행 취소"
 
@@ -5088,6 +5334,14 @@ msgstr ""
 msgid "Use Protected input for passwords."
 msgstr ""
 
+#: src/components/NetworkSettings.tsx
+msgid "Use Tailscale"
+msgstr ""
+
+#: src/components/computer/ScreenClipboard.tsx
+msgid "Use the text field to copy or paste."
+msgstr ""
+
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Use this model"
 msgstr "이 모델 사용"
@@ -5133,11 +5387,16 @@ msgstr ""
 msgid "View chat"
 msgstr "채팅 보기"
 
+#: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
 #: src/pages/shell/bot-panel.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Voice"
 msgstr "음성"
+
+#: src/pages/shell/bot-panel.tsx
+msgid "Voice provider"
+msgstr ""
 
 #: src/lib/model-connection-preflight.ts
 msgid "Wait a moment and test again."

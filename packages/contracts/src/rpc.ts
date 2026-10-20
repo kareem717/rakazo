@@ -21,6 +21,7 @@ import {
   UpdateTicketInput,
 } from "./board.js";
 import { BotSecretMetadata, BotSecretPutInput, StoredBotSecretName } from "./bot-secrets.js";
+import { BrowserDriverSchema } from "./browser-driver.js";
 import {
   ActionApprovalRuleSchema,
   ActionAutoReviewSettingsSchema,
@@ -107,6 +108,14 @@ import {
   IntegrationProviderConfigSchema,
   IntegrationSetupStateSchema,
 } from "./integration-settings.js";
+import { NetworkConnectionSchema } from "./network-connection.js";
+import {
+  NetworkApplyInputSchema,
+  NetworkApplyPreviewSchema,
+  NetworkApplyStatusSchema,
+  NetworkEgressConfigSchema,
+  NetworkSettingsSchema,
+} from "./network-settings.js";
 import { MessageReactionSchema } from "./reactions.js";
 import { RoutineWatchSchema } from "./routine-watch.js";
 import { RoutineHistorySchema, RoutineRunCursorSchema, RunsListOutputSchema } from "./runs.js";
@@ -221,6 +230,17 @@ export const appContract = {
       .output(z.object({ ok: z.literal(true), activeSpaceId: Id })),
   },
   bootstrap: oc.input(z.object({ botId: Id.optional() })).output(AppBootstrapSchema),
+  network: {
+    applyPreview: oc.output(NetworkApplyPreviewSchema),
+    applyStatus: oc.output(NetworkApplyStatusSchema),
+    apply: oc.input(NetworkApplyInputSchema).output(NetworkApplyStatusSchema),
+    connection: oc.output(NetworkConnectionSchema),
+    connect: oc.output(NetworkConnectionSchema),
+    get: oc.output(NetworkSettingsSchema),
+    save: oc
+      .input(z.object({ config: NetworkEgressConfigSchema, revision: z.string().length(64) }))
+      .output(NetworkSettingsSchema),
+  },
   deployment: {
     get: oc.output(DeploymentSettingsSchema),
     update: oc
@@ -229,6 +249,7 @@ export const appContract = {
           signupsEnabled: z.boolean().optional(),
           signupAllowlist: z.array(z.string()).optional(),
           computerHost: z.enum(["docker", "this-mac"]).nullable().optional(),
+          browserDriver: BrowserDriverSchema.optional(),
         }),
       )
       .output(DeploymentSettingsSchema),
@@ -349,8 +370,27 @@ export const appContract = {
   },
   botSections: {
     list: oc.output(z.array(BotSectionSchema)),
-    create: oc.input(threadTarget.safeExtend({ name: BotSectionName })).output(BotSectionSchema),
-    update: oc.input(z.object({ sectionId: Id, name: BotSectionName })).output(BotSectionSchema),
+    create: oc
+      .input(
+        z
+          .object({
+            botId: Id.optional(),
+            groupId: Id.optional(),
+            name: BotSectionName,
+            parentId: Id.nullable().optional(),
+          })
+          .refine((input) => !(input.botId && input.groupId), "Choose one chat"),
+      )
+      .output(BotSectionSchema),
+    update: oc
+      .input(
+        z.object({
+          sectionId: Id,
+          name: BotSectionName.optional(),
+          parentId: Id.nullable().optional(),
+        }),
+      )
+      .output(BotSectionSchema),
     remove: oc.input(z.object({ sectionId: Id })).output(
       z.object({
         id: Id,
@@ -971,7 +1011,7 @@ export const appContract = {
   },
   voice: {
     catalog: oc.output(z.array(VoiceCatalogEntrySchema)),
-    status: oc.output(VoiceStatusSchema),
+    status: oc.input(z.object({ botId: Id.optional() }).optional()).output(VoiceStatusSchema),
     credentials: oc.output(z.array(VoiceCredentialSchema)),
     connect: oc
       .input(
@@ -1008,7 +1048,12 @@ export const appContract = {
       .input(z.object({ provider: z.string().min(1), speechModel: z.string().max(64) }))
       .output(VoiceCredentialSchema),
     voices: oc
-      .input(z.object({ provider: z.string().optional() }))
+      .input(
+        z.object({
+          provider: z.string().optional(),
+          query: z.string().trim().max(2048).optional(),
+        }),
+      )
       .output(z.array(VoiceInfoSchema)),
     prepare: oc
       .input(

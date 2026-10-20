@@ -77,6 +77,25 @@ export class FishAudioVoiceProvider implements VoiceProvider {
     });
   }
 
+  async searchVoices(apiKey: string, query: string, context: AdapterContext): Promise<VoiceInfo[]> {
+    const signal = voiceDeadline(context.signal, LIST_VOICES_DEADLINE_MS);
+    const reference = fishVoiceReference(query);
+    if (reference) {
+      const res = await fetch(`${API}/model/${reference}`, {
+        headers: fishAudioHeaders(apiKey),
+        signal,
+      });
+      if (res.status === 404) return [];
+      const body = await readFishResponse(res);
+      if (!res.ok) rejectFish(res.status, "finding a voice", body, apiKey);
+      const voice =
+        body && typeof body === "object" ? modelToVoice(body as Record<string, unknown>) : null;
+      return voice ? [voice] : [];
+    }
+    const models = await fetchModels(apiKey, { ...context, signal }, false, query);
+    return models.map(modelToVoice).filter((voice): voice is VoiceInfo => voice !== null);
+  }
+
   /** Synthesize one Rakazo utterance as bounded MP3 audio. */
   async synthesize(request: VoiceSynthesizeRequest, context: AdapterContext): Promise<SpeechClip> {
     const signal = voiceDeadline(request.signal ?? context.signal, 60_000);
@@ -139,6 +158,7 @@ async function fetchModels(
   apiKey: string,
   context: AdapterContext,
   own: boolean,
+  query?: string,
 ): Promise<Array<Record<string, unknown>>> {
   const maxPages = own ? OWN_MODEL_PAGES : PUBLIC_MODEL_PAGES;
   const models: Array<Record<string, unknown>> = [];
@@ -149,6 +169,7 @@ async function fetchModels(
       sort_by: "score",
     });
     if (own) params.set("self", "true");
+    if (query) params.set("title", query);
     const res = await fetch(`${API}/model?${params}`, {
       headers: fishAudioHeaders(apiKey),
       signal: context.signal,
@@ -160,6 +181,33 @@ async function fetchModels(
     if (items.length === 0 || !modelPageHasMore(body, pageNumber, items.length)) break;
   }
   return models;
+}
+
+/** Only parse Fish references; never fetch a user-supplied URL. */
+function fishVoiceReference(query: string): string | null {
+  const value = query.trim();
+  if (/^[a-f0-9]{32}$/i.test(value)) return value;
+  if (!/^https?:/i.test(value)) return null;
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error("That voice link is not valid.");
+  }
+  if (
+    url.protocol !== "https:" ||
+    url.hostname !== "fish.audio" ||
+    url.port ||
+    url.username ||
+    url.password
+  ) {
+    throw new Error("Use a Fish Audio voice link or voice ID.");
+  }
+  const id =
+    url.searchParams.get("modelId") ??
+    url.pathname.match(/^\/(?:m|model)\/([a-f0-9]{32})\/?$/i)?.[1];
+  if (!id || !/^[a-f0-9]{32}$/i.test(id)) throw new Error("That voice link is not valid.");
+  return id;
 }
 
 /** Decide whether another Fish Audio model page should be requested. */

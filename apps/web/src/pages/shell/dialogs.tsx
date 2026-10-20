@@ -1,6 +1,7 @@
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Bot, BotSection } from "@rakazo/contracts";
 import { GROUP_MEMBER_MAX, GROUP_MEMBER_MIN } from "@rakazo/contracts";
+import { sectionTree } from "@rakazo/core";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,8 @@ import {
   DialogHeader,
   DialogTitle,
   Input,
+  NativeSelect,
+  NativeSelectOption,
 } from "@rakazo/ui-web";
 import { Lock, Users } from "lucide-react";
 import { useId, useState } from "react";
@@ -218,15 +221,21 @@ export function PickerInfoDialog({
 
 export function NewBotSectionDialog({
   bot,
+  sections = [],
+  defaultParentId = null,
   onCancel,
   onConfirm,
 }: {
-  bot: Pick<Bot, "name">;
+  bot?: Pick<Bot, "name">;
+  sections?: BotSection[];
+  defaultParentId?: string | null;
   onCancel: () => void;
-  onConfirm: (name: string) => Promise<void>;
+  onConfirm: (name: string, parentId: string | null) => Promise<void>;
 }) {
   const { t } = useLingui();
   const nameId = useId();
+  const [parentId, setParentId] = useState(defaultParentId);
+  const parentInputId = useId();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -242,7 +251,7 @@ export function NewBotSectionDialog({
             if (!trimmed || saving) return;
             setSaving(true);
             setError(null);
-            void onConfirm(trimmed).catch((err: unknown) => {
+            void onConfirm(trimmed, parentId).catch((err: unknown) => {
               setError(errorText(err, t`Could not create section`));
               setSaving(false);
             });
@@ -252,9 +261,11 @@ export function NewBotSectionDialog({
             <DialogTitle>
               <Trans>New section</Trans>
             </DialogTitle>
-            <DialogDescription>
-              <Trans>Create a section and move {bot.name} into it.</Trans>
-            </DialogDescription>
+            {bot ? (
+              <DialogDescription>
+                <Trans>Create a section and move {bot.name} into it.</Trans>
+              </DialogDescription>
+            ) : null}
           </DialogHeader>
           <label htmlFor={nameId} className="block text-[13.5px] text-foreground/75">
             <Trans>Name</Trans>
@@ -266,6 +277,24 @@ export function NewBotSectionDialog({
               className="mt-2"
             />
           </label>
+          {sections.length > 0 ? (
+            <label htmlFor={parentInputId} className="block text-[13.5px] text-foreground/75">
+              <Trans>Parent section</Trans>
+              <NativeSelect
+                id={parentInputId}
+                value={parentId ?? ""}
+                onChange={(event) => setParentId(event.target.value || null)}
+                className="mt-2"
+              >
+                <NativeSelectOption value="">{t`None`}</NativeSelectOption>
+                {sectionTree(sections).map((section) => (
+                  <NativeSelectOption key={section.id} value={section.id}>
+                    {section.path}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </label>
+          ) : null}
           {error ? <p className="text-[13.5px] text-destructive">{error}</p> : null}
           <DialogFooter>
             <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>

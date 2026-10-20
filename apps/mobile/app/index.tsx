@@ -1,6 +1,6 @@
 import { MenuView } from "@expo/ui/community/menu";
 import type { RunActivityRow, SearchHit, SpaceBot, SpaceGroup } from "@rakazo/contracts";
-import { normalizeCreateBotProfile } from "@rakazo/contracts";
+import { DEFAULT_COMPUTER_MODE, normalizeCreateBotProfile } from "@rakazo/contracts";
 import { ACTIVE_RUN_STATUSES } from "@rakazo/core";
 import { botColors } from "@rakazo/ui-tokens";
 import type { Href } from "expo-router";
@@ -48,6 +48,7 @@ import { GroupAvatar } from "../components/group-avatar";
 import { HomeErrorState } from "../components/home-error-state";
 import { InboxSwipeRow } from "../components/inbox-swipe-row";
 import { NativeSymbol } from "../components/native-symbol";
+import { SectionEditor } from "../components/section-editor";
 import { WorkingIndicator } from "../components/WorkingIndicator";
 import {
   activityStatusLabel,
@@ -242,6 +243,18 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
     chat: MobileBot | MobileGroup | SpaceBot | SpaceGroup;
     sections: MobileBotSection[];
   } | null>(null);
+  const [sectionEditor, setSectionEditor] = useState<MobileBotSection | null>(null);
+  const [collapsedSections, setCollapsedSections] = useState(() => new Set<string>());
+  const toggleSection = useCallback(
+    (key: string) =>
+      setCollapsedSections((previous) => {
+        const next = new Set(previous);
+        if (next.has(key)) next.delete(key);
+        else next.add(key);
+        return next;
+      }),
+    [],
+  );
   const organizeRequestId = useRef(0);
   const [activityMode, setActivityMode] = useState(false);
   const [activity, setActivity] = useState<{ active: RunActivityRow[]; recent: RunActivityRow[] }>({
@@ -517,11 +530,17 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
               },
             ]
           : [];
-    const items: InboxItem[] = spaceInboxItems(sidebarSpaces, collapsedRosterParents, me?.spaceId);
+    const items: InboxItem[] = spaceInboxItems(
+      sidebarSpaces,
+      collapsedRosterParents,
+      me?.spaceId,
+      query.trim() ? new Set() : collapsedSections,
+    );
     return !SWIPE_ROWS && pinned.length > 0 ? [{ type: "pinned", chats: pinned }, ...items] : items;
   }, [
     botSections,
     collapsedRosterParents,
+    collapsedSections,
     locale,
     me,
     spaces,
@@ -687,7 +706,7 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
       const bot = await rpc<MobileBot>("bots/create", {
         ...normalizeCreateBotProfile({ name: "New Bot", title: "", description: "" }),
         notifyOnFinish: true,
-        computerMode: "team",
+        computerMode: DEFAULT_COMPUTER_MODE,
       });
       void refreshBots().catch(() => undefined);
       allowFocusPrompt(bot.id);
@@ -1126,16 +1145,35 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
             ) : null}
           </View>
         ) : (
-          <View style={styles.sectionHeadingRow}>
-            <Text style={[styles.sectionHeading, { flex: 1 }]}>{item.title}</Text>
+          <View
+            style={[
+              styles.sectionHeadingRow,
+              item.depth ? { paddingStart: item.depth * 14 } : undefined,
+            ]}
+          >
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ expanded: !collapsedSections.has(item.key) }}
+              onPress={() => toggleSection(item.key)}
+              style={{ flex: 1, flexDirection: "row", alignItems: "center" }}
+            >
+              <Text style={[styles.sectionHeading, { flex: 1 }]}>{item.title}</Text>
+              <NativeSymbol
+                ios={collapsedSections.has(item.key) ? "chevron.right" : "chevron.down"}
+                android={collapsedSections.has(item.key) ? "chevron-forward" : "chevron-down"}
+                size={12}
+                color={native.secondaryLabel}
+              />
+            </Pressable>
             {item.sectionId && Platform.OS === "android" ? (
               // A plain button, like the create control: the Android menu trigger can collapse to
               // zero width on an older binary, which would hide the only way to delete an empty section.
               <Pressable
-                accessibilityLabel={t("Delete section")}
+                accessibilityLabel={t("Edit section")}
                 accessibilityRole="button"
                 onPress={() => {
-                  if (item.sectionId) deleteSection({ id: item.sectionId, name: item.title });
+                  const section = botSections.find((section) => section.id === item.sectionId);
+                  if (section) setSectionEditor(section);
                 }}
                 style={styles.spaceActions}
               >
@@ -1144,6 +1182,7 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
             ) : item.sectionId ? (
               <MenuView
                 actions={[
+                  { id: "edit", title: t("Edit section"), image: "folder" },
                   {
                     id: "delete",
                     title: t("Delete section"),
@@ -1152,8 +1191,11 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
                   },
                 ]}
                 colorScheme={appearance}
-                onPressAction={() => {
-                  if (item.sectionId) deleteSection({ id: item.sectionId, name: item.title });
+                onPressAction={(event) => {
+                  const section = botSections.find((section) => section.id === item.sectionId);
+                  if (!section) return;
+                  if (event.nativeEvent.event === "edit") setSectionEditor(section);
+                  else deleteSection(section);
                 }}
               >
                 <View
@@ -1170,6 +1212,7 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
       ) : item.type === "group" ? (
         <GroupRow
           group={item.group}
+          depth={item.depth}
           day={day}
           onPress={openGroup}
           onLongPress={!SWIPE_ROWS ? organizeGroup : undefined}
@@ -1196,6 +1239,8 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
       ),
     [
       appearance,
+      collapsedSections,
+      toggleSection,
       botAction,
       botSections,
       chooseInboxSpace,
@@ -1423,6 +1468,21 @@ function Home({ embedded, onSelectSpace }: InboxPaneProps & { embedded: boolean 
           />
         </CompactRowsContext.Provider>
       </SelectedChatContext.Provider>
+      {sectionEditor ? (
+        <SectionEditor
+          section={sectionEditor}
+          sections={botSections}
+          onClose={() => setSectionEditor(null)}
+          onSave={async (input) => {
+            await rpc(input.sectionId ? "botSections/update" : "botSections/create", input);
+            await loadBots();
+          }}
+          onRemove={async () => {
+            await rpc("botSections/remove", { sectionId: sectionEditor.id });
+            await loadBots();
+          }}
+        />
+      ) : null}
       {organizeChat && organizeTarget ? (
         <BotOrganizeModal
           bot={organizeChat}
@@ -1910,6 +1970,7 @@ const BotRow = memo(function BotRow({
 
 const GroupRow = memo(function GroupRow({
   group,
+  depth,
   day,
   onPress,
   onLongPress,
@@ -1919,6 +1980,7 @@ const GroupRow = memo(function GroupRow({
   onEditSection,
 }: {
   group: MobileGroup | SpaceGroup;
+  depth?: number;
   day: number;
   onPress: (group: MobileGroup | SpaceGroup) => void;
   onLongPress?: (group: MobileGroup | SpaceGroup) => void;
@@ -1932,6 +1994,7 @@ const GroupRow = memo(function GroupRow({
   const row = (
     <ConversationRow
       chatId={group.id}
+      depth={depth}
       title={group.name}
       preview={preview}
       time={time}

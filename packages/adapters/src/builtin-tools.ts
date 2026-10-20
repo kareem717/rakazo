@@ -597,7 +597,8 @@ export const builtinAgentTools: ConnectorTool[] = [
   },
   {
     name: "remember",
-    description: "Store a durable fact in this bot's explicit memory.",
+    description:
+      "Add a durable fact to this bot's explicit memory. The fact is appended; existing memory is kept.",
     inputSchema: {
       type: "object",
       properties: {
@@ -1187,7 +1188,7 @@ export const builtinAgentTools: ConnectorTool[] = [
           type: "string",
           enum: ["team", "dedicated"],
           description:
-            "Optional. team shares one screen with other Team bots; dedicated (Private) gets its own. Defaults to team.",
+            "Optional. dedicated (Private) gets its own computer; team shares a computer with other Team bots. Defaults to dedicated.",
         },
       },
       required: ["name"],

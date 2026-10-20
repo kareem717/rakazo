@@ -72,6 +72,25 @@ instead of this host proxy.
 If the installer, Compose downloads, or image pulls are blocked, use the
 [restricted-network guide](./self-host-restricted-network.md) for mirror settings and local files.
 
+### Optional network routing
+
+Normal networking is the default. The optional [Boat network overlay](../infra/boat/README.md)
+uses one versioned JSON config to select direct access, browser-only proxying, tools plus browser
+proxying, or full public egress through a Tailscale exit node. SSH and existing SOCKS servers
+are supported for selective scopes; Tailscale is optional there. API and worker share the
+same routing config across web, desktop and mobile clients. Other computer providers retain
+their existing networking.
+
+### Browser driver
+
+Deployment owners can choose **Settings → Computer → Browser driver → Standard / Patchright**. On mobile, the same choice is under **Account → Advanced**. The server stores one deployment-wide choice for current and future bots; Standard remains the default. It controls `browser_navigate`, `browser_snapshot`, and `browser_act`. Desktop input through `computer_act` remains available.
+
+Patchright attaches to the Chrome already on the bot's display, keeping its persistent profile, proxy policies, viewport, and screen viewer. Navigation and clicks use the Patchright SDK. Both drivers share origin checks, upload confinement, element references, and protected-field masking, including when switching drivers. An unavailable driver returns an explicit desktop fallback; it never silently changes the selected driver or retries an uncertain action.
+
+Box computers install the hash-locked Python driver in a dedicated virtual environment on first use. Installation does not change the system Python or download a second browser. The Docker computer image includes the optional driver; build with `--build-arg INSTALL_PATCHRIGHT=false` to omit it. Existing Docker computers need an updated image before selecting Patchright. Other computer providers retain their explicit desktop fallback when page browsing is unavailable.
+
+No hosted browser, API key, or CAPTCHA-solving service is required. Browser automation changes can reduce detection signals; a website may still require account verification or a human challenge.
+
 ### Bot computer resource ceilings
 
 Each Docker computer runs Xvfb, a window manager and a full Chromium driven by an agent that
@@ -488,7 +507,7 @@ Native file reads and workspace exports are limited to 8 MiB per file. A larger 
   local supervisor and published `ghcr.io/elie222/rakazo/computer` image. No E2B account required.
   Optional: set `e2b`, `daytona`, `createos`, or `box` plus the matching API key for remote computers.
 - **Docker** is the quick-start default for published images and for a source checkout / full local
-  Compose stack. Workspace bots share a persistent Team Computer by default; Private computers are
+  Compose stack. Bots get persistent Private Computers by default; a shared Team Computer is
   optional. Keep the supervisor private, as the included Compose files do.
 - **E2B** runs bot computers away from the Rakazo host and is a good choice for public or multi-user
   production deployments. Rakazo checkpoints the portable workspace and browser-profile directory to

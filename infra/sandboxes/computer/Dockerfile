@@ -30,6 +30,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     novnc \
     websockify \
     python3 \
+    python3-venv \
     libnss-wrapper \
     ca-certificates \
     procps \
@@ -115,6 +116,14 @@ COPY --from=capture-builder /build/librakazo-xcapture.so /usr/local/lib/librakaz
 COPY --chmod=755 rakazo-browser /usr/local/bin/rakazo-browser
 COPY --chmod=755 rakazo-focus-or-launch /usr/local/bin/rakazo-focus-or-launch
 COPY --chmod=755 rakazo-page-browser /usr/local/bin/rakazo-page-browser
+COPY --chmod=755 rakazo-patchright-browser /usr/local/bin/rakazo-patchright-browser
+COPY --chmod=644 install-browser-driver.py requirements-patchright.txt /opt/rakazo/browser-driver/
+ARG INSTALL_PATCHRIGHT=true
+RUN if [ "$INSTALL_PATCHRIGHT" = true ]; then \
+      python3 /opt/rakazo/browser-driver/install-browser-driver.py \
+        --requirements /opt/rakazo/browser-driver/requirements-patchright.txt \
+        --target /opt/rakazo/patchright; \
+    fi
 COPY --chmod=644 rakazo-browser.desktop /usr/share/applications/rakazo-browser.desktop
 COPY --chmod=644 fluxbox.init /etc/rakazo/fluxbox/init
 COPY --chmod=644 fluxbox.apps /etc/rakazo/fluxbox/apps

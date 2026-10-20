@@ -28,6 +28,7 @@ const fakeAgentState = vi.hoisted(() => ({
   emitFinalOnCompletedMessage: false,
   /** Stream the post-tool answer, but leave the completed turn's message text empty. */
   emitFinalDeltaOnly: false,
+  thinkingDeltas: [] as string[],
   narration: "I will check the destination first.",
   finalDelta: undefined as string | undefined,
   abortCount: 0,
@@ -93,6 +94,12 @@ vi.mock("@earendil-works/pi-agent-core", () => ({
         return;
       }
 
+      for (const delta of fakeAgentState.thinkingDeltas) {
+        this.emit({
+          type: "message_update",
+          assistantMessageEvent: { type: "thinking_delta", delta },
+        });
+      }
       if (fakeAgentState.mode === "dispatch") {
         const target =
           this.tools.find((tool) => tool.name === fakeAgentState.invoke.name) ?? this.tools[0];
@@ -450,6 +457,7 @@ const previousMaxToolCalls = process.env.MAX_TOOL_CALLS_PER_TURN;
 describe("Pi connector tool dispatch", () => {
   beforeEach(() => {
     fakeAgentState.mode = "dispatch";
+    fakeAgentState.thinkingDeltas = [];
     fakeAgentState.abortCount = 0;
     fakeAgentState.tools = [];
     fakeAgentState.preparedMessages = [];
@@ -827,7 +835,7 @@ describe("Pi connector tool dispatch", () => {
     );
   });
 
-  it("runs schedule tools sequentially so a list in the same turn sees a create", async () => {
+  it("runs schedule tools and remember sequentially", async () => {
     const executeTool = vi.fn(async () => ({ ok: true }));
     const runtime = new PiAgentRuntime();
 
@@ -839,7 +847,13 @@ describe("Pi connector tool dispatch", () => {
         prompt: "remind me in ten minutes",
         instructions: "Use schedule_create then schedule_list.",
         history: [],
-        tools: [scheduleCreateTool, scheduleListTool, scheduleCancelTool, destinationTool],
+        tools: [
+          scheduleCreateTool,
+          scheduleListTool,
+          scheduleCancelTool,
+          destinationTool,
+          builtinAgentTools.find((tool) => tool.name === "remember")!,
+        ],
         model: { provider: "test", id: "dispatch-test-model" },
         executeTool,
       },
@@ -862,7 +876,37 @@ describe("Pi connector tool dispatch", () => {
     expect(modes.get("schedule_create")).toBe("sequential");
     expect(modes.get("schedule_list")).toBe("sequential");
     expect(modes.get("schedule_cancel")).toBe("sequential");
+    expect(modes.get("remember")).toBe("sequential");
     expect(modes.get("destination_write")).toBe("default");
+  });
+
+  it("forwards provider-exposed reasoning as progress, never as reply text", async () => {
+    fakeAgentState.thinkingDeltas = ["Check the ", "available tools."];
+    const events = [];
+    for await (const event of new PiAgentRuntime().run(
+      {
+        botId: "b",
+        threadId: "t",
+        runId: "reasoning-test",
+        instructions: "Check the available tools.",
+        prompt: "check tools",
+        history: [],
+        tools: [destinationTool],
+        model: { provider: "test", id: "dispatch-test-model" },
+        executeTool: vi.fn(async () => ({ ok: true })),
+      },
+      {
+        operationId: "reasoning-test",
+        traceId: "test",
+        spaceId: "w",
+        userId: "u",
+        signal: new AbortController().signal,
+      },
+    ))
+      events.push(event);
+    expect(events).toContainEqual({ type: "progress", text: "Check the ", reasoning: true });
+    expect(events).toContainEqual({ type: "progress", text: "available tools.", reasoning: true });
+    expect(events.filter((event) => event.type === "text")).toEqual([]);
   });
 
   it("does not claim a tool-only turn finished work the model never described", async () => {

@@ -244,6 +244,22 @@ export function reduceLiveMessageBlocks(
   blocks: readonly MessageBlock[],
   update: LiveMessageUpdate,
 ): MessageBlock[] {
+  const reasoning = blocks.filter((block) => block.kind === "progress" && block.reasoning);
+  const narration = blocks.filter((block) => block.kind !== "progress" || !block.reasoning);
+  if (update.type === "progress" && update.payload?.reasoning === true) {
+    const text = typeof update.payload.text === "string" ? update.payload.text : "";
+    return [
+      ...(text ? [{ kind: "progress" as const, text, reasoning: true as const }] : []),
+      ...narration,
+    ];
+  }
+  return [...reasoning, ...reduceLiveNarrationBlocks(narration, update)];
+}
+
+function reduceLiveNarrationBlocks(
+  blocks: readonly MessageBlock[],
+  update: LiveMessageUpdate,
+): MessageBlock[] {
   const tail = blocks.at(-1);
   const segments = tail?.kind === "progress" ? blocks.slice(0, -1) : blocks;
   const priorText = liveMessageText(blocks);
@@ -264,7 +280,7 @@ export function reduceLiveMessageBlocks(
       ? update.payload?.activity === true
       : tail?.kind === "progress" && tail.activity === true;
 
-  if (pendingToolNames.length > 0 && endsSentence(tailText)) {
+  if (pendingToolNames.length > 0 && (activity || !tailText || endsSentence(tailText))) {
     let next = activity ? [...segments] : appendTextSegment(segments, tailText);
     for (const name of pendingToolNames) next = appendToolCallSegment(next, name);
     return next;

@@ -1,19 +1,24 @@
 services:
   egress:
-    image: rakazo-egress:20261019
-    build: ./boat-network
+    image: rakazo/egress:local
+    build:
+      context: .
+      dockerfile: infra/boat/Dockerfile
     container_name: rakazo-egress
     restart: unless-stopped
     environment:
       BOAT_ENVIRONMENT: ${BOAT_ENVIRONMENT:-rakazo}
       BOAT_ENVIRONMENT_ID: ${BOAT_ENVIRONMENT_ID:?Set BOAT_ENVIRONMENT_ID}
       BOAT_WIREGUARD_ENDPOINT: ${BOAT_WIREGUARD_ENDPOINT:?Set BOAT_WIREGUARD_ENDPOINT}
-      BROWSER_PROXY_SSH_TARGET: ${BROWSER_PROXY_SSH_TARGET:?Set BROWSER_PROXY_SSH_TARGET}
+      RAKAZO_NETWORK_CONFIG: /config/network.json
     cap_add: [NET_ADMIN, NET_RAW]
     devices: [/dev/net/tun:/dev/net/tun]
     volumes:
-      - ./boat-network:/deployment:ro
+      - network-control:/control
+      - network-runtime:/network-runtime
+      - ./infra/boat:/deployment:ro
       - ./boat-network/state:/state
+      - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
     sysctls:
       net.ipv4.ip_forward: "1"
       net.ipv6.conf.all.forwarding: "1"
@@ -27,12 +32,20 @@ services:
         aliases: [api, web, supervisor]
       data: {}
     healthcheck:
-      test: [CMD, curl, --fail, --silent, --max-time, "5", "http://127.0.0.1:8788/health"]
+      test: [CMD, curl, --fail, --silent, --max-time, "5", --unix-socket, /control/network.sock, "http://network-control/health"]
       interval: 10s
       timeout: 6s
       start_period: 30s
       retries: 12
   api:
+    environment:
+      RAKAZO_NETWORK_CONFIG: /config/network.json
+      RAKAZO_NETWORK_ACTIVE_CONFIG: /network-runtime/active.json
+      RAKAZO_NETWORK_CONTROL_SOCKET: /network-control/network.sock
+    volumes:
+      - network-runtime:/network-runtime:ro
+      - network-control:/network-control:ro
+      - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:rw
     network_mode: service:egress
     networks: !reset []
     ports: !reset []
@@ -40,6 +53,12 @@ services:
       egress:
         condition: service_healthy
   worker:
+    environment:
+      RAKAZO_NETWORK_CONFIG: /config/network.json
+      RAKAZO_NETWORK_ACTIVE_CONFIG: /network-runtime/active.json
+    volumes:
+      - network-runtime:/network-runtime:ro
+      - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
     network_mode: service:egress
     networks: !reset []
     depends_on:
@@ -58,3 +77,7 @@ services:
     depends_on:
       egress:
         condition: service_healthy
+
+volumes:
+  network-runtime:
+  network-control:

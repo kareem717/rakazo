@@ -1,0 +1,39 @@
+# Optional owner-triggered restart control. Copy alongside the other deployment
+# files and include it in the same ordered RAKAZO_COMPOSE_FILE list.
+services:
+  network-applier:
+    image: ${RAKAZO_UPDATER_IMAGE:-ghcr.io/elie222/rakazo/updater}:${RAKAZO_UPDATER_IMAGE_TAG:-edge}
+    command: [pnpm, exec, tsx, src/network-server.ts]
+    user: root
+    init: true
+    restart: unless-stopped
+    network_mode: none
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    environment:
+      RAKAZO_DEPLOY_DIR: ${RAKAZO_DEPLOY_DIR:?Set RAKAZO_DEPLOY_DIR}
+      RAKAZO_NETWORK_CONFIG: ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}/network.json
+      RAKAZO_COMPOSE_FILE: ${RAKAZO_COMPOSE_FILE:?Include all deployment overlays in RAKAZO_COMPOSE_FILE}
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME:-rakazo}
+      COMPOSE_PATH_SEPARATOR: ${COMPOSE_PATH_SEPARATOR:-:}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${RAKAZO_DEPLOY_DIR}:${RAKAZO_DEPLOY_DIR}:ro
+      - ${RAKAZO_NETWORK_CONFIG_DIR}:${RAKAZO_NETWORK_CONFIG_DIR}:rw
+      - network-apply:/control
+    healthcheck:
+      test: [CMD, node, -e, "require('node:http').get({socketPath:'/control/network.sock',path:'/health'},r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+  api:
+    environment:
+      RAKAZO_NETWORK_APPLY_SOCKET: /network-apply/network.sock
+    volumes:
+      - network-apply:/network-apply:ro
+    depends_on:
+      network-applier:
+        condition: service_healthy
+volumes:
+  network-apply:

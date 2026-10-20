@@ -83,6 +83,11 @@ import {
   mapScratchpadItem,
   modelCredentialAuthKindsForSpace,
   modelCredentialDto,
+  NetworkApplyConflict,
+  NetworkSettingsError,
+  networkApplyStatus,
+  networkConnection,
+  networkDrainPreview,
   normalizeSecretDestination,
   PushSessionEndedError,
   parseModelSecret,
@@ -100,6 +105,7 @@ import {
   probeOpenAiCompatibleModels,
   provisionComputer,
   queueComputerUpdate,
+  readNetworkSettings,
   releaseComputerExecutionLease,
   replaceComputer,
   resolveAutoReviewChecker,
@@ -109,6 +115,7 @@ import {
   revokeScreenControl,
   routineRunModelPin,
   sanitizeComposioError,
+  saveNetworkSettings,
   savePushToken,
   scheduleComputerControlExpiry,
   scheduleComputerSleep,
@@ -196,12 +203,13 @@ import {
   deleteUnreferencedCredentialSecret,
   ensureBoard,
   findDefaultModelCredential,
-  findDefaultVoiceCredential,
   findModelCredential,
   findSpaceMemoryConfig,
   findTicket,
+  findVoiceCredential,
   formatMessagingLinkCode,
   InstructionConflictError,
+  InvalidSectionParentError,
   InvalidSpaceNameError,
   IsolationError,
   issueMessagingLinkCode,
@@ -305,7 +313,6 @@ import {
 import {
   disconnectVoiceCredential,
   listVoiceCatalog,
-  loadDefaultVoiceCredential,
   loadVoiceCredential,
   persistVoiceCredential,
   prepareVoice,
@@ -314,6 +321,7 @@ import {
   updateVoiceSpeechModel,
   voiceContext,
   voiceCredentialServer,
+  voiceStatus,
 } from "./voice.js";
 
 const MAX_COMPUTER_TEXT_FILE_BYTES = 2 * 1024 * 1024;
@@ -1092,6 +1100,78 @@ export function createRouter(deps: RouterDeps) {
         spaces: navigation.spaces,
       };
     }),
+    network: {
+      applyPreview: authed.network.applyPreview.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        return networkDrainPreview(deps.prisma);
+      }),
+      applyStatus: authed.network.applyStatus.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkApplyStatus();
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not reach the network restart service",
+          });
+        }
+      }),
+      apply: authed.network.apply.handler(async ({ context, input }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkApplyStatus(input.revision, undefined, input.stopComputers);
+        } catch (error) {
+          if (error instanceof NetworkApplyConflict)
+            throw new ORPCError("CONFLICT", { message: error.message });
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not reach the network restart service",
+          });
+        }
+      }),
+      connection: authed.network.connection.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkConnection();
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not connect to the network gateway",
+          });
+        }
+      }),
+      connect: authed.network.connect.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await networkConnection(true);
+        } catch {
+          throw new ORPCError("SERVICE_UNAVAILABLE", {
+            message: "Could not connect to the network gateway",
+          });
+        }
+      }),
+      get: authed.network.get.handler(async ({ context }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await readNetworkSettings();
+        } catch {
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: "Could not read network settings",
+          });
+        }
+      }),
+      save: authed.network.save.handler(async ({ context, input }) => {
+        if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
+        try {
+          return await saveNetworkSettings(input);
+        } catch (error) {
+          if (error instanceof NetworkSettingsError)
+            throw new ORPCError(error.conflict ? "CONFLICT" : "BAD_REQUEST", {
+              message: error.message,
+            });
+          throw new ORPCError("INTERNAL_SERVER_ERROR", {
+            message: "Could not save network settings",
+          });
+        }
+      }),
+    },
     deployment: {
       get: authed.deployment.get.handler(async ({ context }) => {
         if (!context.actor.isDeploymentOwner) throw new ORPCError("FORBIDDEN");
@@ -1114,6 +1194,7 @@ export function createRouter(deps: RouterDeps) {
             signupAllowlist: (input.signupAllowlist ?? []).join(","),
             signupPolicyInitialized: true,
             computerHost: input.computerHost ?? undefined,
+            browserDriver: input.browserDriver,
           },
           update: {
             ...(input.signupsEnabled === undefined ? {} : { signupsEnabled: input.signupsEnabled }),
@@ -1122,6 +1203,7 @@ export function createRouter(deps: RouterDeps) {
               ? {}
               : { signupPolicyInitialized: true }),
             ...(input.computerHost === undefined ? {} : { computerHost: input.computerHost }),
+            ...(input.browserDriver === undefined ? {} : { browserDriver: input.browserDriver }),
           },
         });
         return deploymentDto(deps.prisma, deps.env.sandboxProvider);
@@ -1767,6 +1849,15 @@ export function createRouter(deps: RouterDeps) {
       }),
       update: authed.bots.update.handler(async ({ context, input }) => {
         const existing = await repos.getBot(context.actor, input.botId);
+        if (input.voiceProvider && input.voiceProvider !== existing.voiceProvider) {
+          const credential = await findVoiceCredential(
+            deps.prisma,
+            context.actor,
+            input.voiceProvider,
+          );
+          if (!credential)
+            throw new ORPCError("BAD_REQUEST", { message: "Connect that voice provider first." });
+        }
         if (input.sectionId) {
           const section = await deps.prisma.botSection.findFirst({
             where: {
@@ -1822,6 +1913,7 @@ export function createRouter(deps: RouterDeps) {
             memoryScope: input.memoryScope,
             sectionId: input.sectionId,
             voiceId: input.voiceId,
+            voiceProvider: input.voiceId === null ? null : input.voiceProvider,
             autoSpeak: input.autoSpeak,
             ...(input.modelProvider !== undefined
               ? { modelProvider: input.modelProvider, modelId: input.modelId ?? null }
@@ -2163,15 +2255,25 @@ export function createRouter(deps: RouterDeps) {
         try {
           return await repos.updateBotSection(context.actor, input);
         } catch (error) {
+          if (error instanceof InvalidSectionParentError) {
+            throw new ORPCError("BAD_REQUEST", { message: error.message });
+          }
           if (error instanceof BotSectionNameConflictError) {
             throw new ORPCError("CONFLICT", { message: error.message });
           }
           throw error;
         }
       }),
-      remove: authed.botSections.remove.handler(async ({ context, input }) =>
-        repos.deleteBotSection(context.actor, input),
-      ),
+      remove: authed.botSections.remove.handler(async ({ context, input }) => {
+        try {
+          return await repos.deleteBotSection(context.actor, input);
+        } catch (error) {
+          if (error instanceof BotSectionNameConflictError) {
+            throw new ORPCError("CONFLICT", { message: error.message });
+          }
+          throw error;
+        }
+      }),
     },
     threads: {
       head: authed.threads.head.handler(async ({ context, input }) => {
@@ -3266,7 +3368,12 @@ export function createRouter(deps: RouterDeps) {
               "terminal",
             ),
           )
-          .catch((error: unknown) => clearGoneSandbox(deps, computer, error));
+          .catch((error: unknown) => {
+            if (isComputerScreenUnavailable(error)) {
+              throw new ORPCError("CONFLICT", { message: error.message });
+            }
+            return clearGoneSandbox(deps, computer, error);
+          });
         if (!session) return { url: null };
         await keepComputerAwake(deps, computer.id);
         return {
@@ -6311,10 +6418,9 @@ export function createRouter(deps: RouterDeps) {
     },
     voice: {
       catalog: authed.voice.catalog.handler(async () => listVoiceCatalog()),
-      status: authed.voice.status.handler(async ({ context }) => {
-        const cred = await findDefaultVoiceCredential(deps.prisma, context.actor);
-        return toVoiceStatus(cred);
-      }),
+      status: authed.voice.status.handler(async ({ context, input }) =>
+        voiceStatus(deps, context.actor, input?.botId),
+      ),
       credentials: authed.voice.credentials.handler(async ({ context }) => {
         const rows = await deps.prisma.userVoiceCredential.findMany({
           where: { userId: context.actor.userId },
@@ -6389,17 +6495,19 @@ export function createRouter(deps: RouterDeps) {
         updateVoiceSpeechModel(deps, context.actor, input),
       ),
       voices: authed.voice.voices.handler(async ({ context, input }) => {
-        const loaded = await loadDefaultVoiceCredential(deps, context.actor);
-        if (!loaded) return [];
-        const providerId = input.provider ?? loaded.cred.provider;
-        const row =
-          providerId === loaded.cred.provider
-            ? loaded
-            : await loadVoiceCredential(deps, context.actor, providerId);
+        const row = await loadVoiceCredential(deps, context.actor, input.provider);
         if (!row) return [];
-        return createVoiceProvider(row.cred.provider).listVoices(
-          row.apiKey,
-          voiceContext(context.actor, context.signal),
+        const provider = createVoiceProvider(row.cred.provider);
+        const ctx = voiceContext(context.actor, context.signal);
+        const query = input.query?.trim();
+        if (query && provider.searchVoices) return provider.searchVoices(row.apiKey, query, ctx);
+        const voices = await provider.listVoices(row.apiKey, ctx);
+        if (!query) return voices;
+        const term = query.toLowerCase();
+        return voices.filter((voice) =>
+          [voice.id, voice.label, voice.description ?? ""].some((value) =>
+            value.toLowerCase().includes(term),
+          ),
         );
       }),
       prepare: authed.voice.prepare.handler(async ({ context, input }) =>
@@ -6944,6 +7052,8 @@ async function computerScreenContext(
 async function deploymentDto(prisma: PrismaClient, sandboxProvider: string) {
   const settings = await prisma.deploymentSettings.findUnique({ where: { id: "default" } });
   return {
+    browserDriver:
+      settings?.browserDriver === "patchright" ? ("patchright" as const) : ("cdp" as const),
     ownerUserId: settings?.ownerUserId ?? null,
     signupsEnabled: settings?.signupsEnabled ?? true,
     signupAllowlist: settings?.signupAllowlist

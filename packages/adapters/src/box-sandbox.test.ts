@@ -129,6 +129,104 @@ describe("BoxSandboxProvider", () => {
     expect(fixture.command.mock.calls.at(-1)![0].commandRequest.command).toContain("rm -rf --");
   });
 
+  it("installs the selected optional driver before invoking it, keeping protected input off argv", async () => {
+    const fixture = boxFixture();
+    const original = fixture.command.getMockImplementation()!;
+    fixture.command.mockImplementation(async (request) => {
+      const command = request.commandRequest.command;
+      if (command.includes("--requirements"))
+        return finished({
+          stdout:
+            "/home/user/.local/share/rakazo/browser-drivers/patchright-0123456789abcdef/bin/python\n",
+        });
+      if (command.includes("RAKAZO_BROWSER_ARGS_STDIN"))
+        return finished({ stdout: JSON.stringify({ ok: true, completed: 1 }) });
+      return original(request);
+    });
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    await expect(
+      provider.pageBrowser(
+        computer,
+        {
+          command: "act",
+          driver: "patchright",
+          actions: [
+            {
+              kind: "fill",
+              ref: "e1",
+              text: "fake-protected-value",
+              origin: "https://example.test",
+            },
+          ],
+        },
+        context,
+      ),
+    ).resolves.toMatchObject({ ok: true });
+    const commands = fixture.command.mock.calls
+      .map(([request]) => request.commandRequest.command)
+      .join("\n");
+    expect(commands).toContain("rakazo-patchright-browser");
+    expect(commands).not.toContain("fake-protected-value");
+    expect(
+      fixture.writeFile.mock.calls.map(([request]) =>
+        request.fileWriteRequest.path.split("/").at(-1),
+      ),
+    ).toEqual(
+      expect.arrayContaining([
+        "rakazo-page-browser",
+        "rakazo-patchright-browser",
+        "requirements-patchright.txt",
+        "install-browser-driver.py",
+        "args.json",
+      ]),
+    );
+  });
+
+  it("does not run an action or silently change drivers when optional setup fails", async () => {
+    const fixture = boxFixture();
+    const original = fixture.command.getMockImplementation()!;
+    fixture.command.mockImplementation(async (request) =>
+      request.commandRequest.command.includes("--requirements")
+        ? finished({ stdout: "", exitCode: 1 })
+        : original(request),
+    );
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    await expect(
+      provider.pageBrowser(computer, { command: "snapshot", driver: "patchright" }, context),
+    ).resolves.toMatchObject({
+      ok: false,
+      completed: 0,
+      uncertain: false,
+      fallback: "computer_act",
+    });
+    expect(
+      fixture.command.mock.calls.some(([request]) =>
+        request.commandRequest.command.includes("RAKAZO_BROWSER_ARGS_STDIN"),
+      ),
+    ).toBe(false);
+  });
+
+  it("checks provider state without resuming an archived or missing machine", async () => {
+    const fixture = boxFixture({ state: "archived" });
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = {
+      id: "computer",
+      botId: "bot-a",
+      kind: "box" as const,
+      providerRef: "bx_existing2",
+    };
+    expect(await provider.isRunning(computer, context)).toBe(false);
+    expect(fixture.resume).not.toHaveBeenCalled();
+    fixture.get.mockResolvedValueOnce(infoResponse("bx_existing2", "idle"));
+    expect(await provider.isRunning(computer, context)).toBe(true);
+    fixture.get.mockRejectedValueOnce({ status: 404 });
+    expect(await provider.isRunning(computer, context)).toBe(false);
+    fixture.get.mockRejectedValueOnce({ status: 503 });
+    await expect(provider.isRunning(computer, context)).rejects.toEqual({ status: 503 });
+  });
+
   it("resumes archived boxes and replaces deleted references", async () => {
     const archived = boxFixture({ state: "archived" });
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, archived.client);
@@ -303,7 +401,9 @@ describe("BoxSandboxProvider", () => {
       .filter((r) => r.path.includes(".rakazo-upload-"));
     expect(chunks).toHaveLength(3);
     expect(chunks.every((c) => c.content.length < 5 * 1024 * 1024)).toBe(true);
-    expect(Buffer.concat(chunks.map((c) => Buffer.from(c.content, "base64")))).toEqual(content);
+    expect(Buffer.concat(chunks.map((c) => Buffer.from(c.content, "base64"))).equals(content)).toBe(
+      true,
+    );
     expect(
       fixture.command.mock.calls.some(
         ([r]) =>

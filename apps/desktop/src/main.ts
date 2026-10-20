@@ -44,6 +44,7 @@ import {
   isRendererAssetMiss,
 } from "./renderer-assets.js";
 import { installSessionPermissions } from "./session-permissions.js";
+import { installScreenShortcuts } from "./screen-shortcuts.js";
 import {
   DEFAULT_LOCAL_WEB_URL,
   desktopStackImageTag,
@@ -269,6 +270,7 @@ function createWindow(url: string, partition: string | null) {
   });
   mainWindow = win;
   appWindowTargets.set(win, url);
+  installScreenShortcuts(win.webContents);
   const targetOrigin = safeOrigin(url);
   // Intentional OAuth flows open the provider's authorize page via a named
   // window; give those and same-origin popups a normal frame. Everything else

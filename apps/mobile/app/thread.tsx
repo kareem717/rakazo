@@ -1894,7 +1894,8 @@ function Thread({ sessionEpoch }: { sessionEpoch: number }) {
     const targetBotId = botId;
     if (!targetBotId || voiceCallStarting.current) return;
     voiceCallStarting.current = true;
-    const loadVoiceStatus = () => rpc<{ ready: boolean; transcribe: boolean }>("voice/status");
+    const loadVoiceStatus = () =>
+      rpc<{ ready: boolean; transcribe: boolean }>("voice/status", { botId: targetBotId });
     try {
       const [plan, callerName] = await Promise.all([
         resolveVoiceCallPlan({
