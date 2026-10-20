@@ -219,7 +219,7 @@ export class NetworkApplier {
       previous: EgressConfig | undefined;
     try {
       previous = parseEgressConfig(
-        JSON.parse(await this.gateway(["cat", "/state/network-active.json"])),
+        JSON.parse(await this.gateway(["cat", "/network-runtime/active.json"])),
       );
       await writeFile(
         path.join(this.stateDir, "recovery.json"),

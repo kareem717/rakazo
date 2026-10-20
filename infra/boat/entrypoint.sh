@@ -1,8 +1,10 @@
 #!/bin/sh
 set -eu
 umask 077
-mkdir -p /state
-node /deployment/network-config.mjs /state/egress.env /state/network-active.json
+mkdir -p /state /network-runtime
+node /deployment/network-config.mjs /state/egress.env /network-runtime/active.json
+chmod 640 /network-runtime/active.json
+chown 0:1000 /network-runtime/active.json
 . /state/egress.env
 export EGRESS_MODE
 node /deployment/controller.mjs --check-network-transition

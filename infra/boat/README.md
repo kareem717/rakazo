@@ -21,6 +21,13 @@ This is deployment routing, not a sandbox security boundary against root command
 
 ## Configuration
 
+The gateway writes its boot policy to the dedicated `network-runtime` volume, readable by
+the application group and mounted read-only as `RAKAZO_NETWORK_ACTIVE_CONFIG` on
+API and worker. Saved edits remain in `RAKAZO_NETWORK_CONFIG`. An API-only update
+therefore reloads the actual gateway policy and retains the pending-change notice.
+Only a gateway restart changes that active snapshot. This directory volume also
+works on first startup, before the snapshot file exists; it contains no keys.
+
 Network settings can also apply a saved route from the app. The optional
 `compose.apply.yml` overlay runs a restricted restart service from the updater
 image. Build the updater image from this source, copy the overlay beside the

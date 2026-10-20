@@ -15,6 +15,7 @@ services:
     devices: [/dev/net/tun:/dev/net/tun]
     volumes:
       - network-control:/control
+      - network-runtime:/network-runtime
       - ./infra/boat:/deployment:ro
       - ./boat-network/state:/state
       - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
@@ -39,8 +40,10 @@ services:
   api:
     environment:
       RAKAZO_NETWORK_CONFIG: /config/network.json
+      RAKAZO_NETWORK_ACTIVE_CONFIG: /network-runtime/active.json
       RAKAZO_NETWORK_CONTROL_SOCKET: /network-control/network.sock
     volumes:
+      - network-runtime:/network-runtime:ro
       - network-control:/network-control:ro
       - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:rw
     network_mode: service:egress
@@ -52,7 +55,9 @@ services:
   worker:
     environment:
       RAKAZO_NETWORK_CONFIG: /config/network.json
+      RAKAZO_NETWORK_ACTIVE_CONFIG: /network-runtime/active.json
     volumes:
+      - network-runtime:/network-runtime:ro
       - ${RAKAZO_NETWORK_CONFIG_DIR:?Set RAKAZO_NETWORK_CONFIG_DIR}:/config:ro
     network_mode: service:egress
     networks: !reset []
@@ -74,4 +79,5 @@ services:
         condition: service_healthy
 
 volumes:
+  network-runtime:
   network-control:

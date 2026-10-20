@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  activeEgressConfig,
   egressProxyUrl,
   parseEgressConfig,
   readEgressConfig,
@@ -24,6 +25,28 @@ function configFile(value: unknown) {
 }
 
 describe("network egress configuration", () => {
+  it("uses the gateway snapshot after a partial API restart while edits stay pending", () => {
+    const saved = configFile({
+      version: 1,
+      mode: "all",
+      transport: { type: "tailscale-exit-node", exitNode: "exit.example.ts.net" },
+    });
+    const active = configFile({
+      version: 1,
+      mode: "tools",
+      transport: { type: "ssh", target: "proxy@egress.example.test", tailscale: true },
+    });
+    expect(activeEgressConfig(saved, active).mode).toBe("tools");
+    expect(
+      toolEgressProxyUrl({ RAKAZO_NETWORK_CONFIG: saved, RAKAZO_NETWORK_ACTIVE_CONFIG: active }),
+    ).toBe("socks5://10.202.0.1:1080");
+    expect(() =>
+      toolEgressProxyUrl({
+        RAKAZO_NETWORK_CONFIG: saved,
+        RAKAZO_NETWORK_ACTIVE_CONFIG: active + ".missing",
+      }),
+    ).toThrow();
+  });
   it("keeps the core product direct when no network config is selected", () => {
     expect(readEgressConfig()).toEqual({ version: 1, mode: "direct" });
     expect(toolEgressProxyUrl({})).toBeUndefined();

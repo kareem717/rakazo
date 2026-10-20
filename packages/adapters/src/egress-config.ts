@@ -28,7 +28,10 @@ export function toolEgressProxyUrl(source: NodeJS.ProcessEnv = process.env): str
   if (source.RAKAZO_NETWORK_CONFIG !== undefined) {
     if (!source.RAKAZO_NETWORK_CONFIG.trim())
       throw new Error("Network egress config path is empty");
-    const config = activeEgressConfig(source.RAKAZO_NETWORK_CONFIG);
+    const config = activeEgressConfig(
+      source.RAKAZO_NETWORK_CONFIG,
+      source.RAKAZO_NETWORK_ACTIVE_CONFIG ?? source.RAKAZO_NETWORK_CONFIG,
+    );
     return config.mode === "tools" ? egressProxyUrl(config) : undefined;
   }
   return source.TOOL_EGRESS_PROXY_URL || undefined;
@@ -37,11 +40,15 @@ export function toolEgressProxyUrl(source: NodeJS.ProcessEnv = process.env): str
 // A routing change is applied by restarting the deployment, not by racing requests
 // against a file edit while its network namespace still has the previous policy.
 const configurations = new Map<string, EgressConfig>();
-export function activeEgressConfig(path: string): EgressConfig {
-  let config = configurations.get(path);
+export function activeEgressConfig(
+  path: string,
+  activePath = process.env.RAKAZO_NETWORK_ACTIVE_CONFIG ?? path,
+): EgressConfig {
+  if (!activePath.trim()) throw new Error("Active network config path is empty");
+  let config = configurations.get(activePath);
   if (!config) {
-    config = readEgressConfig(path);
-    configurations.set(path, config);
+    config = readEgressConfig(activePath);
+    configurations.set(activePath, config);
   }
   return config;
 }
