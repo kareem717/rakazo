@@ -546,6 +546,13 @@ export const builtinAgentTools: ConnectorTool[] = [
     },
   },
   {
+    name: "refresh_connections",
+    description:
+      "Reload your authorized connections and tool catalog in this chat after a connection is added, approved, or changed, or an expected tool is missing. Use connection_search_tools, connection_get_tool, and connection_execute_tool to find and use refreshed tools immediately. Refresh does not grant access or complete sign-in.",
+    inputSchema: { type: "object", properties: {}, additionalProperties: false },
+    readOnly: true,
+  },
+  {
     name: "add_mcp_server",
     description:
       "Connect an MCP tool server to this Space when the user asks you to add one and provides the details (URL or command, optional token/headers/env). The server is created immediately and assigned to you. If it needs browser OAuth authorization, an approval card appears in the chat for the user to complete — tell them to click Authorize. Do not invent endpoints; only use details the user provided.",

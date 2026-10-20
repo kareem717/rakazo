@@ -44,6 +44,7 @@ describe("toolRequiresApproval", () => {
       "save_shared_memory",
       "spawn_bot",
       "run_subagent",
+      "refresh_connections",
     ]) {
       expect(toolRequiresApproval(name, false)).toBe(false);
     }
@@ -145,6 +146,7 @@ describe("unattendedTriggerToolRequiresApproval", () => {
 
   it("allows webhook-triggered reads to stay unattended", () => {
     for (const name of [
+      "refresh_connections",
       "computer_observe",
       "read_file",
       "web_search",
