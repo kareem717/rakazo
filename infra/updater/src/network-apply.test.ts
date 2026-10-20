@@ -35,6 +35,7 @@ async function fixture(
     booted = previous;
   const run: UpdaterCommandRunner = async (command, args, execution) => {
     expect(command).toBe("docker");
+    expect(execution.env).toEqual({ GOMAXPROCS: "2" });
     commands.push(args);
     const ok = (output = "") => ({ ok: true, exitCode: 0, output });
     if (args.includes("tailscale")) {
@@ -205,6 +206,8 @@ it("drains only after explicit consent and releases maintenance after verificati
   const stop = commands.findIndex((args) => args.includes("stop"));
   const release = commands.findIndex((args) => args.at(-1)?.includes('"action":"release"'));
   expect(begin).toBeGreaterThanOrEqual(0);
+  expect(commands[begin]).toContain("--input-type=module");
+  expect(commands[begin]).not.toContain("pnpm");
   expect(stop).toBeGreaterThan(begin);
   expect(release).toBeGreaterThan(stop);
 });

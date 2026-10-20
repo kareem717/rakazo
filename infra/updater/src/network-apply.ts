@@ -24,6 +24,8 @@ export function networkRevision(config: EgressConfig) {
 }
 const terminal = new Set(["idle", "succeeded", "failed"]);
 const services = ["egress", "api", "worker", "web", "supervisor"];
+// Compose must leave thread capacity for the controller inside its bounded cgroup.
+const composeEnvironment = { GOMAXPROCS: "2" };
 
 export function networkApplyConfig(env: NodeJS.ProcessEnv) {
   const deployDir = env.RAKAZO_DEPLOY_DIR?.trim() ?? "";
@@ -108,6 +110,7 @@ export class NetworkApplier {
   private async command(args: string[], timeoutMs = 30_000) {
     const result = await this.run("docker", [...this.base, ...args], {
       cwd: this.config.deployDir,
+      env: composeEnvironment,
       timeoutMs,
       output: "stdout",
     });
@@ -120,6 +123,7 @@ export class NetworkApplier {
   private async recreate(expected: EgressConfig) {
     const result = await this.run("docker", this.up, {
       cwd: this.config.deployDir,
+      env: composeEnvironment,
       timeoutMs: 420_000,
     });
     if (!result.ok) throw new Error("Network deployment restart failed");
@@ -160,7 +164,10 @@ export class NetworkApplier {
         method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+env.screenProxySecret},
         body:JSON.stringify(${JSON.stringify({ operationId, action })}),signal:AbortSignal.timeout(650000)
       }).then(async r=>{if(!r.ok)process.exit(1);console.log(JSON.stringify(await r.json()))}).catch(()=>process.exit(1));`;
-    await this.command(["exec", "-T", "api", "pnpm", "exec", "tsx", "-e", script], 680_000);
+    await this.command(
+      ["exec", "-T", "api", "node", "--import", "tsx", "--input-type=module", "-e", script],
+      680_000,
+    );
   }
   private async replaceConfig(bytes: string, uid: number, gid: number) {
     const file = `${this.config.configPath}.${randomUUID()}.tmp`;
