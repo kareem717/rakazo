@@ -29,7 +29,7 @@ import type {
   TerminalRequest,
 } from "@rakazo/adapter-kit";
 import { boundedSandboxCommandTimeoutMs } from "@rakazo/core";
-import { boxResponseError, wrapBoxCall } from "./box-errors.js";
+import { BoxApiError, boxResponseError, wrapBoxCall } from "./box-errors.js";
 import { normalizeWorkspacePath, shellQuote, workspacePath } from "./computer-support.js";
 import {
   PORTABLE_TRANSFER_BATCH_BYTES,
@@ -232,7 +232,7 @@ export class BoxSandboxProvider implements SandboxProvider {
     if (pending) return pending;
     let preparation!: Promise<void>;
     preparation = (async () => {
-      await this.ensureRunnable(id, context);
+      await this.ensureRunnable(id, context.signal);
       const result = await this.runCommand(
         id,
         configureBoxWorkspaceCommand(),
@@ -318,7 +318,7 @@ export class BoxSandboxProvider implements SandboxProvider {
     request: ScreenRequest,
     context: AdapterContext,
   ): Promise<ScreenSession> {
-    await this.ensureRunnable(this.id(computer), context);
+    await this.ensureRunnable(this.id(computer), context.signal);
     await this.prepare(computer, context);
     return this.desktops.connectScreen(computer, request, context);
   }
@@ -390,16 +390,21 @@ export class BoxSandboxProvider implements SandboxProvider {
             )
           : []),
       ] as const) {
-        await this.client.writeFile(
-          {
-            boxId: id,
-            fileWriteRequest: {
-              path: `${directory}/${name}`,
-              content: content.toString("base64"),
-              encoding: "base64",
-            },
-          },
-          { signal: context.signal },
+        await this.withReadyRetry(
+          id,
+          () =>
+            this.client.writeFile(
+              {
+                boxId: id,
+                fileWriteRequest: {
+                  path: `${directory}/${name}`,
+                  content: content.toString("base64"),
+                  encoding: "base64",
+                },
+              },
+              { signal: context.signal },
+            ),
+          context.signal,
         );
       }
       let python = "python3";
@@ -577,27 +582,50 @@ export class BoxSandboxProvider implements SandboxProvider {
     }
   }
 
-  private async ensureRunnable(id: string, context: AdapterContext): Promise<Box> {
+  private async ensureRunnable(id: string, signal?: AbortSignal): Promise<Box> {
     const deadline = Date.now() + BOX_READY_TIMEOUT_MS;
     let resumed = false;
     while (true) {
-      if (context.signal.aborted) {
-        throw context.signal.reason ?? new Error("Box preparation aborted");
+      if (signal?.aborted) {
+        throw signal.reason ?? new Error("Box preparation aborted");
       }
-      const response = await this.client.get({ boxId: id }, { signal: context.signal });
+      const response = await this.client.get({ boxId: id }, { signal });
       const box = response.box;
       if (box.state === "ready" || box.state === "idle" || box.state === "running") return box;
       if (box.state === "archived" && !resumed) {
         await this.client.resume(
           { boxId: id, resumeRequest: { noEnv: true, ttlSeconds: BOX_TTL_SECONDS } },
-          { signal: context.signal },
+          { signal },
         );
         resumed = true;
       } else if (box.state === "error") {
         throw new Error(`Box ${id} entered the error state`);
       }
       if (Date.now() >= deadline) throw new Error(`Box ${id} did not become ready`);
-      await delay(1_000, undefined, { signal: context.signal });
+      await delay(1_000, undefined, { signal });
+    }
+  }
+
+  private async withReadyRetry<T>(
+    id: string,
+    call: () => Promise<T>,
+    signal?: AbortSignal,
+  ): Promise<T> {
+    try {
+      return await call();
+    } catch (error) {
+      // These conflicts reject the request before execution. Other failures can
+      // mean a command already ran, so replaying them could duplicate side effects.
+      if (
+        !(error instanceof BoxApiError) ||
+        error.response.status !== 409 ||
+        (error.code !== "box_not_ready" && error.code !== "box_starting")
+      ) {
+        throw error;
+      }
+      await this.ensureRunnable(id, signal);
+      signal?.throwIfAborted();
+      return call();
     }
   }
 
@@ -630,16 +658,21 @@ export class BoxSandboxProvider implements SandboxProvider {
         const content = Buffer.from(file.content);
         const chunkSize = 3 * 1024 * 1024;
         if (content.length <= chunkSize) {
-          await this.client.writeFile(
-            {
-              boxId: id,
-              fileWriteRequest: {
-                path: destination,
-                content: content.toString("base64"),
-                encoding: "base64",
-              },
-            },
-            { signal: context.signal },
+          await this.withReadyRetry(
+            id,
+            () =>
+              this.client.writeFile(
+                {
+                  boxId: id,
+                  fileWriteRequest: {
+                    path: destination,
+                    content: content.toString("base64"),
+                    encoding: "base64",
+                  },
+                },
+                { signal: context.signal },
+              ),
+            context.signal,
           );
           return;
         }
@@ -649,16 +682,21 @@ export class BoxSandboxProvider implements SandboxProvider {
         const parts: string[] = [];
         for (let offset = 0; offset < content.length; offset += chunkSize) {
           const part = `${staging}/part-${parts.length}`;
-          await this.client.writeFile(
-            {
-              boxId: id,
-              fileWriteRequest: {
-                path: part,
-                content: content.subarray(offset, offset + chunkSize).toString("base64"),
-                encoding: "base64",
-              },
-            },
-            { signal: context.signal },
+          await this.withReadyRetry(
+            id,
+            () =>
+              this.client.writeFile(
+                {
+                  boxId: id,
+                  fileWriteRequest: {
+                    path: part,
+                    content: content.subarray(offset, offset + chunkSize).toString("base64"),
+                    encoding: "base64",
+                  },
+                },
+                { signal: context.signal },
+              ),
+            context.signal,
           );
           parts.push(part);
         }
@@ -722,9 +760,10 @@ export class BoxSandboxProvider implements SandboxProvider {
     maxBytes?: number,
   ): Promise<Uint8Array> {
     // The JSON/base64 file endpoint rejects files over 5 MiB, including browser profiles.
-    const { raw: response } = await this.client.artifactRaw(
-      { boxId: id, path: filePath },
-      signal ? { signal } : undefined,
+    const { raw: response } = await this.withReadyRetry(
+      id,
+      () => this.client.artifactRaw({ boxId: id, path: filePath }, signal ? { signal } : undefined),
+      signal,
     );
     const reader = response.body?.getReader();
     const chunks: Uint8Array[] = [];
@@ -770,18 +809,25 @@ export class BoxSandboxProvider implements SandboxProvider {
     const timeoutSeconds = Math.ceil(timeoutMs / 1_000);
     const detached = timeoutSeconds + 5 > BOX_API_COMMAND_TIMEOUT_SECONDS;
     try {
-      const response = await this.client.command(
-        {
-          boxId: id,
-          commandRequest: {
-            command: wrapped,
-            cwd,
-            ...(detached
-              ? { detached: true }
-              : { timeoutSeconds: Math.min(timeoutSeconds + 5, BOX_API_COMMAND_TIMEOUT_SECONDS) }),
-          },
-        },
-        signal ? { signal } : undefined,
+      const response = await this.withReadyRetry(
+        id,
+        () =>
+          this.client.command(
+            {
+              boxId: id,
+              commandRequest: {
+                command: wrapped,
+                cwd,
+                ...(detached
+                  ? { detached: true }
+                  : {
+                      timeoutSeconds: Math.min(timeoutSeconds + 5, BOX_API_COMMAND_TIMEOUT_SECONDS),
+                    }),
+              },
+            },
+            signal ? { signal } : undefined,
+          ),
+        signal,
       );
       const result = isFinishedCommand(response)
         ? commandResponse(response)

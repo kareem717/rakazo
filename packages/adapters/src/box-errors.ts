@@ -5,6 +5,16 @@ import { readBodyCapped } from "./web-ssrf.js";
 const MAX_BOX_ERROR_RESPONSE_BYTES = 16 * 1024;
 const BOX_ERROR_RESPONSE_TIMEOUT_MS = 2_000;
 
+export class BoxApiError extends ResponseError {
+  constructor(
+    response: Response,
+    message: string,
+    readonly code: string | undefined,
+  ) {
+    super(response, message);
+  }
+}
+
 /** Keep HTTP failures actionable without changing the SDK's status-based recovery contract. */
 export function wrapBoxCall<Args extends unknown[], Result>(
   call: (...args: Args) => Promise<Result>,
@@ -24,7 +34,7 @@ export async function boxResponseError(
   response: Response,
   apiKey: string,
   signal?: AbortSignal,
-): Promise<ResponseError> {
+): Promise<BoxApiError> {
   const body = await readErrorBody(response, signal);
   const code = safeIdentifier(body?.code);
   const requestId = safeIdentifier(body?.requestId);
@@ -38,12 +48,13 @@ export async function boxResponseError(
           .trim()
           .slice(0, 512)
       : "";
-  return new ResponseError(
+  return new BoxApiError(
     response,
     redactSecrets(
       `${prefix}${detail ? `: ${detail}` : ""}${requestId ? ` (request ${requestId})` : ""}`,
       [apiKey],
     ),
+    code,
   );
 }
 
