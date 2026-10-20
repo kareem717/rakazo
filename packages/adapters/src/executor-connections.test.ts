@@ -1,9 +1,36 @@
 import type { PrismaClient } from "@rakazo/db";
 import { describe, expect, it, vi } from "vitest";
 import { mergeConnectedPlugins } from "./composio-connector.js";
-import { persistLivePluginConnections, selectRunConnections } from "./executor.js";
+import {
+  persistLivePluginConnections,
+  resolveRunConnections,
+  selectRunConnections,
+} from "./executor.js";
 
 describe("run connection selection", () => {
+  it("explicit refresh rechecks upstream connections without reviving revoked accounts", async () => {
+    const rows = [
+      { id: "gmail", provider: "gmail", status: "connected" },
+      { id: "slack", provider: "slack", status: "revoked" },
+    ].map((row) => ({
+      ...row,
+      connectorId: "composio",
+      displayName: row.provider,
+      providerRef: `fake-${row.id}`,
+    }));
+    const prisma = {
+      connection: { updateMany: vi.fn() },
+    } as unknown as PrismaClient;
+    const listConnectedPluginSlugs = vi.fn().mockResolvedValue(["gmail", "slack"]);
+    const deps = { prisma, listConnectedPluginSlugs };
+    const owner = { userId: "user", spaceId: "space" };
+    await resolveRunConnections(deps, owner, rows);
+    expect(listConnectedPluginSlugs).not.toHaveBeenCalled();
+    expect(await resolveRunConnections(deps, owner, rows, true)).toEqual([rows[0]]);
+    expect(listConnectedPluginSlugs).toHaveBeenCalledWith("user");
+    expect(prisma.connection.updateMany).not.toHaveBeenCalled();
+  });
+
   it("uses synchronized account statuses in the current run", async () => {
     const rows = [
       { id: "gmail", provider: "gmail", status: "error" },

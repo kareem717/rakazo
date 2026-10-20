@@ -1,4 +1,5 @@
 import type {
+  AdapterContext,
   AgentRunRequest,
   AutoReviewProvider,
   ConnectorCall,
@@ -274,7 +275,20 @@ function fixture({
       })),
     },
     task: { findUniqueOrThrow: vi.fn(async () => ({ id: run.taskId, prompt: taskPrompt })) },
-    connection: { findMany: vi.fn(async () => []) },
+    connection: {
+      findMany: vi.fn(
+        async (): Promise<
+          Array<{
+            id: string;
+            connectorId: string;
+            provider: string;
+            providerRef: string | null;
+            displayName: string;
+            status: string;
+          }>
+        > => [],
+      ),
+    },
     spaceModelPreference: { findFirst: vi.fn(async () => null) },
     userModelCredential: { findFirst: vi.fn(async () => null) },
     deploymentSettings: {
@@ -309,15 +323,15 @@ function fixture({
   const execute = vi.fn(async function* (call: ConnectorCall) {
     yield { type: "result" as const, data: { item: call.args.id } };
   });
-  let calls: { args: Record<string, unknown>; executionId: string }[] = [
+  let calls: { name?: string; args: Record<string, unknown>; executionId: string }[] = [
     { args: { id: "item-1" }, executionId: "call-1" },
   ];
   const runtimeRun = vi.fn(async function* (request: AgentRunRequest) {
     offeredTools = request.tools.map((tool) => tool.name);
     const executeCall = async (call: (typeof calls)[number]) => {
       const result = await request.executeTool!(
-        catalog ? "demo_execute_tool" : name,
-        catalog ? { id: `resource-1:${name}`, arguments: call.args } : call.args,
+        call.name ?? (catalog ? "demo_execute_tool" : name),
+        catalog && !call.name ? { id: `resource-1:${name}`, arguments: call.args } : call.args,
         call.executionId,
       );
       results.push(result);
@@ -333,23 +347,26 @@ function fixture({
     }
     yield { type: "done" as const, text: "Done" };
   });
+  const discoverTools = vi.fn(
+    async (_context: AdapterContext): Promise<ConnectorTool[]> =>
+      builtin
+        ? []
+        : catalog
+          ? [
+              {
+                name: "demo_execute_tool",
+                description: "Execute a catalog tool",
+                inputSchema: { type: "object" },
+                route: { connectorId: "demo", toolName: "__catalog_execute" },
+              },
+            ]
+          : [tool],
+  );
   const executor = createRunExecutor({
     prisma: transactionalPrisma,
     runtime: { describe: () => ({ capabilities: { scripted: false } }), run: runtimeRun },
     connector: {
-      discoverTools: async () =>
-        builtin
-          ? []
-          : catalog
-            ? [
-                {
-                  name: "demo_execute_tool",
-                  description: "Execute a catalog tool",
-                  inputSchema: { type: "object" },
-                  route: { connectorId: "demo", toolName: "__catalog_execute" },
-                },
-              ]
-            : [tool],
+      discoverTools,
       resolveCall: async (call: ConnectorCall) =>
         catalog ? resolveCatalogCall(call, catalogEntries([tool])) : undefined,
       execute,
@@ -407,6 +424,8 @@ function fixture({
       });
     },
     results,
+    discoverTools,
+    connection: prisma.connection,
     execute,
     commit,
     sharedMemoryState,
@@ -485,6 +504,184 @@ function fixture({
     },
   };
 }
+
+describe("refreshing connections during a run", () => {
+  const tool: ConnectorTool = {
+    name: "demo_get_item",
+    description: "Read an item",
+    readOnly: true,
+    inputSchema: {
+      type: "object",
+      properties: { id: { type: "string" } },
+      required: ["id"],
+    },
+    route: {
+      connectorId: "demo",
+      resourceId: "resource-1",
+      toolName: "demo_get_item",
+      catalogGroup: "Demo",
+    },
+  };
+  const executeArgs = { id: "resource-1:demo_get_item", arguments: { id: "item-1" } };
+
+  it("finds, inspects, and calls a newly connected tool without a new runtime session", async () => {
+    const f = fixture();
+    f.discoverTools.mockResolvedValueOnce([]).mockResolvedValue([tool]);
+    f.connection.findMany.mockResolvedValueOnce([]).mockResolvedValue([
+      {
+        id: "connection-1",
+        connectorId: "demo",
+        provider: "demo",
+        providerRef: "fake-account",
+        displayName: "Demo",
+        status: "connected",
+      },
+    ]);
+    f.setCalls([
+      { name: "refresh_connections", args: {}, executionId: "refresh" },
+      { name: "connection_search_tools", args: { query: "item" }, executionId: "search" },
+      { name: "connection_get_tool", args: { id: executeArgs.id }, executionId: "inspect" },
+      { name: "connection_execute_tool", args: executeArgs, executionId: "execute" },
+    ]);
+    await f.run();
+    expect(f.offeredTools()).toContain("refresh_connections");
+    expect(f.offeredTools()).toContain("connection_execute_tool");
+    expect(f.offeredTools()).not.toContain(tool.name);
+    expect(f.results[0]).toEqual({ ok: true, index: [{ group: "Demo", names: [tool.name] }] });
+    expect(f.results[1]).toMatchObject({ tools: [{ id: executeArgs.id }] });
+    expect(f.results[2]).toMatchObject({ inputSchema: tool.inputSchema });
+    expect(f.results[3]).toEqual({ item: "item-1" });
+    expect(f.connection.findMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ where: { userId: "user-1", spaceId: "space-1" } }),
+    );
+    expect(f.discoverTools).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        userId: "user-1",
+        spaceId: "space-1",
+        botId: "bot-1",
+        connectedConnections: [expect.objectContaining({ id: "connection-1" })],
+      }),
+    );
+    expect(f.pauseRunForInput).not.toHaveBeenCalled();
+  });
+
+  it("validates refreshed tool arguments before execution", async () => {
+    const f = fixture();
+    f.discoverTools.mockResolvedValueOnce([]).mockResolvedValue([tool]);
+    f.setCalls([
+      { name: "refresh_connections", args: {}, executionId: "refresh" },
+      {
+        name: "connection_execute_tool",
+        args: { ...executeArgs, arguments: { id: 42 } },
+        executionId: "execute",
+      },
+    ]);
+    await f.run();
+    expect(f.results[1]).toMatchObject({ error: expect.stringContaining("invalid") });
+    expect(f.execute).not.toHaveBeenCalled();
+  });
+
+  it("refuses a tool whose assignment was removed after refresh", async () => {
+    const f = fixture();
+    f.discoverTools.mockResolvedValueOnce([]).mockResolvedValueOnce([tool]).mockResolvedValue([]);
+    f.setCalls([
+      { name: "refresh_connections", args: {}, executionId: "refresh" },
+      { name: "connection_execute_tool", args: executeArgs, executionId: "execute" },
+    ]);
+    await f.run();
+    expect(f.results[1]).toMatchObject({ error: expect.stringContaining("not authorized") });
+    expect(f.execute).not.toHaveBeenCalled();
+  });
+
+  it("honors approval rules for a refreshed write and replays the approved arguments", async () => {
+    const f = fixture({
+      name: "demo_create_item",
+      readOnly: false,
+      rules: [{ effect: "require_approval", matchKind: "tool", matchValue: "demo_create_item" }],
+    });
+    const write = {
+      ...tool,
+      name: "demo_create_item",
+      readOnly: false,
+      route: { ...tool.route!, toolName: "demo_create_item" },
+    };
+    f.discoverTools.mockResolvedValueOnce([]).mockResolvedValue([write]);
+    const approvedArgs = { id: "resource-1:demo_create_item", arguments: { id: "approved" } };
+    f.setCalls([
+      { name: "refresh_connections", args: {}, executionId: "refresh" },
+      { name: "connection_execute_tool", args: approvedArgs, executionId: "execute" },
+    ]);
+    await f.run();
+    expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+    expect(f.execute).not.toHaveBeenCalled();
+    expect(f.effects[0]).toMatchObject({ kind: write.name, status: "intended" });
+    f.effects[0]!.status = "approved";
+    f.setCalls([
+      {
+        name: "connection_execute_tool",
+        args: { ...approvedArgs, arguments: { id: "forged" } },
+        executionId: "replay",
+      },
+    ]);
+    await f.run();
+    expect(f.execute).toHaveBeenCalledOnce();
+    expect(f.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ tool: write.name, args: { id: "approved" }, route: write.route }),
+      expect.anything(),
+    );
+    expect(f.effects[0]!.status).toBe("completed");
+  });
+
+  it("resolves a provider's lazy catalog through to the real tool before approval", async () => {
+    const f = fixture({
+      name: "demo_create_item",
+      catalog: true,
+      readOnly: false,
+      rules: [{ effect: "require_approval", matchKind: "tool", matchValue: "demo_create_item" }],
+    });
+    f.setCalls([
+      {
+        name: "connection_execute_tool",
+        args: {
+          id: "demo_execute_tool",
+          arguments: { id: "resource-1:demo_create_item", arguments: { id: "approved" } },
+        },
+        executionId: "execute",
+      },
+    ]);
+    await f.run();
+    expect(f.pauseRunForInput).toHaveBeenCalledOnce();
+    expect(f.execute).not.toHaveBeenCalled();
+    expect(f.effects[0]).toMatchObject({ kind: "demo_create_item", status: "intended" });
+    f.effects[0]!.status = "approved";
+    await f.run();
+    expect(f.execute).toHaveBeenCalledOnce();
+    expect(f.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ tool: "demo_create_item", args: { id: "approved" } }),
+      expect.anything(),
+    );
+  });
+
+  it("does not expose connector tools that shadow built-ins or the refresh catalog", async () => {
+    const f = fixture();
+    f.discoverTools.mockResolvedValue([
+      { ...tool, name: "shell" },
+      { ...tool, name: "connection_execute_tool" },
+    ]);
+    f.setCalls([
+      { name: "refresh_connections", args: {}, executionId: "refresh" },
+      {
+        name: "connection_execute_tool",
+        args: { id: "shell", arguments: {} },
+        executionId: "execute",
+      },
+    ]);
+    await f.run();
+    expect(f.results[0]).toMatchObject({ ok: true, index: [] });
+    expect(f.results[1]).toMatchObject({ error: expect.stringContaining("not authorized") });
+    expect(f.execute).not.toHaveBeenCalled();
+  });
+});
 
 describe("disabled builtins", () => {
   it("refuses a direct call before any effect or memory write", async () => {

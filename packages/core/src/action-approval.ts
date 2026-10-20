@@ -50,6 +50,7 @@ const EXPLICIT_APPROVAL_BUILTIN_TOOLS = new Set([
 ]);
 
 const UNATTENDED_SAFE_BUILTIN_TOOLS = new Set([
+  "refresh_connections",
   "browser_snapshot",
   "cloud_agent_status",
   "computer_observe",

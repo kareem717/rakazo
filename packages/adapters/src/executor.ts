@@ -335,6 +335,7 @@ import {
   searchChartCatalog,
 } from "./plot-tool.js";
 import { actorMayUsePrivateEndpoint } from "./private-endpoint.js";
+import { RefreshableConnectors } from "./refreshable-connectors.js";
 import type { RemoteTransportDependencies } from "./remote-mcp.js";
 import { assertSafeRemoteUrl } from "./remote-mcp.js";
 import { loadReplyContext, messageToAgentHistoryText } from "./reply-context.js";
@@ -432,6 +433,7 @@ import { createWebProvider } from "./web-provider-factory.js";
 import { webFetchFromTool, webSearchFromTool } from "./web-tools.js";
 
 const READ_ONLY_AGENT_TOOLS = new Set([
+  "refresh_connections",
   "computer_observe",
   "list_files",
   "list_fleet",
@@ -2880,6 +2882,31 @@ async function loadLivePluginSlugs(
   }
 }
 
+type RunConnectionRow = Parameters<typeof connectedContext>[0][number] & { status: string };
+
+export async function resolveRunConnections(
+  deps: Pick<ExecutorDeps, "prisma" | "listConnectedPluginSlugs">,
+  owner: { userId: string; spaceId: string },
+  rows: RunConnectionRow[],
+  forceLiveSync = false,
+): Promise<RunConnectionRow[]> {
+  const composioRows = rows.filter((connection) => connection.connectorId === "composio");
+  let liveSlugs: string[] = [];
+  if (forceLiveSync || needsLivePluginSync(composioRows)) {
+    const listing = await loadLivePluginSlugs(deps.listConnectedPluginSlugs, owner.userId);
+    if (listing.ok) {
+      liveSlugs = listing.slugs;
+      await persistLivePluginConnections(deps.prisma, owner, composioRows, liveSlugs).catch(
+        () => undefined,
+      );
+    }
+  }
+  return selectRunConnections(
+    rows,
+    mergeConnectedPlugins(composioRows, liveSlugs).map((connection) => connection.provider),
+  );
+}
+
 export async function persistLivePluginConnections(
   prisma: PrismaClient,
   owner: { userId: string; spaceId: string },
@@ -3760,24 +3787,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         const onShutdown = () => runAbortController?.abort(deps.shutdownSignal?.reason);
         deps.shutdownSignal?.addEventListener("abort", onShutdown);
         detachShutdown = () => deps.shutdownSignal?.removeEventListener("abort", onShutdown);
-        const composioRows = storedConnections.filter(
-          (connection) => connection.connectorId === "composio",
-        );
-        let liveSlugs: string[] = [];
-        if (needsLivePluginSync(composioRows)) {
-          const listing = await loadLivePluginSlugs(deps.listConnectedPluginSlugs, run.userId);
-          if (listing.ok) {
-            liveSlugs = listing.slugs;
-            await persistLivePluginConnections(deps.prisma, run, composioRows, listing.slugs).catch(
-              () => undefined,
-            );
-          }
-        }
-        const connectedComposio = mergeConnectedPlugins(composioRows, liveSlugs);
-        const connectedPlugins = selectRunConnections(
-          storedConnections,
-          connectedComposio.map((connection) => connection.provider),
-        );
+        let connectedPlugins = await resolveRunConnections(deps, run, storedConnections);
         const context = {
           operationId: runId,
           traceId: runId,
@@ -3788,7 +3798,6 @@ export function createRunExecutor(deps: ExecutorDeps) {
           screenLeaseId: screenLeaseIdForRun(computerScreenLease, runId, fence),
           signal: runAbortController.signal,
           ...connectedContext(connectedPlugins),
-          connectedProviders: connectedComposio.map((row) => row.provider),
         };
         const memoryScope = configuredMemory
           ? effectiveMemoryScope(bot.memoryScope, configuredMemory.defaultScope)
@@ -3804,8 +3813,11 @@ export function createRunExecutor(deps: ExecutorDeps) {
           payload: { trigger: run.trigger, routineId: run.routineId },
         });
 
-        const discoveredPromise = deps.connector
-          ? deps.connector.discoverTools(context)
+        const runConnector = deps.connector
+          ? new RefreshableConnectors(deps.connector, BUILTIN_AGENT_TOOL_NAMES)
+          : undefined;
+        const discoveredPromise = runConnector
+          ? runConnector.discoverTools(context)
           : Promise.resolve([]);
         const threadContext = threadContextForRun(
           run.trigger,
@@ -4172,12 +4184,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
             ? agentConnectionTools.filter((tool) => !disabledBuiltinTools.has(tool.name))
             : []),
         ];
-        const exposedConnectorTools = discovered.filter(
-          (tool) => !builtinAgentTools.some((builtin) => builtin.name === tool.name),
-        );
-        const connectorTools = new Map(
-          exposedConnectorTools.map((tool) => [tool.name, tool] as const),
-        );
+        const connectorTools = new Map(discovered.map((tool) => [tool.name, tool] as const));
         let approvalRulesPromise: Promise<ActionApprovalRule[]> | undefined;
         const loadApprovalRules = () => {
           approvalRulesPromise ??= deps.prisma.actionApprovalRule
@@ -4206,7 +4213,7 @@ export function createRunExecutor(deps: ExecutorDeps) {
         // The intro turn confirms how a bot read its own role before anyone hands it
         // real work — it must not be able to act on that reading (shell, computer,
         // scheduling, spawning another bot, ...) before the user has assigned any task.
-        const tools = run.trigger === "created" ? [] : [...builtins, ...exposedConnectorTools];
+        const tools = run.trigger === "created" ? [] : [...builtins, ...discovered];
         const taskCatalogInstruction = tools.some((tool) => tool.name === "task_catalog")
           ? TASK_CATALOG_GUIDANCE
           : undefined;
@@ -4517,9 +4524,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
             };
           }
           let effectRequest: unknown = args;
-          if (connectorCall.route && deps.connector?.resolveCall) {
+          if (connectorCall.route && runConnector) {
             try {
-              const resolved = await deps.connector.resolveCall(connectorCall, context);
+              const resolved = await runConnector.resolveCall(connectorCall, context);
               if (resolved) {
                 if (BUILTIN_AGENT_TOOL_NAMES.has(resolved.tool.name)) {
                   return {
@@ -6129,6 +6136,27 @@ export function createRunExecutor(deps: ExecutorDeps) {
               ),
             );
           }
+          if (name === "refresh_connections") {
+            if (!runConnector) return finish({ error: "Connections are unavailable." });
+            try {
+              const rows = await deps.prisma.connection.findMany({
+                where: { userId: run.userId, spaceId: run.spaceId },
+                select: {
+                  id: true,
+                  connectorId: true,
+                  provider: true,
+                  providerRef: true,
+                  displayName: true,
+                  status: true,
+                },
+              });
+              connectedPlugins = await resolveRunConnections(deps, run, rows, true);
+              Object.assign(context, connectedContext(connectedPlugins));
+              return finish(await runConnector.refresh(context));
+            } catch (error) {
+              return finish({ error: sanitizeConnectorError(error, runSecrets) });
+            }
+          }
           if (name === "add_mcp_server") {
             const parsed = parseMcpServerToolArgs(args);
             if (!parsed) {
@@ -7027,9 +7055,9 @@ export function createRunExecutor(deps: ExecutorDeps) {
             }
             return archived;
           }
-          if (deps.connector) {
+          if (runConnector) {
             let result: unknown = { error: `unknown tool ${name}` };
-            for await (const event of deps.connector.execute(
+            for await (const event of runConnector.execute(
               { ...connectorCall, tool: name, args, executionId: effectKey },
               context,
             )) {
