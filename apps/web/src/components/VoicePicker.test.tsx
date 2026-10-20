@@ -104,3 +104,38 @@ it("ignores results from the previous provider and keeps saved choices on errors
     await act(async () => root.unmount());
   }
 });
+
+it("enables listed voices while the saved voice lookup is pending", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
+  let finish!: (value: unknown) => void;
+  voices.mockImplementation(({ query }) =>
+    query
+      ? new Promise((resolve) => {
+          finish = resolve;
+        })
+      : Promise.resolve([{ id: "listed", label: "Listed voice" }]),
+  );
+  const container = document.createElement("div");
+  const root = createRoot(container);
+  const change = vi.fn();
+  try {
+    await act(async () =>
+      root.render(<VoicePicker provider="provider" value="saved" onChange={change} />),
+    );
+    await act(async () => vi.advanceTimersByTimeAsync(0));
+    const select = container.querySelector("select")!;
+    expect(select.disabled).toBe(false);
+    expect(container.textContent).toContain("Listed voice");
+    expect(select.value).toBe("saved");
+    await act(async () => {
+      select.value = "listed";
+      select.dispatchEvent(new Event("change", { bubbles: true }));
+    });
+    expect(change).toHaveBeenCalledWith("listed");
+    await act(async () => finish([{ id: "saved", label: "Saved voice" }]));
+    expect(container.textContent).toContain("Saved voice");
+  } finally {
+    await act(async () => root.unmount());
+  }
+});
