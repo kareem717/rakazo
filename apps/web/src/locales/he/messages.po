@@ -4989,6 +4989,7 @@ msgstr "ספק הזיכרון שנבחר אינו זמין בגרסה הזו."
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr "לא ניתן לקרוא את ההגדרות השמורות. יש להסיר ולהוסיף מחדש."
 
+#: src/components/ai/Reasoning.tsx
 #: src/components/call/CallCard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx

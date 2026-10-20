@@ -3354,7 +3354,6 @@ it("localizes non-JSON successful account-security responses", async () => {
 it("keeps provider reasoning separate from mobile reply text and tool calls", () => {
   let current = applyMobileThreadEvent(snapshot(), {
     type: "thread.progress",
-    threadId: "thread-1",
     botId: "bot-1",
     runId: "reasoning-run",
     seq: 4,
@@ -3362,7 +3361,6 @@ it("keeps provider reasoning separate from mobile reply text and tool calls", ()
   });
   current = applyMobileThreadEvent(current, {
     type: "agent.tool.called",
-    threadId: "thread-1",
     botId: "bot-1",
     runId: "reasoning-run",
     seq: 5,
@@ -3370,16 +3368,17 @@ it("keeps provider reasoning separate from mobile reply text and tool calls", ()
   });
   current = applyMobileThreadEvent(current, {
     type: "thread.progress",
-    threadId: "thread-1",
     botId: "bot-1",
     runId: "reasoning-run",
     seq: 6,
     payload: { delta: "Tools are ready." },
   });
-  expect(current?.messages[0].blocks).toEqual([
+  const message = current?.messages[0];
+  expect(message).toBeDefined();
+  expect(message?.blocks).toEqual([
     { kind: "progress", text: "Check the available tools.", reasoning: true },
     { kind: "steps", steps: [{ label: "List tools", count: 1 }] },
     { kind: "progress", text: "Tools are ready." },
   ]);
-  expect(blockText(current!.messages[0])).toContain("Check the available tools.");
+  expect(blockText(message!)).toContain("Check the available tools.");
 });

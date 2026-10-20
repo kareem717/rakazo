@@ -4989,6 +4989,7 @@ msgstr "The selected memory provider is not available in this build."
 msgid "These saved settings can't be read. Remove it and add it again."
 msgstr "These saved settings can't be read. Remove it and add it again."
 
+#: src/components/ai/Reasoning.tsx
 #: src/components/call/CallCard.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
