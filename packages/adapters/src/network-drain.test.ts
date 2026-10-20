@@ -45,7 +45,7 @@ it("waits for running work, checkpoints before stopping, and keeps the fence unt
   await drainNetworkComputers(deps, "operation", new AbortController().signal, wait);
   expect(wait).toHaveBeenCalledOnce();
   expect(checkpoint).toHaveBeenCalledOnce();
-  expect(checkpoint.mock.invocationCallOrder[0]).toBeLessThan(stop.mock.invocationCallOrder[0]);
+  expect(checkpoint.mock.invocationCallOrder[0]).toBeLessThan(stop.mock.invocationCallOrder[0]!);
   expect(updateMany).toHaveBeenLastCalledWith(
     expect.objectContaining({ data: expect.objectContaining({ state: "stopped" }) }),
   );
@@ -82,4 +82,15 @@ it("times out waiting for work without stopping or checkpointing", async () => {
   ).rejects.toThrow();
   expect(checkpoint).not.toHaveBeenCalled();
   expect(stop).not.toHaveBeenCalled();
+});
+
+it("reconciles already stopped provider machines without exporting or starting them", async () => {
+  const { deps, stop, updateMany } = fixture();
+  vi.mocked(deps.sandbox.isRunning!).mockResolvedValue(false);
+  await drainNetworkComputers(deps, "operation", new AbortController().signal);
+  expect(checkpoint).not.toHaveBeenCalled();
+  expect(stop).not.toHaveBeenCalled();
+  expect(updateMany).toHaveBeenLastCalledWith(
+    expect.objectContaining({ data: expect.objectContaining({ state: "stopped" }) }),
+  );
 });

@@ -208,6 +208,25 @@ describe("BoxSandboxProvider", () => {
     ).toBe(false);
   });
 
+  it("checks provider state without resuming an archived or missing machine", async () => {
+    const fixture = boxFixture({ state: "archived" });
+    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = {
+      id: "computer",
+      botId: "bot-a",
+      kind: "box" as const,
+      providerRef: "bx_existing2",
+    };
+    expect(await provider.isRunning(computer, context)).toBe(false);
+    expect(fixture.resume).not.toHaveBeenCalled();
+    fixture.get.mockResolvedValueOnce(infoResponse("bx_existing2", "idle"));
+    expect(await provider.isRunning(computer, context)).toBe(true);
+    fixture.get.mockRejectedValueOnce({ status: 404 });
+    expect(await provider.isRunning(computer, context)).toBe(false);
+    fixture.get.mockRejectedValueOnce({ status: 503 });
+    await expect(provider.isRunning(computer, context)).rejects.toEqual({ status: 503 });
+  });
+
   it("resumes archived boxes and replaces deleted references", async () => {
     const archived = boxFixture({ state: "archived" });
     const provider = new BoxSandboxProvider({ apiKey: "test-key" }, archived.client);

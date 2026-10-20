@@ -144,6 +144,7 @@ it("locks settings during restart, rechecks provider state and verifies the new 
   expect(commands.filter((args) => args.includes("--check-network-apply"))).toHaveLength(2);
   const up = commands.find((args) => args.includes("up"))!;
   expect(up).toContain("--force-recreate");
+  expect(up).toContain("--no-deps");
   expect(up).toContain("--no-build");
   expect(up).toContain("never");
   expect(up.slice(-5)).toEqual(["egress", "api", "worker", "web", "supervisor"]);

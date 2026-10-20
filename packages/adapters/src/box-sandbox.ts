@@ -145,6 +145,19 @@ export class BoxSandboxProvider implements SandboxProvider {
     };
   }
 
+  async isRunning(computer: ComputerRef, context: AdapterContext): Promise<boolean> {
+    try {
+      const current = await this.client.get(
+        { boxId: this.id(computer) },
+        { signal: context.signal },
+      );
+      return ["ready", "idle", "running"].includes(current.box.state);
+    } catch (error) {
+      if (isUnrecoverableBoxError(error)) return false;
+      throw error;
+    }
+  }
+
   async provision(
     request: {
       botId: string;

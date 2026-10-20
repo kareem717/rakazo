@@ -77,7 +77,13 @@ export class NetworkApplier {
     });
     const index = invocation.args.indexOf("up");
     this.base = invocation.args.slice(0, index);
-    this.up = [...this.base, "up", "--force-recreate", ...invocation.args.slice(index + 1)];
+    this.up = [
+      ...this.base,
+      "up",
+      "--no-deps",
+      "--force-recreate",
+      ...invocation.args.slice(index + 1),
+    ];
   }
   async initialize() {
     await mkdir(this.stateDir, { recursive: true, mode: 0o700 });
