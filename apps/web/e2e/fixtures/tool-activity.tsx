@@ -3,6 +3,7 @@ import type { MessageBlock } from "@rakazo/contracts";
 import { reduceLiveMessageBlocks } from "@rakazo/core";
 import { useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
+import { Reasoning } from "../../src/components/ai/Reasoning";
 import {
   StandaloneToolActivity,
   ToolOnlyNarration,
@@ -52,8 +53,16 @@ const eventBlocks = reduceLiveMessageBlocks(
 );
 
 // A live run that has only called tools so far, or the finished reply with its tool card.
-const botBlocks: MessageBlock[] =
-  params.get("events") === "unpunctuated"
+const botBlocks: MessageBlock[] = params.has("reasoning")
+  ? [
+      {
+        kind: "progress",
+        text: "Check the available tools before reading the calendar.",
+        reasoning: true,
+      },
+      stepsBlock,
+    ]
+  : params.get("events") === "unpunctuated"
     ? eventBlocks
     : live
       ? [stepsBlock]
@@ -69,6 +78,8 @@ function BotMessage({ blocks }: { blocks: MessageBlock[] }) {
   return (
     <>
       {visible.map((block, i) => {
+        if (block.kind === "progress" && block.reasoning)
+          return <Reasoning key={i} text={block.text} />;
         if (block.kind === "steps") {
           return (
             <StandaloneToolActivity

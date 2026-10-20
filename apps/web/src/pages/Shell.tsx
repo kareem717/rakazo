@@ -146,6 +146,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArtifactFileCard } from "../components/ArtifactFileCard";
 import { AskCard } from "../components/AskCard";
 import { ActiveBotGlyph, CollaborationMarker } from "../components/ai/CollaborationMarker";
+import { Reasoning } from "../components/ai/Reasoning";
 import { CloudAgentCard } from "../components/CloudAgentCard";
 import { ComputerMaintenanceActions } from "../components/ComputerMaintenanceActions";
 import {
@@ -7387,6 +7388,9 @@ const MessageView = memo(function MessageView({
                     />
                   </ToolActivityDisclosure>
                 );
+              }
+              if (block.kind === "progress" && block.reasoning) {
+                return <Reasoning key={i} text={block.text} />;
               }
               if (block.kind === "text" || block.kind === "progress") {
                 return (

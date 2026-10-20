@@ -3350,3 +3350,36 @@ it("localizes non-JSON successful account-security responses", async () => {
   );
   await expect(fetchAccountSecurity()).rejects.toThrow("Could not load sign-in options");
 });
+
+it("keeps provider reasoning separate from mobile reply text and tool calls", () => {
+  let current = applyMobileThreadEvent(snapshot(), {
+    type: "thread.progress",
+    threadId: "thread-1",
+    botId: "bot-1",
+    runId: "reasoning-run",
+    seq: 4,
+    payload: { text: "Check the available tools.", reasoning: true },
+  });
+  current = applyMobileThreadEvent(current, {
+    type: "agent.tool.called",
+    threadId: "thread-1",
+    botId: "bot-1",
+    runId: "reasoning-run",
+    seq: 5,
+    payload: { name: "list_tools" },
+  });
+  current = applyMobileThreadEvent(current, {
+    type: "thread.progress",
+    threadId: "thread-1",
+    botId: "bot-1",
+    runId: "reasoning-run",
+    seq: 6,
+    payload: { delta: "Tools are ready." },
+  });
+  expect(current?.messages[0].blocks).toEqual([
+    { kind: "progress", text: "Check the available tools.", reasoning: true },
+    { kind: "steps", steps: [{ label: "List tools", count: 1 }] },
+    { kind: "progress", text: "Tools are ready." },
+  ]);
+  expect(blockText(current!.messages[0])).toContain("Check the available tools.");
+});

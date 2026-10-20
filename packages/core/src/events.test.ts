@@ -831,3 +831,25 @@ describe("sanitizeUtf16ForJson", () => {
     });
   });
 });
+
+it("keeps live reasoning apart from reply deltas and visible tool steps", () => {
+  const reasoning = {
+    kind: "progress",
+    text: "Check the available tools.",
+    reasoning: true,
+  } as const;
+  let blocks = reduceLiveMessageBlocks([], { type: "progress", payload: reasoning });
+  expect(blocks).toEqual([reasoning]);
+  blocks = reduceLiveMessageBlocks(blocks, { type: "tool", name: "list_tools" });
+  blocks = reduceLiveMessageBlocks(blocks, { type: "progress", payload: { delta: "The tools " } });
+  blocks = reduceLiveMessageBlocks(blocks, {
+    type: "progress",
+    payload: { text: "Now inspect the result.", reasoning: true },
+  });
+  blocks = reduceLiveMessageBlocks(blocks, { type: "progress", payload: { delta: "are ready." } });
+  expect(blocks).toEqual([
+    { ...reasoning, text: "Now inspect the result." },
+    { kind: "steps", steps: [{ label: "List tools", count: 1 }] },
+    { kind: "progress", text: "The tools are ready." },
+  ]);
+});

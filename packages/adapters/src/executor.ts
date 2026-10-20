@@ -4324,6 +4324,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
         };
         let pendingProgress = "";
         let lastProgressAt = 0;
+        const reasoningRedactor = createStreamingRedactor(runSecrets);
+        let pendingReasoning = "";
+        let reasoningText = "";
+        let lastReasoningAt = 0;
+        const flushReasoning = async () => {
+          if (!pendingReasoning || isBackgroundRunTrigger(run.trigger)) return;
+          reasoningText = (reasoningText + pendingReasoning).slice(-32_000);
+          pendingReasoning = "";
+          lastReasoningAt = Date.now();
+          await deps.events.append({
+            spaceId: run.spaceId,
+            threadId: thread.id,
+            botId: bot.id,
+            type: "thread.progress",
+            runId,
+            payload: { text: reasoningText, reasoning: true },
+          });
+        };
         let hasStreamedText = false;
         // Set by a tool call: the next text starts a new assistant turn and needs a break
         // from the earlier text that stayed in this reply (held-back narration).
@@ -7456,6 +7474,15 @@ export function createRunExecutor(deps: ExecutorDeps) {
               recordExplicitNoResponse(assistantTurnText);
               assistantTurnText = "";
             }
+            if (event.type === "progress" && event.reasoning) {
+              if (isBackgroundRunTrigger(run.trigger)) continue;
+              pendingReasoning = (pendingReasoning + reasoningRedactor.push(event.text)).slice(
+                -32_000,
+              );
+              if (Date.now() - lastReasoningAt >= 250) await flushReasoning();
+              continue;
+            }
+            await flushReasoning();
             if (event.type === "text") {
               assistantTurnText += event.text;
               if (assistantTurnBreakPending && event.text) {
@@ -7794,6 +7821,8 @@ export function createRunExecutor(deps: ExecutorDeps) {
           runComputer.throwIfFailed();
           if (approvalPausePending || !leaseValid) return;
           approvedEffectReplays.assertDrained();
+          pendingReasoning += reasoningRedactor.finish();
+          await flushReasoning();
           pendingProgress += progressRedactor.finish();
           await flushProgress();
 

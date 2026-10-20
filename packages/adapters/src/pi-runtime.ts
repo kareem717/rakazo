@@ -505,6 +505,17 @@ export class PiAgentRuntime implements AgentRuntime {
           }
           if (
             event.type === "message_update" &&
+            event.assistantMessageEvent.type === "thinking_delta" &&
+            event.assistantMessageEvent.delta
+          ) {
+            queue.push({
+              type: "progress",
+              text: event.assistantMessageEvent.delta,
+              reasoning: true,
+            });
+          }
+          if (
+            event.type === "message_update" &&
             event.assistantMessageEvent.type === "text_delta"
           ) {
             const delta = event.assistantMessageEvent.delta;
