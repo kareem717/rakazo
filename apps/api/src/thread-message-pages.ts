@@ -116,6 +116,7 @@ export async function loadAllMessages(
 async function withoutPeerRunMessages<
   T extends {
     runId: string | null;
+    role: string;
     blocks: Prisma.JsonValue;
   },
 >(prisma: MessageDb, rows: T[]): Promise<T[]> {
@@ -138,8 +139,8 @@ async function withoutPeerRunMessages<
     if (!row.runId) return true;
     const blocks = row.blocks as MessageBlock[];
     if (backgroundRunIds.has(row.runId)) {
-      // Ticket work stays off the transcript except existing user-input cards.
-      return blocks.some(isBackgroundInputBlock);
+      // User messages can wait behind ticket work, but must stay in the transcript.
+      return row.role === "user" || blocks.some(isBackgroundInputBlock);
     }
     if (!peerRunIds.has(row.runId)) return true;
     // Keep peer receipts (chips), ask cards, and the bot's own text reply.
@@ -222,11 +223,11 @@ export function shouldForwardPeerThreadEvent(event: {
  * A background run's chatter stays off the transcript: no starts, progress, steps,
  * or final text. An open thread still receives the state it needs to answer without
  * a reload — waiting input, computer takeover, and terminal run events — plus the
- * existing user-input cards.
+ * user messages and existing user-input cards.
  */
 export function shouldForwardBackgroundThreadEvent(event: {
   type: string;
-  payload: { blocks?: unknown };
+  payload: { role?: unknown; blocks?: unknown };
 }): boolean {
   if (
     event.type === "run.completed" ||
@@ -241,7 +242,9 @@ export function shouldForwardBackgroundThreadEvent(event: {
     return false;
   }
   const blocks = event.payload.blocks;
-  return Array.isArray(blocks) && blocks.some(isBackgroundInputBlock);
+  return (
+    event.payload.role === "user" || (Array.isArray(blocks) && blocks.some(isBackgroundInputBlock))
+  );
 }
 
 function toThreadMessage(row: {

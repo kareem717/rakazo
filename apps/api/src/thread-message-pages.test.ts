@@ -56,6 +56,14 @@ describe("thread message pages", () => {
   });
 
   it("forwards only explicit user contact from a background run", () => {
+    for (const type of ["thread.message.created", "thread.message.updated"]) {
+      expect(
+        shouldForwardBackgroundThreadEvent({
+          type,
+          payload: { role: "user", blocks: [{ kind: "text", text: "Please resume" }] },
+        }),
+      ).toBe(true);
+    }
     expect(
       shouldForwardBackgroundThreadEvent({
         type: "thread.message.created",
@@ -105,6 +113,7 @@ describe("thread message pages", () => {
       },
       { id: "message-approval", blocks: [{ kind: "mcp_approval" }] },
       { id: "message-final", blocks: [{ kind: "text", text: "Closed the ticket." }] },
+      { id: "message-pending-user", blocks: [{ kind: "text", text: "Please resume" }] },
       {
         id: "message-steps",
         blocks: [{ kind: "steps", steps: [{ label: "Ticket comment", count: 1 }] }],
@@ -113,8 +122,8 @@ describe("thread message pages", () => {
     ].map((row, index) => ({
       ...row,
       threadId: "thread-1",
-      seq: 4 - index,
-      role: "bot",
+      seq: 5 - index,
+      role: row.id === "message-pending-user" ? "user" : "bot",
       botId: "bot-1",
       replyToMessageId: null,
       runId: row.id === "message-user" ? "run-user" : "run-ticket",
@@ -127,10 +136,11 @@ describe("thread message pages", () => {
       run: { findMany: vi.fn(async () => [{ id: "run-ticket", trigger: "tickets" }]) },
     } as unknown as PrismaClient;
 
-    const page = await loadMessagePage(prisma, "thread-1", undefined, 6);
+    const page = await loadMessagePage(prisma, "thread-1", undefined, 7);
 
     expect(page.messages.map((message) => message.id)).toEqual([
       "message-user",
+      "message-pending-user",
       "message-approval",
       "message-computer",
     ]);

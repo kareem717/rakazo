@@ -293,11 +293,15 @@ describe("user-visible messages", () => {
         },
       ]),
       message("final", "run-ticket", [{ kind: "text", text: "Done, closed the ticket." }]),
+      {
+        ...message("pending-user", "run-ticket", [{ kind: "text", text: "Please resume" }]),
+        role: "user" as const,
+      },
       message("user", "run-user", [{ kind: "text", text: "Visible answer" }]),
     ];
 
     expect(
       userVisibleMessages(background, { backgroundRunIds: ["run-ticket"] }).map((m) => m.id),
-    ).toEqual(["ask", "computer", "approval", "user"]);
+    ).toEqual(["ask", "computer", "approval", "pending-user", "user"]);
   });
 });
