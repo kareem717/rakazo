@@ -12,7 +12,7 @@ import { iosAtLeast } from "../lib/native-controls";
 import { errorText } from "../lib/user-error";
 import { NativeSymbol } from "./native-symbol";
 
-type Action = "recover" | "reset" | "update";
+type Action = "recover" | "reset" | "update" | "stop";
 
 export function ComputerMaintenanceActions({
   botId,
@@ -38,6 +38,7 @@ export function ComputerMaintenanceActions({
     try {
       if (action === "recover") await computerUpdates.start(botId, "recover");
       else if (action === "reset") await rpc("computer/reset", { botId });
+      else if (action === "stop") await rpc("computer/stop", { botId });
       else await computerUpdates.start(botId);
       await onChanged();
     } catch (err) {
@@ -47,16 +48,27 @@ export function ComputerMaintenanceActions({
     }
   }
 
-  function confirm(action: "recover" | "reset") {
+  function confirm(action: "recover" | "reset" | "stop") {
     Alert.alert(
-      action === "reset" ? t("Reset computer?") : t("Recover computer?"),
-      action === "reset"
-        ? t("Restore the last saved workspace. Unsaved work on the computer is lost.")
-        : t("Recovery restores the last saved workspace. Unsaved work may be lost."),
+      action === "stop"
+        ? t("Stop computer?")
+        : action === "reset"
+          ? t("Reset computer?")
+          : t("Recover computer?"),
+      action === "stop"
+        ? t("Save open files first. The workspace will be saved before stopping.")
+        : action === "reset"
+          ? t("Restore the last saved workspace. Unsaved work on the computer is lost.")
+          : t("Recovery restores the last saved workspace. Unsaved work may be lost."),
       [
         { text: t("Cancel"), style: "cancel" },
         {
-          text: action === "reset" ? t("Reset") : t("Recover computer"),
+          text:
+            action === "stop"
+              ? t("Stop computer")
+              : action === "reset"
+                ? t("Reset")
+                : t("Recover computer"),
           style: "destructive",
           onPress: () => void run(action),
         },
@@ -65,6 +77,17 @@ export function ComputerMaintenanceActions({
   }
 
   const actions = [
+    ...(computer?.state === "running"
+      ? [
+          {
+            id: "stop",
+            title: t("Stop computer"),
+            explanation: t("Save the workspace and stop the computer."),
+            destructive: true,
+            onPress: () => confirm("stop"),
+          },
+        ]
+      : []),
     {
       id: "recover",
       title: t("Recover computer"),
@@ -94,6 +117,7 @@ export function ComputerMaintenanceActions({
 
   const hasComputer = computer !== null;
   const canUpdate = Boolean(computer?.canUpdate);
+  const canStop = computer?.state === "running";
   useLayoutEffect(() => {
     if (!iosAtLeast(26)) return;
     navigation.setOptions({
@@ -122,7 +146,7 @@ export function ComputerMaintenanceActions({
     return () => {
       navigation.setOptions({ unstable_headerRightItems: () => [] });
     };
-  }, [navigation, hasComputer, canUpdate, busy, t, botId, onChanged]);
+  }, [navigation, hasComputer, canUpdate, canStop, busy, t, botId, onChanged]);
 
   if (!computer) return null;
   return (
