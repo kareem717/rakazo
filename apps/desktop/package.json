@@ -65,6 +65,8 @@
     "mac": {
       "icon": "../../packages/ui-tokens/assets/Rakazo.icon",
       "category": "public.app-category.productivity",
+      "entitlements": "assets/entitlements.mac.plist",
+      "entitlementsInherit": "assets/entitlements.mac.plist",
       "x64ArchFiles": "**/node_modules/@koromix/koffi-darwin-*/darwin_*/koffi.node",
       "target": [
         "dmg",
