@@ -85,3 +85,40 @@ for (const kind of ["bot", "group"] as const) {
     await expect(page.getByRole("button", { name: "Remove notes.txt" })).toBeHidden();
   });
 }
+
+test("files dropped during an earlier send remain queued for the next message", async ({
+  page,
+}) => {
+  await signup(
+    page,
+    `attachment-drop-pending-${Date.now()}@rakazo.test`,
+    "password12",
+    "Drop Test",
+  );
+  await completeOnboarding(page);
+  const composer = page.getByRole("combobox", { name: /Message/ });
+  const transcript = page.getByTestId("transcript");
+  await expect(composer).toBeVisible();
+  await dragFiles(transcript, "drop", ["first.txt"]);
+  let release = () => {};
+  const released = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  await page.route("**/rpc/threads/send", async (route) => {
+    await released;
+    await route.continue();
+  });
+  await composer.fill("First message");
+  const started = page.waitForRequest("**/rpc/threads/send");
+  await composer.press("Enter");
+  await started;
+  await dragFiles(transcript, "drop", ["next.txt"]);
+  await expect(page.getByRole("button", { name: "Remove next.txt" })).toBeVisible();
+  release();
+  await expect(page.getByRole("button", { name: "Remove first.txt" })).toBeHidden();
+  await expect(page.getByRole("button", { name: "Remove next.txt" })).toBeVisible();
+  await page.unroute("**/rpc/threads/send");
+  await expect(page.getByRole("button", { name: "Send", exact: true })).toBeEnabled();
+  await composer.press("Enter");
+  await expect(page.getByRole("button", { name: "Remove next.txt" })).toBeHidden();
+});

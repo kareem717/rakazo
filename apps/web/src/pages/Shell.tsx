@@ -2432,7 +2432,7 @@ function SpaceShell() {
           clearReply();
           revokePendingAttachmentPreviews(attachments);
           setPendingAttachments((current) =>
-            current.filter((attachment) => attachment.threadKey !== originThreadKey),
+            current.filter((attachment) => !attachments.includes(attachment)),
           );
           setAttachmentNotice(null);
           if (reroutedToGroup && groupTarget) {
@@ -2500,7 +2500,7 @@ function SpaceShell() {
         clearReply();
         revokePendingAttachmentPreviews(attachments);
         setPendingAttachments((current) =>
-          current.filter((attachment) => attachment.threadKey !== originThreadKey),
+          current.filter((attachment) => !attachments.includes(attachment)),
         );
         // Refresh sidebar status even when a bot→group reroute navigates away below.
         void refreshBots().catch(() => undefined);
