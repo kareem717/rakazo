@@ -335,7 +335,7 @@ msgstr ""
 
 #. placeholder {0}: bot.name
 #. placeholder {0}: group.spaceName
-#. placeholder {0}: sectionMenu.section.name
+#. placeholder {0}: section.name
 #: src/pages/BotContextMenu.tsx
 #: src/pages/Shell.tsx
 msgid "Actions for {0}"
@@ -3373,6 +3373,7 @@ msgid "New password"
 msgstr "새 비밀번호"
 
 #: src/pages/BotContextMenu.tsx
+#: src/pages/Shell.tsx
 #: src/pages/shell/dialogs.tsx
 msgid "New section"
 msgstr "새 섹션"
@@ -4339,6 +4340,10 @@ msgid "Save new value"
 msgstr ""
 
 #: src/components/ComputerMaintenanceActions.tsx
+msgid "Save open files first. The workspace will be saved before stopping."
+msgstr ""
+
+#: src/components/ComputerMaintenanceActions.tsx
 msgid "Save the workspace and install current software."
 msgstr "작업 공간을 저장하고 최신 소프트웨어를 설치합니다."
 
@@ -4789,6 +4794,14 @@ msgstr "실행 단계"
 msgid "Stop"
 msgstr "중지"
 
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stop computer"
+msgstr ""
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stop computer?"
+msgstr ""
+
 #: src/components/NetworkApplySettings.tsx
 msgid "Stop computers and restart the deployment to apply."
 msgstr ""
@@ -4809,6 +4822,10 @@ msgstr "가르치기 종료"
 #: src/lib/browser-notifications.ts
 msgid "Stopped."
 msgstr "중지되었습니다."
+
+#: src/components/ComputerMaintenanceActions.tsx
+msgid "Stopping…"
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Stored encrypted"

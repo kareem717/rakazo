@@ -21,7 +21,7 @@ import { computerUpdates } from "../lib/computer-updates";
 import { rpc } from "../lib/rpc";
 import { errorText } from "../lib/user-error";
 
-type Action = "recover" | "reset" | "update";
+type Action = "recover" | "reset" | "update" | "stop";
 
 export function ComputerMaintenanceActions({
   botId,
@@ -35,7 +35,7 @@ export function ComputerMaintenanceActions({
   const { t } = useLingui();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pending, setPending] = useState<Action | null>(null);
-  const [confirmAction, setConfirmAction] = useState<"reset" | "recover" | null>(null);
+  const [confirmAction, setConfirmAction] = useState<"reset" | "recover" | "stop" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   if (!computer) return null;
@@ -57,6 +57,7 @@ export function ComputerMaintenanceActions({
     try {
       if (action === "recover") await computerUpdates.start(botId, "recover");
       else if (action === "reset") await rpc.computer.reset({ botId });
+      else if (action === "stop") await rpc.computer.stop({ botId });
       else await computerUpdates.start(botId);
       setConfirmAction(null);
       setMenuOpen(false);
@@ -68,7 +69,7 @@ export function ComputerMaintenanceActions({
     }
   }
 
-  function openConfirm(action: "reset" | "recover") {
+  function openConfirm(action: "reset" | "recover" | "stop") {
     setError(null);
     setMenuOpen(false);
     setConfirmAction(action);
@@ -86,14 +87,18 @@ export function ComputerMaintenanceActions({
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>
-            {confirmAction === "recover" ? (
+            {confirmAction === "stop" ? (
+              <Trans>Stop computer?</Trans>
+            ) : confirmAction === "recover" ? (
               <Trans>Recover computer?</Trans>
             ) : (
               <Trans>Reset computer?</Trans>
             )}
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {confirmAction === "recover" ? (
+            {confirmAction === "stop" ? (
+              <Trans>Save open files first. The workspace will be saved before stopping.</Trans>
+            ) : confirmAction === "recover" ? (
               <Trans>Recovery restores the last saved workspace. Unsaved work may be lost.</Trans>
             ) : (
               <Trans>Restore the last saved workspace. Unsaved work on the computer is lost.</Trans>
@@ -112,7 +117,11 @@ export function ComputerMaintenanceActions({
               if (confirmAction) void run(confirmAction);
             }}
           >
-            {pending === "recover" ? (
+            {pending === "stop" ? (
+              <Trans>Stopping…</Trans>
+            ) : confirmAction === "stop" ? (
+              <Trans>Stop computer</Trans>
+            ) : pending === "recover" ? (
               <Trans>Recovering…</Trans>
             ) : confirmAction === "recover" ? (
               <Trans>Recover computer</Trans>
@@ -149,6 +158,15 @@ export function ComputerMaintenanceActions({
           data-testid="computer-more-menu"
           className="w-auto min-w-44"
         >
+          {computer.state === "running" ? (
+            <DropdownMenuItem
+              aria-label={t`Stop computer`}
+              disabled={busy || pending !== null}
+              onClick={() => openConfirm("stop")}
+            >
+              <Trans>Stop computer</Trans>
+            </DropdownMenuItem>
+          ) : null}
           {showRecover ? (
             <DropdownMenuItem
               closeOnClick={false}
