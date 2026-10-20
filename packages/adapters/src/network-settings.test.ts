@@ -2,11 +2,12 @@ import { mkdtemp, readdir, readFile, rm, stat, symlink, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { EgressConfig } from "@rakazo/contracts";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { readNetworkSettings, saveNetworkSettings } from "./network-settings.js";
 
 const directories: string[] = [];
 afterEach(async () => {
+  vi.unstubAllEnvs();
   await Promise.all(
     directories.splice(0).map((path) => rm(path, { recursive: true, force: true })),
   );
@@ -87,4 +88,31 @@ it("refuses symlink configs and held locks", async () => {
   await expect(
     saveNetworkSettings({ revision: state.revision, config: { version: 1, mode: "direct" } }, path),
   ).rejects.toThrow("being updated");
+});
+
+it("reports a pending edit against the gateway snapshot on a new API process", async () => {
+  const { path, dir } = await fixture();
+  const active = join(dir, "active.json");
+  await writeFile(
+    active,
+    JSON.stringify({
+      version: 1,
+      mode: "tools",
+      transport: { type: "socks5", url: "socks5://proxy.example.test:1080" },
+    }),
+  );
+  await writeFile(
+    path,
+    JSON.stringify({
+      version: 1,
+      mode: "all",
+      transport: { type: "tailscale-exit-node", exitNode: "exit.example.ts.net" },
+    }),
+  );
+  vi.stubEnv("RAKAZO_NETWORK_ACTIVE_CONFIG", active);
+  expect(await readNetworkSettings(path)).toMatchObject({
+    active: { mode: "tools" },
+    saved: { mode: "all" },
+    restartRequired: true,
+  });
 });
