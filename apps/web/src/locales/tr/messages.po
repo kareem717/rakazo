@@ -477,6 +477,7 @@ msgstr ""
 msgid "Adding…"
 msgstr "Ekleniyor…"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/ModelSettingsOverlay.tsx
@@ -943,6 +944,14 @@ msgstr ""
 msgid "Call back"
 msgstr ""
 
+#: src/lib/call-session.ts
+msgid "Call interrupted"
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Call limit (minutes)"
+msgstr ""
+
 #. placeholder {0}: call.botName
 #: src/components/call/CallCard.tsx
 msgid "Call with {0}"
@@ -954,6 +963,10 @@ msgstr ""
 
 #: src/components/call/CallCard.tsx
 msgid "Calling…"
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Calls"
 msgstr ""
 
 #: src/App.tsx
@@ -1441,6 +1454,10 @@ msgstr "{0} ile devam et"
 msgid "Continue with email"
 msgstr "E-posta ile devam et"
 
+#: src/components/LiveCallSettings.tsx
+msgid "Conversation model"
+msgstr ""
+
 #: src/components/ComputersUnavailableHint.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1523,6 +1540,10 @@ msgstr "Bağlanılamadı"
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "Could not connect {0}"
 msgstr "{0} bağlanamadı"
+
+#: src/lib/call-session.ts
+msgid "Could not connect the call"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Could not connect this provider"
@@ -1677,6 +1698,10 @@ msgstr ""
 
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not load call settings"
 msgstr ""
 
 #: src/components/computer/TerminalApp.tsx
@@ -1848,6 +1873,10 @@ msgstr ""
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Could not save backup models"
 msgstr "Yedek modeller kaydedilemedi."
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not save call settings"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx
 msgid "Could not save group"
@@ -2405,6 +2434,10 @@ msgstr "Görüntü sınırı için 1 ile 1000 arasında bir tam sayı girin."
 msgid "Enter an API key before testing."
 msgstr "Test etmeden önce bir API anahtarı gir."
 
+#: src/lib/call-session.ts
+msgid "Enter the requested secret in Rakazo's secure interface."
+msgstr ""
+
 #: src/lib/roster-status.ts
 #: src/pages/Shell.tsx
 msgid "Error"
@@ -2884,6 +2917,7 @@ msgstr ""
 msgid "Knowledge"
 msgstr "Bilgi"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Language"
 msgstr "Dil"
@@ -4324,6 +4358,7 @@ msgid "Runs when this bot receives a verified message from this provider."
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/LiveCallSettings.tsx
 #: src/components/NetworkSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/Board.tsx
@@ -4764,6 +4799,7 @@ msgstr "Bu yanıtı seslendir"
 msgid "Speaking"
 msgstr ""
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Speech model"
 msgstr "Konuşma modeli"
@@ -4777,6 +4813,7 @@ msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO geçici olarak kullanılamıyor. Yeniden deneyin."
 
 #: src/components/BrowserDriverSettings.tsx
+#: src/components/LiveCallSettings.tsx
 msgid "Standard"
 msgstr ""
 
@@ -5155,6 +5192,7 @@ msgstr ""
 msgid "Transcript"
 msgstr "Döküm"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Transcription model"
 msgstr ""

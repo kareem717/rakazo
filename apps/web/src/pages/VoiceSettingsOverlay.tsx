@@ -17,6 +17,7 @@ import {
 } from "@rakazo/ui-web";
 import { XIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
+import { LiveCallSettings } from "../components/LiveCallSettings";
 import { VoicePicker } from "../components/VoicePicker";
 import { useBoundSpaceId, useSpaceRpc } from "../lib/space-rpc";
 import { errorText } from "../lib/user-error";
@@ -277,6 +278,11 @@ export function VoiceSettingsOverlay({
           ) : null}
           {error ? <p className="mb-4 text-sm text-destructive">{error}</p> : null}
           {notice ? <p className="mb-4 text-sm text-success">{notice}</p> : null}
+          <LiveCallSettings
+            connectionsKey={credentials.map((credential) => credential.id).join(":")}
+            disabled={busy}
+            onBusyChange={(value) => markPending(value ? "voice" : null)}
+          />
           {selected ? (
             <>
               {selfHosted ? (

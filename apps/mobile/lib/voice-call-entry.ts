@@ -3,6 +3,7 @@ export type VoiceCallStatus = { ready: boolean; transcribe: boolean };
 export type VoiceCallPlan =
   | { kind: "device"; transcribe: false }
   | { kind: "provider"; transcribe: boolean }
+  | { kind: "live-unavailable" }
   | { kind: "settings" }
   | { kind: "dictation" };
 
@@ -10,6 +11,7 @@ export type VoiceCallPlanDeps = {
   loadDeviceVoiceEnabled: () => Promise<boolean>;
   dictationAvailable: () => Promise<boolean>;
   loadVoiceStatus: () => Promise<VoiceCallStatus>;
+  loadCallSettings?: () => Promise<{ provider: string | null }>;
 };
 
 /**
@@ -29,6 +31,8 @@ export async function resolveVoiceCallPlan(deps: VoiceCallPlanDeps): Promise<Voi
   if (deviceVoiceEnabled && deviceDictationAvailable) {
     return { kind: "device", transcribe: false };
   }
+
+  if ((await deps.loadCallSettings?.())?.provider) return { kind: "live-unavailable" };
 
   const status = await deps.loadVoiceStatus();
   if (!status.ready) {

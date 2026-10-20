@@ -4,6 +4,9 @@ import { act, useEffect } from "react";
 import type { Root } from "react-dom/client";
 import { createRoot } from "react-dom/client";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+
+vi.mock("../components/live-call-settings", () => ({ LiveCallSettings: () => null }));
+
 import VoiceSettings from "../app/(settings)/voice";
 
 const state = vi.hoisted(() => ({ rpc: vi.fn(), load: vi.fn(), save: vi.fn() }));

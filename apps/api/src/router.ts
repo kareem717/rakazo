@@ -262,6 +262,15 @@ import {
 } from "./computer-status.js";
 import { searchIntegrationCatalog } from "./integration-catalog.js";
 import {
+  endLiveCall,
+  liveCallProviders,
+  liveCallResult,
+  liveCallSettings,
+  liveCallTurn,
+  setLiveCallSettings,
+  startLiveCall,
+} from "./live-calls.js";
+import {
   dismissMcpServerApprovals,
   resolveMcpApprovalCards,
   revertConnectedMcpApprovals,
@@ -6417,6 +6426,39 @@ export function createRouter(deps: RouterDeps) {
       })),
     },
     voice: {
+      callSettings: authed.voice.callSettings.handler(async ({ context }) =>
+        liveCallSettings(deps.prisma, context.actor),
+      ),
+      callProviders: authed.voice.callProviders.handler(async ({ context }) =>
+        deps.env.phoneCallsEnabled ? liveCallProviders(deps.prisma, context.actor) : [],
+      ),
+      setCallSettings: callsEnabled.voice.setCallSettings.handler(async ({ context, input }) =>
+        setLiveCallSettings(deps, context.actor, input),
+      ),
+      startLiveCall: callsEnabled.voice.startLiveCall.handler(async ({ context, input }) => {
+        if ((await modelSetup(deps, context.actor)).needsModel)
+          throw new ORPCError("BAD_REQUEST", { message: "Connect a model to start a run." });
+        return startLiveCall(deps, context.actor, input, context.signal);
+      }),
+      endLiveCall: callsEnabled.voice.endLiveCall.handler(async ({ context, input }) =>
+        endLiveCall(deps, context.actor, input.callId),
+      ),
+      liveTurn: callsEnabled.voice.liveTurn.handler(async ({ context, input }) =>
+        liveCallTurn(deps, context.actor, input, async (turn) => {
+          if ((await modelSetup(deps, context.actor)).needsModel)
+            throw new ORPCError("BAD_REQUEST", { message: "Connect a model to start a run." });
+          const target = await resolveThreadTarget(deps.prisma, context.actor, {
+            botId: turn.botId,
+          });
+          await assertTeachingSendAllowed(deps.prisma, context.actor.spaceId, turn.botId);
+          return sendThreadMessage(deps, context.actor, target, turn, (runId) =>
+            releaseComputerControl(deps, context.actor, turn.botId, "done", runId),
+          );
+        }),
+      ),
+      liveResult: callsEnabled.voice.liveResult.handler(async ({ context, input }) =>
+        liveCallResult(deps, context.actor, input, context.signal),
+      ),
       catalog: authed.voice.catalog.handler(async () => listVoiceCatalog()),
       status: authed.voice.status.handler(async ({ context, input }) =>
         voiceStatus(deps, context.actor, input?.botId),

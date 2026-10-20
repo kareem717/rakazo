@@ -1046,12 +1046,17 @@ describeIntegration("run executor lifecycle", () => {
       },
       "dedicated",
     );
-    const team = await seedRun("team-fence-isolation-postgres", "exercise team isolation", {
-      status: "running",
-      leaseOwner: "worker-team",
-      leaseFence: 1,
-      leaseExpiresAt: new Date(Date.now() + 60_000),
-    });
+    const team = await seedRun(
+      "team-fence-isolation-postgres",
+      "exercise team isolation",
+      {
+        status: "running",
+        leaseOwner: "worker-team",
+        leaseFence: 1,
+        leaseExpiresAt: new Date(Date.now() + 60_000),
+      },
+      "team",
+    );
     const activeRunIds = [dedicated.run.id, team.run.id];
     let teamLease: Awaited<ReturnType<typeof acquireComputerExecutionLease>> = null;
     let conflictingLease: {

@@ -477,6 +477,7 @@ msgstr "Toegevoegd"
 msgid "Adding…"
 msgstr "Toevoegen…"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/ModelSettingsOverlay.tsx
@@ -943,6 +944,14 @@ msgstr "Bellen"
 msgid "Call back"
 msgstr "Terugbellen"
 
+#: src/lib/call-session.ts
+msgid "Call interrupted"
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Call limit (minutes)"
+msgstr ""
+
 #. placeholder {0}: call.botName
 #: src/components/call/CallCard.tsx
 msgid "Call with {0}"
@@ -955,6 +964,10 @@ msgstr "Belt je…"
 #: src/components/call/CallCard.tsx
 msgid "Calling…"
 msgstr "Belt…"
+
+#: src/components/LiveCallSettings.tsx
+msgid "Calls"
+msgstr ""
 
 #: src/App.tsx
 msgid "Can't reach the server."
@@ -1441,6 +1454,10 @@ msgstr "Doorgaan met {0}"
 msgid "Continue with email"
 msgstr "Doorgaan met e-mail"
 
+#: src/components/LiveCallSettings.tsx
+msgid "Conversation model"
+msgstr ""
+
 #: src/components/ComputersUnavailableHint.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1523,6 +1540,10 @@ msgstr "Verbinden mislukt"
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "Could not connect {0}"
 msgstr "{0} koppelen mislukt"
+
+#: src/lib/call-session.ts
+msgid "Could not connect the call"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Could not connect this provider"
@@ -1678,6 +1699,10 @@ msgstr ""
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
 msgstr "Bots laden mislukt. Herlaad om het opnieuw te proberen."
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not load call settings"
+msgstr ""
 
 #: src/components/computer/TerminalApp.tsx
 msgid "Could not load commands"
@@ -1848,6 +1873,10 @@ msgstr "Auto Review opslaan mislukt"
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Could not save backup models"
 msgstr "Back-upmodellen opslaan mislukt"
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not save call settings"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx
 msgid "Could not save group"
@@ -2405,6 +2434,10 @@ msgstr "Voer een geheel getal van 1 tot 1000 in voor de afbeeldingslimiet."
 msgid "Enter an API key before testing."
 msgstr "Voer een API-sleutel in voordat je test."
 
+#: src/lib/call-session.ts
+msgid "Enter the requested secret in Rakazo's secure interface."
+msgstr ""
+
 #: src/lib/roster-status.ts
 #: src/pages/Shell.tsx
 msgid "Error"
@@ -2884,6 +2917,7 @@ msgstr "sleutel"
 msgid "Knowledge"
 msgstr "Kennis"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Language"
 msgstr "Taal"
@@ -4324,6 +4358,7 @@ msgid "Runs when this bot receives a verified message from this provider."
 msgstr "Draait wanneer deze bot een geverifieerd bericht van deze aanbieder ontvangt."
 
 #: src/components/AskCard.tsx
+#: src/components/LiveCallSettings.tsx
 #: src/components/NetworkSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/Board.tsx
@@ -4764,6 +4799,7 @@ msgstr "Dit antwoord voorlezen"
 msgid "Speaking"
 msgstr "Spreekt"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Speech model"
 msgstr "Spraakmodel"
@@ -4777,6 +4813,7 @@ msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO is tijdelijk niet beschikbaar. Probeer het opnieuw."
 
 #: src/components/BrowserDriverSettings.tsx
+#: src/components/LiveCallSettings.tsx
 msgid "Standard"
 msgstr ""
 
@@ -5155,6 +5192,7 @@ msgstr "Bezig met transcriberen…"
 msgid "Transcript"
 msgstr "Transcript"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Transcription model"
 msgstr "Transcriptiemodel"

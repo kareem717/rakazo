@@ -44,8 +44,9 @@ vi.mock("./tts.js", () => ({
   },
 }));
 
-vi.mock("./rpc.js", () => ({
-  rpc: {
+vi.mock("./rpc.js", () => {
+  const rpc = {
+    voice: { callSettings: vi.fn(async () => ({ provider: null })) },
     threads: {
       answer: vi.fn(),
       endCall: vi.fn(async () => ({ ok: true })),
@@ -55,8 +56,9 @@ vi.mock("./rpc.js", () => ({
       send: vi.fn(),
       subscribe: vi.fn(),
     },
-  },
-}));
+  };
+  return { rpc, createSpaceRpc: () => rpc, selectedSpaceId: () => null };
+});
 
 const listen = vi.mocked(dictation.listen);
 const speak = vi.mocked(speaker.speak);

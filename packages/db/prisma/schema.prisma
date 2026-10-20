@@ -263,6 +263,8 @@ model SpaceMember {
   createdAt        DateTime
   modelPreferences SpaceModelPreference[]
   voicePreferences SpaceVoicePreference[]
+  callPreference SpaceCallPreference?
+  liveCalls LiveCallSession[]
   aiDataConsents AiDataConsent[]
   backupModels SpaceBackupModel[]
 
@@ -392,6 +394,38 @@ model SpaceVoicePreference {
   @@map("space_voice_preferences")
 }
 
+/// Separate call selection preserves the space's speech and transcription preferences.
+model SpaceCallPreference {
+  spaceId String
+  userId String
+  spaceMember SpaceMember @relation(fields: [spaceId, userId], references: [spaceId, userId], onDelete: Cascade)
+  settings Json @default("{}")
+  updatedAt DateTime @updatedAt
+
+  @@id([spaceId, userId])
+  @@map("space_call_preferences")
+}
+
+model LiveCallSession {
+  id String @id @default(cuid())
+  spaceId String
+  userId String
+  spaceMember SpaceMember @relation(fields: [spaceId, userId], references: [spaceId, userId], onDelete: Cascade)
+  botId String
+  bot Bot @relation(fields: [botId], references: [id], onDelete: Cascade)
+  callId String
+  provider String
+  remoteSessionId String?
+  providerState Json @default("{}")
+  expiresAt DateTime
+  endedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@unique([spaceId, userId, callId])
+  @@index([spaceId, userId, endedAt])
+  @@map("live_call_sessions")
+}
+
 model Bot {
   screenGeneration Int @default(0)
   id                String            @id @default(cuid())
@@ -425,6 +459,7 @@ model Bot {
   computerSwitching Boolean           @default(false)
   voiceId           String?
   voiceProvider     String?
+  liveCalls LiveCallSession[]
   autoSpeak         Boolean           @default(false)
   modelProvider     String?
   modelId           String?

@@ -946,4 +946,14 @@ export const RU_MESSAGES: Record<string, string> = {
   "Tailscale is not connected.": "Tailscale не подключён.",
   "Use Tailscale": "Использовать Tailscale",
   "Voice provider": "Поставщик голосов",
+  "Call limit (minutes)": "Лимит звонка (минуты)",
+  Calls: "Звонки",
+  "Connect the live call provider first.": "Сначала подключите провайдера живых звонков.",
+  "Conversation model": "Модель разговора",
+  "Could not load call settings": "Не удалось загрузить настройки звонков",
+  "Could not save call settings": "Не удалось сохранить настройки звонков",
+  "Live calls": "Живые звонки",
+  "Live calls require web or desktop on this version.":
+    "В этой версии живые звонки доступны только в веб-приложении или приложении для компьютера.",
+  "Use standard call": "Использовать обычный звонок",
 };

@@ -25,6 +25,7 @@ COPY --chmod=755 packages/memory/package.json packages/memory/
 COPY --chmod=755 packages/testkit/package.json packages/testkit/
 COPY --chmod=755 packages/ui-tokens/package.json packages/ui-tokens/
 COPY --chmod=755 packages/ui-web/package.json packages/ui-web/
+COPY --chmod=755 packages/voice-web/package.json packages/voice-web/
 COPY --chmod=755 infra/sandboxes/supervisor/package.json infra/sandboxes/supervisor/
 COPY --chmod=755 infra/updater/package.json infra/updater/
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --store-dir=/pnpm/store

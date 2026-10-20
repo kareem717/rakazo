@@ -30,6 +30,19 @@ describe("call route gates", () => {
         () => client.threads.answerCall(input),
         () => client.threads.declineCall({ ...input, outcome: "declined" }),
         () => client.threads.endCall(input),
+        () => client.voice.startLiveCall(input),
+        () => client.voice.endLiveCall({ callId: input.callId }),
+        () =>
+          client.voice.setCallSettings({
+            provider: null,
+            modelId: "",
+            speechModel: "",
+            transcriptionModel: "",
+            language: "en",
+            maxDurationSeconds: 1800,
+          }),
+        () => client.voice.liveTurn({ sessionId: "session-1", turnId: "turn-1", text: "Hello" }),
+        () => client.voice.liveResult({ sessionId: "session-1", requestId: "request-1" }),
       ]) {
         await expect(call()).rejects.toMatchObject({ code: "NOT_FOUND" });
       }
@@ -48,5 +61,15 @@ describe("call route gates", () => {
       client.threads.declineCall({ ...input, outcome: "declined" }),
     ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     await expect(client.threads.endCall(input)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(client.voice.startLiveCall(input)).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(client.voice.endLiveCall({ callId: input.callId })).rejects.toMatchObject({
+      code: "UNAUTHORIZED",
+    });
+    await expect(
+      client.voice.liveTurn({ sessionId: "session-1", turnId: "turn-1", text: "Hello" }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    await expect(
+      client.voice.liveResult({ sessionId: "session-1", requestId: "request-1" }),
+    ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
   });
 });

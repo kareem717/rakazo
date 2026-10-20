@@ -477,6 +477,7 @@ msgstr ""
 msgid "Adding…"
 msgstr "Wird hinzugefügt…"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/ModelSettingsOverlay.tsx
@@ -943,6 +944,14 @@ msgstr "Anrufen"
 msgid "Call back"
 msgstr "Zurückrufen"
 
+#: src/lib/call-session.ts
+msgid "Call interrupted"
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Call limit (minutes)"
+msgstr ""
+
 #. placeholder {0}: call.botName
 #: src/components/call/CallCard.tsx
 msgid "Call with {0}"
@@ -955,6 +964,10 @@ msgstr "Ruft dich an…"
 #: src/components/call/CallCard.tsx
 msgid "Calling…"
 msgstr "Anruf läuft…"
+
+#: src/components/LiveCallSettings.tsx
+msgid "Calls"
+msgstr ""
 
 #: src/App.tsx
 msgid "Can't reach the server."
@@ -1441,6 +1454,10 @@ msgstr "Mit {0} fortfahren"
 msgid "Continue with email"
 msgstr "Mit E-Mail fortfahren"
 
+#: src/components/LiveCallSettings.tsx
+msgid "Conversation model"
+msgstr ""
+
 #: src/components/ComputersUnavailableHint.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1523,6 +1540,10 @@ msgstr "Verbindung fehlgeschlagen"
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "Could not connect {0}"
 msgstr "Verbindung mit {0} fehlgeschlagen"
+
+#: src/lib/call-session.ts
+msgid "Could not connect the call"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Could not connect this provider"
@@ -1677,6 +1698,10 @@ msgstr ""
 
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not load call settings"
 msgstr ""
 
 #: src/components/computer/TerminalApp.tsx
@@ -1848,6 +1873,10 @@ msgstr ""
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Could not save backup models"
 msgstr "Backup-Modelle konnten nicht gespeichert werden."
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not save call settings"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx
 msgid "Could not save group"
@@ -2405,6 +2434,10 @@ msgstr "Gib eine ganze Zahl von 1 bis 1000 für das Bilderlimit ein."
 msgid "Enter an API key before testing."
 msgstr "Gib vor dem Test einen API-Schlüssel ein."
 
+#: src/lib/call-session.ts
+msgid "Enter the requested secret in Rakazo's secure interface."
+msgstr ""
+
 #: src/lib/roster-status.ts
 #: src/pages/Shell.tsx
 msgid "Error"
@@ -2884,6 +2917,7 @@ msgstr ""
 msgid "Knowledge"
 msgstr "Wissen"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Language"
 msgstr "Sprache"
@@ -4324,6 +4358,7 @@ msgid "Runs when this bot receives a verified message from this provider."
 msgstr ""
 
 #: src/components/AskCard.tsx
+#: src/components/LiveCallSettings.tsx
 #: src/components/NetworkSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/Board.tsx
@@ -4764,6 +4799,7 @@ msgstr "Diese Antwort vorlesen"
 msgid "Speaking"
 msgstr "Spricht"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Speech model"
 msgstr "Sprachmodell"
@@ -4777,6 +4813,7 @@ msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO ist vorübergehend nicht verfügbar. Versuche es erneut."
 
 #: src/components/BrowserDriverSettings.tsx
+#: src/components/LiveCallSettings.tsx
 msgid "Standard"
 msgstr ""
 
@@ -5155,6 +5192,7 @@ msgstr "Wird transkribiert…"
 msgid "Transcript"
 msgstr "Transkript"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Transcription model"
 msgstr ""

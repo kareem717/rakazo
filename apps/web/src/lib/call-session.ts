@@ -12,10 +12,13 @@ import {
   spokenDecision,
   spokenMemory,
 } from "@rakazo/core";
+import type { LiveVoiceClient } from "@rakazo/voice-web";
+import { connectLiveVoice } from "@rakazo/voice-web";
 import { useSyncExternalStore } from "react";
 import { pickUp } from "./call-pickup.js";
 import { dictation } from "./dictation.js";
-import { rpc } from "./rpc.js";
+import type { RpcClient } from "./rpc.js";
+import { createSpaceRpc, rpc, selectedSpaceId } from "./rpc.js";
 import { isThreadSnapshotEvent, reduceThreadSnapshot } from "./thread-events.js";
 import { speaker } from "./tts.js";
 import { errorText } from "./user-error";
@@ -59,6 +62,11 @@ let openingPending = false;
 /** Requests for this call that must persist before its server-side hang-up. */
 const pendingCallSends = new Map<string, Set<Promise<unknown>>>();
 let transcribe: boolean | undefined;
+let liveMode: boolean | undefined = false;
+let liveClient: LiveVoiceClient | null = null;
+let liveRpc: RpcClient | null = null;
+let liveAbort: AbortController | null = null;
+const liveSegments = new Map<string, CallExchange>();
 let thread: ThreadSnapshot | null = null;
 let feed: AbortController | null = null;
 /** Every bot message already spoken this call: a streaming message updates many times. */
@@ -117,6 +125,8 @@ export function startCall(call: {
   endCall();
   callId = call.answered?.callId ?? randomId();
   transcribe = call.transcribe;
+  liveMode = undefined;
+  liveSegments.clear();
   spokenMemory.clear();
   clearInterim();
   micOpen = false;
@@ -160,50 +170,143 @@ export function startCall(call: {
       set({ caption: heard.error });
     }
   });
-  watchThread(call.botId);
+  const callRpc = createSpaceRpc(selectedSpaceId());
+  watchThread(call.botId, callRpc);
   emit();
   const ringing = new AbortController();
   pickup = ringing;
   const ringingCallId = callId;
   const opening = call.answered?.opening.trim() ?? "";
-  void pickUp(ringing.signal, { ring: !call.answered }).then(() => {
-    if (ringing.signal.aborted || !state || callId !== ringingCallId) return;
-    pickup = null;
-    if (!opening) {
-      set({ phase: "listening", connectedAt: Date.now() });
-      void listen();
-      return;
+  void Promise.all([pickUp(ringing.signal, { ring: !call.answered }), callRpc.voice.callSettings()])
+    .then(async ([, settings]) => {
+      if (ringing.signal.aborted || !state || callId !== ringingCallId) return;
+      pickup = null;
+      liveMode = Boolean(settings.provider);
+      if (liveMode) {
+        await startLiveSession(ringingCallId, opening, callRpc);
+        return;
+      }
+      if (!opening) {
+        set({ phase: "listening", connectedAt: Date.now() });
+        void listen();
+        return;
+      }
+      // The bot opens the call; its speech ending hands the turn to the user.
+      set({
+        phase: "thinking",
+        connectedAt: Date.now(),
+        exchanges: [{ role: "bot", text: opening }],
+      });
+      spokenMemory.remember(opening);
+      openingPending = true;
+      void speaker.speak(opening, { botId: call.botId }).catch(() => {
+        if (callId !== ringingCallId) return;
+        openingPending = false;
+        void listen();
+      });
+    })
+    .catch((error) => {
+      if (ringing.signal.aborted || !state || callId !== ringingCallId) return;
+      set({
+        phase: "listening",
+        muted: true,
+        caption: errorText(error, t`Could not connect the call`),
+      });
+    });
+}
+
+async function startLiveSession(sessionCallId: string, opening: string, sessionRpc: RpcClient) {
+  if (!state) return;
+  const botId = state.botId;
+  liveRpc = sessionRpc;
+  const controller = new AbortController();
+  liveAbort = controller;
+  const current = () => Boolean(state && callId === sessionCallId && !controller.signal.aborted);
+  try {
+    const session = await sessionRpc.voice.startLiveCall(
+      { botId, callId: sessionCallId, ...(opening ? { opening } : {}) },
+      { signal: controller.signal },
+    );
+    if (!current()) return;
+    liveClient = await connectLiveVoice({
+      session,
+      signal: controller.signal,
+      ask: async (text, turnId) => {
+        if (!current()) throw new Error("The call has ended.");
+        const pending = sessionRpc.voice.liveTurn({ sessionId: session.id, turnId, text });
+        const release = trackPendingCallSend(sessionCallId, pending);
+        try {
+          return await pending;
+        } finally {
+          release();
+        }
+      },
+      result: (requestId) =>
+        sessionRpc.voice.liveResult(
+          { sessionId: session.id, requestId },
+          { signal: controller.signal },
+        ),
+      onMode: (phase) => {
+        if (current()) set({ phase, connectedAt: state?.connectedAt ?? Date.now() });
+      },
+      onTranscript: (segment) => {
+        if (!current() || (segment.role === "user" && pendingSecretAsk(thread))) return;
+        if (segment.final) liveSegments.set(segment.id, { role: segment.role, text: segment.text });
+        set({
+          exchanges: [...liveSegments.values()],
+          ...(segment.role === "user"
+            ? { heard: segment.final ? "" : segment.text }
+            : { caption: segment.text }),
+        });
+      },
+      onEnd: () => {
+        if (current()) endCall();
+      },
+      onError: (error) => {
+        if (current()) set({ caption: errorText(error, t`Call interrupted`) });
+      },
+    });
+    if (current()) {
+      if (state?.muted) await liveClient.mute(true);
+      set({
+        ...(state?.phase === "ringing" ? { phase: "listening" as const } : {}),
+        connectedAt: state?.connectedAt ?? Date.now(),
+      });
     }
-    // The bot opens the call; its speech ending hands the turn to the user.
-    set({
-      phase: "thinking",
-      connectedAt: Date.now(),
-      exchanges: [{ role: "bot", text: opening }],
-    });
-    spokenMemory.remember(opening);
-    openingPending = true;
-    void speaker.speak(opening, { botId: call.botId }).catch(() => {
-      if (callId !== ringingCallId) return;
-      openingPending = false;
-      void listen();
-    });
-  });
+  } catch (error) {
+    if (current()) {
+      controller.abort();
+      await sessionRpc.voice.endLiveCall({ callId: sessionCallId }).catch(() => undefined);
+      if (state && callId === sessionCallId)
+        set({
+          phase: "listening",
+          muted: true,
+          caption: errorText(error, t`Could not connect the call`),
+        });
+    }
+  }
 }
 
 export function endCall(): void {
-  // A caller hang-up closes the call server-side, which files the marker and the wrap-up
-  // run. The bot's own end_call already did that, so only tell the server when it did not.
-  if (state && !botEndedCall) {
+  // Always release the voice transport. The bot's end_call already filed its thread marker.
+  if (state) {
     const { botId, connectedAt } = state;
     const closingCallId = callId;
     const durationSeconds =
       connectedAt === null ? undefined : Math.max(0, Math.round((Date.now() - connectedAt) / 1000));
-    const closeServerCall = () =>
-      rpc.threads.endCall({
+    const closingLive = liveMode === true;
+    const markerAlreadyFiled = botEndedCall;
+    const closingRpc = liveRpc ?? rpc;
+    const closeServerCall = async () => {
+      if (closingLive)
+        await closingRpc.voice.endLiveCall({ callId: closingCallId }).catch(() => undefined);
+      if (markerAlreadyFiled) return;
+      return closingRpc.threads.endCall({
         botId,
         callId: closingCallId,
         ...(durationSeconds === undefined ? {} : { durationSeconds }),
       });
+    };
     const pendingSends = [...(pendingCallSends.get(closingCallId) ?? [])];
     // The server checks durable user messages, so its close must follow an in-flight write.
     if (pendingSends.length === 0) void closeServerCall().catch(() => undefined);
@@ -212,6 +315,13 @@ export function endCall(): void {
         .then(closeServerCall)
         .catch(() => undefined);
   }
+  liveAbort?.abort();
+  liveAbort = null;
+  void liveClient?.end().catch(() => undefined);
+  liveClient = null;
+  liveRpc = null;
+  liveMode = false;
+  liveSegments.clear();
   pickup?.abort();
   pickup = null;
   openingPending = false;
@@ -245,6 +355,12 @@ export function toggleMute(): void {
   if (!state) return;
   const muted = !state.muted;
   set({ muted });
+  if (liveMode) {
+    void liveClient
+      ?.mute(muted)
+      .catch((error) => set({ caption: errorText(error, t`Microphone failed`) }));
+    return;
+  }
   if (muted) {
     dictation.stop("cancel");
     micOpen = false;
@@ -266,17 +382,18 @@ export function setCallMinimized(minimized: boolean): void {
 }
 
 /** Live feed for the bot on the call, independent of whichever thread is on screen. */
-function watchThread(botId: string) {
+function watchThread(botId: string, callRpc: RpcClient) {
   const controller = new AbortController();
   feed = controller;
-  const load = async () => commit(await rpc.threads.get({ botId }, { signal: controller.signal }));
+  const load = async () =>
+    commit(await callRpc.threads.get({ botId }, { signal: controller.signal }));
   void runThreadSubscription({
     signal: controller.signal,
     loadInitial: load,
-    loadHead: () => rpc.threads.head({ botId }, { signal: controller.signal }),
+    loadHead: () => callRpc.threads.head({ botId }, { signal: controller.signal }),
     refresh: load,
     currentSnapshot: () => thread,
-    subscribe: (cursor, signal) => rpc.threads.subscribe({ botId, cursor }, { signal }),
+    subscribe: (cursor, signal) => callRpc.threads.subscribe({ botId, cursor }, { signal }),
     applyEvent: (event) => {
       if (isThreadSnapshotEvent(event)) commit(reduceThreadSnapshot(thread, event));
     },
@@ -285,6 +402,10 @@ function watchThread(botId: string) {
       // work lands in the thread as chat, which the caller is no longer listening to.
       if (event.type !== "thread.call.ended" || event.payload.callId !== callId) return;
       if (botEndedCall) return;
+      if (liveMode) {
+        botEndedCall = true;
+        return;
+      }
       hangUpAfterReply = true;
       botEndedCall = true;
       if (hangUpTimer) clearTimeout(hangUpTimer);
@@ -314,7 +435,15 @@ function speakFarewell(payload: Record<string, unknown>) {
 function commit(next: ThreadSnapshot | null) {
   if (!next) return null;
   thread = next;
-  reactToThread();
+  if (liveMode === false) reactToThread();
+  else if (liveMode && pendingSecretAsk(next)) {
+    void liveClient?.mute(true).catch(() => undefined);
+    set({
+      muted: true,
+      heard: "",
+      caption: t`Enter the requested secret in Rakazo's secure interface.`,
+    });
+  }
   return next;
 }
 

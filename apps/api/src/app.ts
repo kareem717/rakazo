@@ -106,6 +106,7 @@ import { mountDiagramScript } from "./diagram-script.js";
 import type { AppEnv } from "./env.js";
 import { loadEnv } from "./env.js";
 import { healthRoutes } from "./health.js";
+import { startLiveCallCleanup } from "./live-calls.js";
 import { mountLocalSettings } from "./local-settings.js";
 import {
   createMessagingInboundHandler,
@@ -994,6 +995,10 @@ export async function createApp(
     ),
   );
 
+  const stopLiveCallCleanup = env.phoneCallsEnabled
+    ? startLiveCallCleanup({ prisma, secrets })
+    : undefined;
+
   return {
     app,
     prisma,
@@ -1012,6 +1017,7 @@ export async function createApp(
     stop: async () => {
       // Abort in-flight continueRun boot waits before draining jobs so stop() cannot sit
       // on waitForComputerReady for the full boot-wait window during shared Postgres journeys.
+      stopLiveCallCleanup?.();
       auth.disposeOidcDiscovery();
       shutdown.abort();
       oauthLogins.abortAll();
