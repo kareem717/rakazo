@@ -752,6 +752,10 @@ msgstr "צורף {path}"
 msgid "Attachment"
 msgstr "קובץ מצורף"
 
+#: src/pages/RunDetails.tsx
+msgid "Attempts"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Authentication failed."
 msgstr "האימות נכשל."
@@ -801,6 +805,7 @@ msgstr "אווטארים"
 #: src/pages/Board.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/RoutineEditor.tsx
+#: src/pages/RunDetails.tsx
 msgid "Back"
 msgstr "חזרה"
 
@@ -1729,6 +1734,10 @@ msgstr "לא ניתן לטעון את הגדרות המודל"
 msgid "Could not load network settings"
 msgstr ""
 
+#: src/pages/RunDetails.tsx
+msgid "Could not load run"
+msgstr ""
+
 #: src/pages/RoutineRunHistory.tsx
 msgid "Could not load run history"
 msgstr "לא ניתן לטעון את היסטוריית ההרצות"
@@ -1934,6 +1943,15 @@ msgstr "לא ניתן לשלוח אימייל לאיפוס"
 #: src/lib/call-session.ts
 msgid "Could not send that"
 msgstr "לא ניתן לשלוח את זה"
+
+#: src/pages/RunDetails.tsx
+msgid "Could not start"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "Could not start after {attempts} attempts."
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not start OAuth"
@@ -2235,6 +2253,7 @@ msgid "Desktop update"
 msgstr "עדכון לאפליקציית הדסקטופ"
 
 #: src/pages/RoutineRunHistory.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/Shell.tsx
 msgid "Details"
 msgstr "פרטים"
@@ -2318,6 +2337,7 @@ msgstr "אין חשבון?"
 
 #: src/lib/ticket-status.ts
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Done"
 msgstr "הושלם"
@@ -2526,6 +2546,8 @@ msgid "failed"
 msgstr "נכשל"
 
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
+#: src/pages/Shell.tsx
 msgid "Failed"
 msgstr "נכשל"
 
@@ -2863,6 +2885,10 @@ msgstr "אפשרויות אינטגרציה"
 msgid "Integrations"
 msgstr "אינטגרציות"
 
+#: src/pages/RunDetails.tsx
+msgid "Interrupted"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 #: src/pages/RoutineSchedule.tsx
 msgid "Interval"
@@ -3037,6 +3063,7 @@ msgstr "טוען ספקי קול…"
 #: src/pages/Onboarding.tsx
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineRunHistory.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/Shell.tsx
 msgid "Loading…"
 msgstr "טוען…"
@@ -3379,6 +3406,7 @@ msgid "Needs an answer"
 msgstr "ממתין לתשובה"
 
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
 msgid "Needs input"
 msgstr "ממתין לקלט"
 
@@ -3556,6 +3584,10 @@ msgstr "עדיין אין שיחות צוות."
 msgid "No tickets yet"
 msgstr "עדיין אין כרטיסים"
 
+#: src/pages/RunDetails.tsx
+msgid "No tool activity recorded"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "No tools available."
 msgstr "אין כלים זמינים."
@@ -3672,6 +3704,10 @@ msgstr "יש לפתוח את <0>{0}</0> כדי להשלים את ההתחברו�
 
 #: src/pages/Shell.tsx
 msgid "Open call"
+msgstr ""
+
+#: src/pages/RunDetails.tsx
+msgid "Open chat"
 msgstr ""
 
 #. placeholder {0}: call.botName
@@ -3959,6 +3995,10 @@ msgstr "שליפה בלבד"
 #: src/pages/ActivityList.tsx
 msgid "Recent"
 msgstr "אחרונים"
+
+#: src/pages/RunDetails.tsx
+msgid "Recent activity"
+msgstr ""
 
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Reconnect"
@@ -4257,9 +4297,15 @@ msgstr ""
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "לנסות שוב"
+
+#. placeholder {0}: time(run.retry.at)
+#: src/pages/RunDetails.tsx
+msgid "Retry at {0}"
+msgstr ""
 
 #: src/components/NetworkConnectionSettings.tsx
 msgid "Retry connection"
@@ -4273,6 +4319,12 @@ msgstr "לנסות שוב עכשיו"
 #: src/pages/Shell.tsx
 msgid "Retry screen"
 msgstr "טעינת המסך מחדש"
+
+#. placeholder {0}: retry.attempt
+#. placeholder {1}: retry.maxAttempts
+#: src/lib/roster-status.ts
+msgid "Retrying {0}/{1}…"
+msgstr ""
 
 #. placeholder {0}: call.botName
 #: src/components/call/CallCard.tsx
@@ -4323,6 +4375,10 @@ msgstr "רוטינות שרצות גם כשלא נמצאים"
 
 #: src/components/NetworkSettings.tsx
 msgid "Routing"
+msgstr ""
+
+#: src/pages/RunDetails.tsx
+msgid "Run activity"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -5424,8 +5480,8 @@ msgid "Version"
 msgstr "גרסה"
 
 #: src/pages/RoutineRunHistory.tsx
-msgid "View chat"
-msgstr "צפייה בצ׳אט"
+msgid "View run"
+msgstr ""
 
 #: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
@@ -5529,6 +5585,7 @@ msgstr "לא יבוצע"
 
 #: src/lib/roster-status.ts
 #: src/pages/Auth.tsx
+#: src/pages/RunDetails.tsx
 msgid "Working…"
 msgstr "עובד…"
 

@@ -290,7 +290,7 @@ import {
   startOnboarding,
 } from "./onboarding.js";
 import { listRoutineRuns } from "./routine-runs.js";
-import { listSpaceRuns } from "./runs.js";
+import { getRunDetails, listSpaceRuns } from "./runs.js";
 import { addScreenProxyCapability } from "./screen-proxy.js";
 import { querySpaceSearch } from "./search.js";
 import { withSerializableRetry } from "./serializable-retry.js";
@@ -6421,6 +6421,9 @@ export function createRouter(deps: RouterDeps) {
       favicon: authed.links.favicon.handler(async ({ input }) => favicons.favicon(input.origin)),
     },
     runs: {
+      get: authed.runs.get.handler(({ context, input }) =>
+        getRunDetails(deps.prisma, context.actor, input.runId),
+      ),
       list: authed.runs.list.handler(async ({ context, input }) => ({
         runs: await listSpaceRuns(deps.prisma, context.actor, input.filter),
       })),

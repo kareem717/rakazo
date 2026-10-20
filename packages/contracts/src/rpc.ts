@@ -124,7 +124,12 @@ import {
 } from "./network-settings.js";
 import { MessageReactionSchema } from "./reactions.js";
 import { RoutineWatchSchema } from "./routine-watch.js";
-import { RoutineHistorySchema, RoutineRunCursorSchema, RunsListOutputSchema } from "./runs.js";
+import {
+  RoutineHistorySchema,
+  RoutineRunCursorSchema,
+  RunDetailsSchema,
+  RunsListOutputSchema,
+} from "./runs.js";
 import { SearchQueryOutputSchema } from "./search.js";
 
 const botId = z.object({ botId: Id });
@@ -1013,6 +1018,7 @@ export const appContract = {
       .output(z.object({ icon: z.string().nullable(), retry: z.boolean().optional() })),
   },
   runs: {
+    get: oc.input(z.object({ runId: Id })).output(RunDetailsSchema),
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),
   },
   voice: {

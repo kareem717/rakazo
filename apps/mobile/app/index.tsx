@@ -1410,14 +1410,7 @@ function ActivitySection({
   const router = useRouter();
   const botsById = useMemo(() => new Map(bots.map((bot) => [bot.id, bot])), [bots]);
   const openRun = (run: RunActivityRow) => {
-    if (run.groupId) {
-      router.push({
-        pathname: "/group-thread",
-        params: { groupId: run.groupId, name: run.groupName ?? t("Group") },
-      });
-      return;
-    }
-    router.push({ pathname: "/thread", params: { botId: run.botId, name: run.botName } });
+    router.push({ pathname: "/run", params: { runId: run.runId } });
   };
 
   return (
@@ -1756,7 +1749,14 @@ const BotRow = memo(function BotRow({
   onAction?: (action: InboxRowAction, bot: MobileBot | SpaceBot) => void;
 } & RowMenuProps) {
   const { t } = useI18n();
-  const preview = previewSnippet(bot.preview, 40) || bot.title || t("No messages yet");
+  const retryLabel = bot.retry
+    ? t("Retrying {attempt}/{maxAttempts}…", {
+        attempt: bot.retry.attempt,
+        maxAttempts: bot.retry.maxAttempts,
+      })
+    : null;
+  const preview =
+    retryLabel ?? (previewSnippet(bot.preview, 40) || bot.title || t("No messages yet"));
   const time = bot.updatedAt ? formatThreadTime(bot.updatedAt, new Date(day)) : "";
   const tag = botTag(bot.title, bot.name);
   const working = ACTIVE_RUN_STATUSES.some((status) => status === bot.status);
@@ -1768,7 +1768,7 @@ const BotRow = memo(function BotRow({
   const label = [
     bot.name,
     tag,
-    working ? t("Working…") : null,
+    retryLabel ?? (working ? t("Working…") : null),
     bot.notifyOnFinish === false ? t("notifications silenced") : null,
     bot.unread ? t("unread") : null,
     time,

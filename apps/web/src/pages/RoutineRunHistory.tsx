@@ -10,13 +10,7 @@ import { translateRunError } from "../lib/run-error";
 import { formatToolActivityDuration } from "../lib/tool-activity-view";
 import { statusLabel, statusTone } from "./ActivityList";
 
-export function RoutineRunHistory({
-  routineId,
-  onViewChat,
-}: {
-  routineId: string;
-  onViewChat: () => void;
-}) {
+export function RoutineRunHistory({ routineId }: { routineId: string }) {
   const { i18n, t } = useLingui();
   const [history, setHistory] = useState<RoutineHistory | null>(null);
   const [failed, setFailed] = useState(false);
@@ -206,11 +200,7 @@ export function RoutineRunHistory({
                     Date.parse(run.completedAt) - Date.parse(run.startedAt),
                   )
                 : null;
-            const chatTo = run.messageId
-              ? run.groupId
-                ? `/app/g/${encodeURIComponent(run.groupId)}?m=${encodeURIComponent(run.messageId)}`
-                : `/app/${encodeURIComponent(run.botId)}?m=${encodeURIComponent(run.messageId)}`
-              : null;
+            const runTo = `/app/runs/${encodeURIComponent(run.id)}`;
             return (
               <li key={run.id} className="py-2.5 text-[13px]" data-testid="routine-run-row">
                 <div className="flex items-center justify-between gap-2">
@@ -240,25 +230,9 @@ export function RoutineRunHistory({
                 ) : null}
                 <div className="mt-1 flex items-center justify-between gap-2">
                   <span>{duration}</span>
-                  {chatTo ? (
-                    <Link
-                      to={chatTo}
-                      onClick={(event) => {
-                        if (
-                          event.button === 0 &&
-                          !event.metaKey &&
-                          !event.ctrlKey &&
-                          !event.shiftKey &&
-                          !event.altKey
-                        ) {
-                          onViewChat();
-                        }
-                      }}
-                      className="text-foreground underline underline-offset-2"
-                    >
-                      <Trans>View chat</Trans>
-                    </Link>
-                  ) : null}
+                  <Link to={runTo} className="text-foreground underline underline-offset-2">
+                    <Trans>View run</Trans>
+                  </Link>
                 </div>
               </li>
             );

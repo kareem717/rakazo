@@ -1,4 +1,5 @@
 import { t } from "@lingui/core/macro";
+import type { RunRetry } from "@rakazo/contracts";
 
 export function rosterHasUndismissedRunError(
   runErrorId: string | null | undefined,
@@ -8,7 +9,8 @@ export function rosterHasUndismissedRunError(
 }
 
 /** Short sidebar label while a bot is queued, starting, or running. Null keeps the message preview. */
-export function rosterWorkStatusLabel(status: string): string | null {
+export function rosterWorkStatusLabel(status: string, retry?: RunRetry | null): string | null {
+  if (status === "queued" && retry) return t`Retrying ${retry.attempt}/${retry.maxAttempts}…`;
   switch (status) {
     case "queued":
       return t`Waiting in line…`;
@@ -22,8 +24,8 @@ export function rosterWorkStatusLabel(status: string): string | null {
 }
 
 /** Compact rows keep actionable status visible in place of the message preview. */
-export function compactRosterStatusLabel(status: string): string | null {
-  const workStatus = rosterWorkStatusLabel(status);
+export function compactRosterStatusLabel(status: string, retry?: RunRetry | null): string | null {
+  const workStatus = rosterWorkStatusLabel(status, retry);
   if (workStatus) return workStatus;
   switch (status) {
     case "waiting_input":

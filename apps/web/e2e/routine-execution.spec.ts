@@ -164,7 +164,7 @@ test("routine test-run completes and survives reload", async ({ page }, testInfo
   await expect(history.getByTestId("routine-run-row")).toHaveCount(1);
   await expect(history.getByText("Done", { exact: true })).toBeVisible();
   await expect(history.getByText("No runs yet")).toHaveCount(0);
-  await expect(history.getByRole("link", { name: "View chat" })).toBeVisible();
+  await expect(history.getByRole("link", { name: "View run" })).toBeVisible();
   await expect(history.getByRole("button", { name: "Run history" })).toHaveAttribute(
     "aria-expanded",
     "false",
@@ -176,9 +176,13 @@ test("routine test-run completes and survives reload", async ({ page }, testInfo
   );
   await expect(history.getByTestId("routine-run-row")).toHaveCount(1);
   await captureScreenshot(page, testInfo, "36-routine-run-history");
-  await history.getByRole("link", { name: "View chat" }).click();
-  await expect(page.getByTestId("side-panel")).toHaveAttribute("data-panel", "closed");
-  await expect(history).toHaveCount(0);
+  await history.getByRole("link", { name: "View run" }).click();
+  await expect(page).toHaveURL(/\/app\/runs\/[^/]+$/);
+  await expect(page.getByTestId("run-details")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Daily verification" })).toBeVisible();
+  await expect(page.getByText("Recent activity", { exact: true })).toBeVisible();
+  await captureScreenshot(page, testInfo, "routine-run-activity");
+  await page.getByRole("link", { name: "Open chat", exact: true }).click();
   await expect(page.getByText(/routine-run-now-ok/i).first()).toBeVisible();
   await captureScreenshot(page, testInfo, "35-routine-run-persisted");
 });

@@ -2,6 +2,13 @@ import { describe, expect, it } from "vitest";
 import { normalizeRunError } from "./run-error.js";
 
 describe("normalizeRunError", () => {
+  it("keeps startup failures separate from model provider diagnostics", () => {
+    const details = "Could not start after 3 attempts. Computer unavailable";
+    expect(normalizeRunError(details)).toEqual({
+      summary: "Could not start after 3 attempts.",
+      details,
+    });
+  });
   it("summarizes the weekly OpenRouter key limit without exposing diagnostics", () => {
     const details =
       '403: {"message":"Key limit exceeded (weekly limit). Manage it using https://openrouter.ai/workspaces/default/keys/<long hash> $20.05 of $20.00 used; resets 2026-10-12T00:00:00.000Z.","code":403,"metadata":{"limit_source":"openrouter_key_limit"}}';

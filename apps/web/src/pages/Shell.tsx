@@ -3253,8 +3253,7 @@ function SpaceShell() {
                 <ActivityList
                   onOpenRun={(run) => {
                     setMobileSidebarOpen(false);
-                    if (run.groupId) navigate(`/app/g/${run.groupId}`);
-                    else navigate(`/app/${run.botId}`);
+                    navigate(`/app/runs/${encodeURIComponent(run.runId)}`);
                   }}
                 />
               ) : null}
@@ -3489,7 +3488,9 @@ function SpaceShell() {
                           (item.kind === "group" && inGroup && activeGroup?.id === item.chat.id);
                         const compact = botsSidebarDensity === "compact";
                         const workStatusLabel =
-                          item.kind === "bot" ? rosterWorkStatusLabel(item.chat.status) : null;
+                          item.kind === "bot"
+                            ? rosterWorkStatusLabel(item.chat.status, item.chat.retry)
+                            : null;
                         const rowError =
                           item.kind === "bot" &&
                           (rosterHasUndismissedRunError(
@@ -3501,14 +3502,16 @@ function SpaceShell() {
                           compact && item.kind === "bot"
                             ? rowError
                               ? t`Error`
-                              : compactRosterStatusLabel(item.chat.status)
+                              : compactRosterStatusLabel(item.chat.status, item.chat.retry)
                             : null;
                         const rosterLine = compact
                           ? compactStatusLabel
                           : (workStatusLabel ??
                             (item.kind === "bot"
-                              ? item.chat.preview ||
-                                (item.chat.status !== "idle" ? item.chat.status : "")
+                              ? rowError
+                                ? t`Failed`
+                                : item.chat.preview ||
+                                  (item.chat.status !== "idle" ? item.chat.status : "")
                               : item.chat.preview ||
                                 item.chat.members.map((member) => member.name).join(", ")));
                         const rowDropTarget: RosterDropTarget | null =

@@ -43,7 +43,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
   api.history.mockReset();
 });
-async function mounted(routineId = "routine-1", onViewChat = vi.fn()) {
+async function mounted(routineId = "routine-1") {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   const container = document.createElement("div");
   document.body.append(container);
@@ -52,7 +52,7 @@ async function mounted(routineId = "routine-1", onViewChat = vi.fn()) {
     act(async () =>
       root.render(
         <MemoryRouter>
-          <RoutineRunHistory key={id} routineId={id} onViewChat={onViewChat} />
+          <RoutineRunHistory key={id} routineId={id} />
         </MemoryRouter>,
       ),
     );
@@ -66,7 +66,7 @@ async function mounted(routineId = "routine-1", onViewChat = vi.fn()) {
     },
   };
 }
-it("shows loading, then the real run and its exact message link", async () => {
+it("shows loading, then the real run and its activity link", async () => {
   let finish!: (rows: RoutineRun[]) => void;
   api.history.mockReturnValue(
     new Promise<RoutineRun[]>((resolve) => {
@@ -80,7 +80,7 @@ it("shows loading, then the real run and its exact message link", async () => {
     await act(async () => finish([run]));
     expect(view.container.querySelectorAll("li")).toHaveLength(1);
     expect(view.container.textContent).toContain("1m 22s");
-    expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/bot-1?m=reply-1");
+    expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/runs/run-1");
   } finally {
     await view.close();
   }
@@ -95,7 +95,7 @@ it("shows a genuine empty state and refreshes while the panel is open", async ()
     expect(view.container.textContent).toContain("No runs yet");
     await act(async () => vi.advanceTimersByTimeAsync(15_000));
     expect(view.container.querySelectorAll("li")).toHaveLength(1);
-    expect(view.container.querySelector("a")).toBeNull();
+    expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/runs/run-1");
     await view.close();
     await vi.advanceTimersByTimeAsync(30_000);
     expect(api.history).toHaveBeenCalledTimes(2);
@@ -288,52 +288,24 @@ it("accepts a successful collapse refresh when the overlapping poll fails", asyn
 });
 
 it.each([null, "group-1"])(
-  "reveals the chat for a run needing input (group: %s)",
+  "links a run needing input to its activity (group: %s)",
   async (groupId) => {
     api.history.mockResolvedValue(page([{ ...run, groupId, status: "waiting_input" }]));
-    const onViewChat = vi.fn();
-    const view = await mounted("routine-1", onViewChat);
+    const view = await mounted();
     try {
       expect(view.container.textContent).toContain("Needs input");
-      await act(async () => view.container.querySelector("a")!.click());
-      expect(onViewChat).toHaveBeenCalledOnce();
+      expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/runs/run-1");
     } finally {
       await view.close();
     }
   },
 );
 
-it.each(["metaKey", "ctrlKey", "shiftKey", "altKey"])(
-  "keeps the routine open for a modified View chat click (%s)",
-  async (modifier) => {
-    api.history.mockResolvedValue(page([run]));
-    const onViewChat = vi.fn();
-    const view = await mounted("routine-1", onViewChat);
-    try {
-      await act(async () => {
-        const event = new MouseEvent("click", {
-          bubbles: true,
-          cancelable: true,
-          [modifier]: true,
-        });
-        // Suppress jsdom's unsupported browser navigation after React handles the click.
-        view.container.addEventListener("click", (event) => event.preventDefault(), { once: true });
-        view.container.querySelector("a")!.dispatchEvent(event);
-      });
-      expect(onViewChat).not.toHaveBeenCalled();
-    } finally {
-      await view.close();
-    }
-  },
-);
-
-it("links View chat into the group thread when the run has a groupId", async () => {
+it("links group runs to their own activity", async () => {
   api.history.mockResolvedValue(page([{ ...run, groupId: "group-1", messageId: "reply-1" }]));
   const view = await mounted();
   try {
-    expect(view.container.querySelector("a")?.getAttribute("href")).toBe(
-      "/app/g/group-1?m=reply-1",
-    );
+    expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/runs/run-1");
   } finally {
     await view.close();
   }
@@ -375,7 +347,7 @@ it("shows a silent failed run summary with diagnostics behind Details", async ()
     expect(details?.open).toBe(false);
     expect(details?.querySelector("summary")?.textContent).toBe("Details");
     expect(details?.querySelector("pre")?.textContent).toBe(error);
-    expect(view.container.querySelector("a")).toBeNull();
+    expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/runs/run-1");
   } finally {
     await view.close();
   }
@@ -388,7 +360,7 @@ it.each(["completed", "failed"] as const)(
     const view = await mounted();
     try {
       expect(view.container.querySelector("details")).toBeNull();
-      expect(view.container.querySelector("a")).toBeNull();
+      expect(view.container.querySelector("a")?.getAttribute("href")).toBe("/app/runs/run-1");
     } finally {
       await view.close();
     }
