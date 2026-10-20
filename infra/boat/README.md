@@ -2,6 +2,12 @@
 
 This optional overlay connects Rakazo's native Boat adapter to a local Boat controller. Core Rakazo defaults to ordinary networking and requires no proxy or Tailscale account. Web, Electron and mobile use the same backend policy.
 
+The overlay allows 128 concurrent worker jobs with a 16 GiB container memory limit,
+a 12 GiB Node heap limit, and a 16-connection worker database pool. Jobs include bot
+runs and background maintenance. Shared computer access remains coordinated by the
+backend. Use this overlay on a host with room for the worker, database, and other
+services; these limits do not reserve memory or raise the API's connection pool.
+
 ## Choose a scope
 
 | `mode` | Browser | Computer commands | Backend requests |

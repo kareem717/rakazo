@@ -53,7 +53,11 @@ services:
       egress:
         condition: service_healthy
   worker:
+    mem_limit: 16g
     environment:
+      GRAPHILE_WORKER_CONCURRENCY: "128"
+      DB_POOL_MAX: "16"
+      NODE_OPTIONS: --max-old-space-size=12288
       RAKAZO_NETWORK_CONFIG: /config/network.json
       RAKAZO_NETWORK_ACTIVE_CONFIG: /network-runtime/active.json
     volumes:
