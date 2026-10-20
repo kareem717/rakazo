@@ -477,6 +477,7 @@ msgstr "Добавлен"
 msgid "Adding…"
 msgstr "Добавление…"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 #: src/pages/McpServersOverlay.tsx
 #: src/pages/ModelSettingsOverlay.tsx
@@ -943,6 +944,14 @@ msgstr "Позвонить"
 msgid "Call back"
 msgstr "Перезвонить"
 
+#: src/lib/call-session.ts
+msgid "Call interrupted"
+msgstr ""
+
+#: src/components/LiveCallSettings.tsx
+msgid "Call limit (minutes)"
+msgstr ""
+
 #. placeholder {0}: call.botName
 #: src/components/call/CallCard.tsx
 msgid "Call with {0}"
@@ -955,6 +964,10 @@ msgstr "Звонит вам…"
 #: src/components/call/CallCard.tsx
 msgid "Calling…"
 msgstr "Вызов…"
+
+#: src/components/LiveCallSettings.tsx
+msgid "Calls"
+msgstr ""
 
 #: src/App.tsx
 msgid "Can't reach the server."
@@ -1441,6 +1454,10 @@ msgstr "Продолжить с {0}"
 msgid "Continue with email"
 msgstr "Продолжить по электронной почте"
 
+#: src/components/LiveCallSettings.tsx
+msgid "Conversation model"
+msgstr ""
+
 #: src/components/ComputersUnavailableHint.tsx
 #: src/pages/ModelSettingsOverlay.tsx
 #: src/pages/Onboarding.tsx
@@ -1523,6 +1540,10 @@ msgstr "Не удалось подключиться"
 #: src/pages/MemorySettingsOverlay.tsx
 msgid "Could not connect {0}"
 msgstr "Не удалось подключить {0}"
+
+#: src/lib/call-session.ts
+msgid "Could not connect the call"
+msgstr ""
 
 #: src/pages/ModelSettingsOverlay.tsx
 msgid "Could not connect this provider"
@@ -1678,6 +1699,10 @@ msgstr ""
 #: src/pages/IntegrationSetup.tsx
 msgid "Could not load bots. Reload to try again."
 msgstr "Не удалось загрузить ботов. Обновите страницу и попробуйте снова."
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not load call settings"
+msgstr ""
 
 #: src/components/computer/TerminalApp.tsx
 msgid "Could not load commands"
@@ -1848,6 +1873,10 @@ msgstr "Не удалось сохранить автообзор."
 #: src/pages/ModelBackupsSettings.tsx
 msgid "Could not save backup models"
 msgstr "Не удалось сохранить резервные модели."
+
+#: src/components/LiveCallSettings.tsx
+msgid "Could not save call settings"
+msgstr ""
 
 #: src/pages/GroupPanel.tsx
 msgid "Could not save group"
@@ -2405,6 +2434,10 @@ msgstr ""
 msgid "Enter an API key before testing."
 msgstr "Введите API-ключ перед тестом."
 
+#: src/lib/call-session.ts
+msgid "Enter the requested secret in Rakazo's secure interface."
+msgstr ""
+
 #: src/lib/roster-status.ts
 #: src/pages/Shell.tsx
 msgid "Error"
@@ -2884,6 +2917,7 @@ msgstr "ключ"
 msgid "Knowledge"
 msgstr "Знание"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/AccountSettingsOverlay.tsx
 msgid "Language"
 msgstr "Язык"
@@ -4324,6 +4358,7 @@ msgid "Runs when this bot receives a verified message from this provider."
 msgstr "Запускается, когда этот бот получает проверенное сообщение от этого провайдера."
 
 #: src/components/AskCard.tsx
+#: src/components/LiveCallSettings.tsx
 #: src/components/NetworkSettings.tsx
 #: src/components/teach/SkillDraftCard.tsx
 #: src/pages/Board.tsx
@@ -4764,6 +4799,7 @@ msgstr "Озвучить этот ответ"
 msgid "Speaking"
 msgstr "говорит"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Speech model"
 msgstr "Речевая модель"
@@ -4777,6 +4813,7 @@ msgid "SSO is temporarily unavailable. Try again."
 msgstr "SSO временно недоступен. Попробуйте снова."
 
 #: src/components/BrowserDriverSettings.tsx
+#: src/components/LiveCallSettings.tsx
 msgid "Standard"
 msgstr ""
 
@@ -5155,6 +5192,7 @@ msgstr "Распознаю…"
 msgid "Transcript"
 msgstr "Расшифровка"
 
+#: src/components/LiveCallSettings.tsx
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Transcription model"
 msgstr ""

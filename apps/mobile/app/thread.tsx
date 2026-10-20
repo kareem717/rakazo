@@ -1903,7 +1903,7 @@ function Thread({ sessionEpoch }: { sessionEpoch: number }) {
   }
 
   /** `switchedHere`: the caller asked another bot to put them through, so this bot answers. */
-  async function startVoiceCall(switchedHere = false) {
+  async function startVoiceCall(switchedHere = false, standardCall = false) {
     if (readOnly) return;
     const targetBotId = botId;
     if (!targetBotId || voiceCallStarting.current) return;
@@ -1916,10 +1916,20 @@ function Thread({ sessionEpoch }: { sessionEpoch: number }) {
           loadDeviceVoiceEnabled,
           dictationAvailable,
           loadVoiceStatus,
+          loadCallSettings: standardCall
+            ? undefined
+            : () => rpc<{ provider: string | null }>("voice/callSettings"),
         }),
         loadCallCallerName(() => rpc<MobileMe>("me")),
       ]);
       if (activeBotId.current !== targetBotId) return;
+      if (plan.kind === "live-unavailable") {
+        Alert.alert(t("Live calls"), t("Live calls require web or desktop on this version."), [
+          { text: t("Cancel"), style: "cancel" },
+          { text: t("Use standard call"), onPress: () => void startVoiceCall(switchedHere, true) },
+        ]);
+        return;
+      }
       if (plan.kind === "settings") {
         router.push("/voice");
         return;

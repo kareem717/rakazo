@@ -80,6 +80,7 @@ export * from "./jev-auto-review.js";
 export * from "./job-reconciler.js";
 export * from "./keenable-web.js";
 export * from "./keyless-http-web.js";
+export * from "./live-voice-factory.js";
 export * from "./mcp-connector.js";
 export * from "./mcp-emulator.js";
 export * from "./mcp-oauth.js";

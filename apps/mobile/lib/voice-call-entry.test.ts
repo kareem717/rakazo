@@ -179,3 +179,14 @@ describe("loadCallCallerName", () => {
     await expect(loadCallCallerName(async () => ({ name: " " }))).resolves.toBeUndefined();
   });
 });
+
+it("makes an unsupported live transport explicit before starting a native call", async () => {
+  await expect(
+    resolveVoiceCallPlan({
+      loadDeviceVoiceEnabled: async () => false,
+      dictationAvailable: async () => true,
+      loadVoiceStatus: async () => ({ ready: true, transcribe: true }),
+      loadCallSettings: async () => ({ provider: "fish-audio" }),
+    }),
+  ).resolves.toEqual({ kind: "live-unavailable" });
+});

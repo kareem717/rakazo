@@ -108,6 +108,12 @@ import {
   IntegrationProviderConfigSchema,
   IntegrationSetupStateSchema,
 } from "./integration-settings.js";
+import {
+  LiveCallConnectionSchema,
+  LiveCallProviderSchema,
+  LiveCallResultSchema,
+  LiveCallSettingsSchema,
+} from "./live-calls.js";
 import { NetworkConnectionSchema } from "./network-connection.js";
 import {
   NetworkApplyInputSchema,
@@ -1010,6 +1016,35 @@ export const appContract = {
     list: oc.input(z.object({ filter: z.enum(["active", "recent"]) })).output(RunsListOutputSchema),
   },
   voice: {
+    callSettings: oc.output(LiveCallSettingsSchema),
+    callProviders: oc.output(z.array(LiveCallProviderSchema)),
+    setCallSettings: oc.input(LiveCallSettingsSchema).output(LiveCallSettingsSchema),
+    startLiveCall: oc
+      .input(
+        z.object({
+          botId: Id,
+          callId: z
+            .string()
+            .min(1)
+            .max(120)
+            .regex(/^[\w-]+$/),
+          opening: z.string().max(10000).optional(),
+        }),
+      )
+      .output(LiveCallConnectionSchema),
+    endLiveCall: oc
+      .input(z.object({ callId: z.string().min(1).max(120) }))
+      .output(z.object({ ok: z.literal(true) })),
+    liveTurn: oc
+      .input(
+        z.object({
+          sessionId: Id,
+          turnId: z.string().min(1).max(256),
+          text: z.string().trim().min(1).max(20000),
+        }),
+      )
+      .output(z.object({ requestId: Id })),
+    liveResult: oc.input(z.object({ sessionId: Id, requestId: Id })).output(LiveCallResultSchema),
     catalog: oc.output(z.array(VoiceCatalogEntrySchema)),
     status: oc.input(z.object({ botId: Id.optional() }).optional()).output(VoiceStatusSchema),
     credentials: oc.output(z.array(VoiceCredentialSchema)),

@@ -1,9 +1,16 @@
+import { closeLiveCallsForProvider } from "./live-call-cleanup.js";
+import type { VoiceDeps } from "./voice-connection.js";
+import { loadVoiceCredential, voiceContext } from "./voice-connection.js";
+
+export type { VoiceDeps } from "./voice-connection.js";
+export { loadVoiceCredential, voiceContext } from "./voice-connection.js";
+
 import { ORPCError } from "@orpc/server";
-import type { AdapterContext, SecretStore } from "@rakazo/adapter-kit";
 import {
   createVoiceProvider,
   isFishSpeechModelId,
   isVoiceProviderId,
+  LIVE_VOICE_CATALOG,
   listVoiceCatalog,
   MAX_SPEAK_CHARS,
   MAX_TRANSCRIBE_BYTES,
@@ -18,11 +25,9 @@ import { toUtterances } from "@rakazo/core";
 import {
   deleteUnreferencedCredentialSecret,
   findDefaultVoiceCredential,
-  findVoiceCredential,
   IsolationError,
   newestVoiceCredentialOrder,
   Prisma,
-  type PrismaClient,
   selectSpaceVoicePreference,
 } from "@rakazo/db";
 import { getLogger } from "@rakazo/logging";
@@ -30,26 +35,11 @@ import type { Context, Hono } from "hono";
 import { readBoundedBody } from "./http-body.js";
 import { withSerializableRetry } from "./serializable-retry.js";
 
-export interface VoiceDeps {
-  prisma: PrismaClient;
-  secrets: SecretStore;
-}
-
 export { listVoiceCatalog };
 
 const SPEAK_TIMEOUT_MS = 60_000;
 export const MAX_SPEAK_REQUEST_BYTES = 16 * 1024;
 export const MAX_TRANSCRIBE_REQUEST_BYTES = 4 * Math.ceil(MAX_TRANSCRIBE_BYTES / 3) + 1024;
-
-export function voiceContext(actor: Actor, signal?: AbortSignal): AdapterContext {
-  return {
-    operationId: "voice",
-    traceId: "voice",
-    spaceId: actor.spaceId,
-    userId: actor.userId,
-    signal: signal ?? new AbortController().signal,
-  };
-}
 
 export function catalogEntry(provider: string) {
   return voiceCatalogEntry(provider);
@@ -173,18 +163,6 @@ export async function loadDefaultVoiceCredential(deps: VoiceDeps, actor: Actor) 
   return loadVoiceCredential(deps, actor);
 }
 
-export async function loadVoiceCredential(deps: VoiceDeps, actor: Actor, provider?: string) {
-  const cred = provider
-    ? await findVoiceCredential(deps.prisma, actor, provider)
-    : await findDefaultVoiceCredential(deps.prisma, actor);
-  if (!cred) return null;
-  const secret = await deps.prisma.secret.findFirst({
-    where: { id: cred.secretId, userId: actor.userId, spaceId: null },
-  });
-  if (!secret) return null;
-  return { cred, apiKey: await deps.secrets.load(secret.ciphertext, secret.id) };
-}
-
 export async function resolveVoiceTarget(
   deps: VoiceDeps,
   actor: Actor,
@@ -271,6 +249,8 @@ export async function persistVoiceCredential(
     voiceId = voices[0]?.id ?? "";
     validVoiceIds = voices.map((voice) => voice.id);
   }
+  if (LIVE_VOICE_CATALOG.some((entry) => entry.id === input.provider))
+    await closeLiveCallsForProvider(deps, actor, input.provider);
   const stored = await deps.secrets.put(plaintext, voiceContext(actor, input.signal));
   const cred = await withSerializableRetry(() =>
     deps.prisma.$transaction(
@@ -361,6 +341,8 @@ export async function disconnectVoiceCredential(
   if (!provider) {
     throw new ORPCError("BAD_REQUEST", { message: "Unknown voice provider." });
   }
+  if (LIVE_VOICE_CATALOG.some((entry) => entry.id === provider))
+    await closeLiveCallsForProvider(deps, actor, provider);
   await withSerializableRetry(() =>
     deps.prisma.$transaction(
       async (tx) => {
