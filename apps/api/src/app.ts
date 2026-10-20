@@ -7,6 +7,7 @@ import type {
   JobPublisher,
   ManagedConnectorProvider,
   MessagingSurface,
+  NotificationProvider,
   RealtimeFanout,
   SandboxProvider,
   TransactionalEmailProvider,
@@ -152,6 +153,7 @@ export interface AppHandles {
   connectors: ConnectorRegistry;
   messaging?: MessagingSurface;
   email?: TransactionalEmailProvider;
+  notifications: NotificationProvider;
   executor: ReturnType<typeof createRunExecutor>;
   runtime: AgentRuntime;
   awaitIdle?: () => Promise<void>;
@@ -168,6 +170,7 @@ export async function createApp(
     pipedream?: ManagedConnectorProvider;
     messaging?: MessagingSurface;
     email?: TransactionalEmailProvider;
+    notifications?: NotificationProvider;
     billing?: BillingProvider;
     remoteConnectors?: RemoteConnectorDependencies;
     logger?: Logger;
@@ -183,6 +186,7 @@ export async function createApp(
     pipedream: pipedreamOverride,
     messaging: messagingOverride,
     email: emailOverride,
+    notifications: notificationsOverride,
     billing: billingOverride,
     remoteConnectors,
     logger: loggerOverride,
@@ -294,8 +298,8 @@ export async function createApp(
       daytonaApiKey: env.daytonaApiKey,
       daytonaApiUrl: env.daytonaApiUrl,
       daytonaTarget: env.daytonaTarget,
-      boxApiKey: env.boxApiKey,
-      boxApiUrl: env.boxApiUrl,
+      boatApiKey: env.boatApiKey,
+      boatApiUrl: env.boatApiUrl,
       dataDir: env.dataDir,
       prisma,
     });
@@ -392,9 +396,9 @@ export async function createApp(
       : new PiAgentRuntime({
           sessionRoot: env.piSessionRecording ? piSessionsRoot(env.dataDir) : undefined,
         }));
-  const notifications = new ExpoPushProvider(env.dataDir, (sessionId) =>
-    pushSessionExpiresAt(prisma, sessionId),
-  );
+  const notifications =
+    notificationsOverride ??
+    new ExpoPushProvider(env.dataDir, (sessionId) => pushSessionExpiresAt(prisma, sessionId));
   const auth = createAuth(prisma, {
     passwordAuth: env.passwordAuth,
     oidc: env.oidc,
@@ -1000,6 +1004,7 @@ export async function createApp(
     connectors: stack.connector,
     messaging,
     email,
+    notifications,
     executor,
     runtime,
     awaitIdle: inMemoryJobs ? () => inMemoryJobs.awaitIdle() : undefined,

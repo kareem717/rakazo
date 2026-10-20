@@ -15,7 +15,7 @@ test("the deployment owner can choose the browser driver in computer settings", 
     defaultModel: null,
     computerHost: null,
     canChooseHostComputer: false,
-    sandboxProvider: "box",
+    sandboxProvider: "boat",
   });
   await page.route("**/rpc/bootstrap", async (route) => {
     const response = await route.fetch();

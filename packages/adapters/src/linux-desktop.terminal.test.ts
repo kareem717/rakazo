@@ -15,7 +15,7 @@ const context: AdapterContext = {
 const computer: ComputerRef = {
   id: "sandbox-1",
   providerRef: "sandbox-1",
-  kind: "box",
+  kind: "boat",
   botId: "bot-1",
 };
 

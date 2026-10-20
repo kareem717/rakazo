@@ -13,8 +13,7 @@ import { gatewayEgressConfig, policyDigest } from "./network-config.mjs";
 
 const exec = promisify(execFile);
 const root = "/state";
-const upstream = "https://ascii.dev/api/box/v1";
-const modern = "https://boat.dev/api/v1";
+const upstream = "https://boat.dev/api/v1";
 const environment = process.env.BOAT_ENVIRONMENT ?? "rakazo";
 const environmentId = process.env.BOAT_ENVIRONMENT_ID;
 const networkConfig = gatewayEgressConfig();
@@ -111,13 +110,10 @@ export async function retryRead(operation, method = "GET", wait = sleep) {
   }
 }
 
-async function api(
-  path,
-  { method = "GET", body, headers = {}, current = false, idempotent = false } = {},
-) {
+async function api(path, { method = "GET", body, headers = {}, idempotent = false } = {}) {
   return retryRead(
     async () => {
-      const response = await fetch(`${current ? modern : upstream}${path}`, {
+      const response = await fetch(`${upstream}${path}`, {
         method,
         headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json", ...headers },
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -135,7 +131,7 @@ async function api(
 }
 
 async function environmentSafe() {
-  const d = await api("/environments", { current: true });
+  const d = await api("/environments");
   const e = d.environments?.find((e) => e.id === environmentId);
   if (
     !e ||
@@ -154,7 +150,6 @@ async function environmentSafe() {
 
 async function command(id, command, timeoutSeconds = 60) {
   const d = await api(`/sandboxes/${id}/commands`, {
-    current: true,
     method: "POST",
     body: { command, timeoutSeconds },
   });
@@ -189,7 +184,7 @@ export async function runGuardedBootstrap(id) {
   });
   return new Promise((resolve, reject) => {
     const req = https.request(
-      `${modern}/sandboxes/${id}/commands`,
+      `${upstream}/sandboxes/${id}/commands`,
       {
         method: "POST",
         headers: {
@@ -296,13 +291,13 @@ async function bootstrapOnce(id) {
   const vm = state.vms[id];
   if (!vm) throw new Error("VM not registered");
   for (let attempt = 0; ; attempt++) {
-    const d = await api(`/boxes/${id}`);
-    if (["ready", "idle", "running"].includes(d.box.state) && d.box.environment) {
-      if (d.box.environment !== environment || d.box.holdsCreatorLogins === true)
+    const d = await api(`/sandboxes/${id}`);
+    if (["ready", "idle", "running"].includes(d.sandbox.state) && d.sandbox.environment) {
+      if (d.sandbox.environment !== environment || d.sandbox.holdsCreatorLogins === true)
         throw new Error("VM environment mismatch");
       break;
     }
-    if (attempt >= 150 || ["error", "archived"].includes(d.box.state))
+    if (attempt >= 150 || ["error", "archived"].includes(d.sandbox.state))
       throw new Error("VM not ready");
     await sleep(2000);
   }
@@ -365,7 +360,6 @@ async function bootstrapOnce(id) {
       };
       for (const [name, content] of Object.entries(files)) {
         await api(`/sandboxes/${id}/files`, {
-          current: true,
           method: "PUT",
           idempotent: true,
           body: {
@@ -460,21 +454,25 @@ async function create(body) {
   let intent = state.bots[botId];
   if (intent?.id) {
     try {
-      const d = await api(`/boxes/${intent.id}`);
-      if (d.box.state === "archived") {
+      const d = await api(`/sandboxes/${intent.id}`);
+      if (d.sandbox.state === "archived") {
         const vm = state.vms[intent.id];
         vm.phase = "created";
         delete vm.bootstrapProcess;
         delete vm.bootstrapComplete;
         delete vm.bootstrapOperation;
         await save();
-        await api(`/boxes/${intent.id}/resume`, {
+        await api(`/sandboxes/${intent.id}/resume`, {
           method: "POST",
           body: { noEnv: true, environment, ttlSeconds: 7200 },
         });
       }
       await bootstrap(intent.id);
-      return { ok: true, type: "box.created", box: (await api(`/boxes/${intent.id}`)).box };
+      return {
+        ok: true,
+        type: "sandbox.created",
+        sandbox: (await api(`/sandboxes/${intent.id}`)).sandbox,
+      };
     } catch (e) {
       if (e.status !== 404) throw e;
     }
@@ -482,13 +480,13 @@ async function create(body) {
   intent = { operation: randomUUID(), phase: "intent" };
   state.bots[botId] = intent;
   await save();
-  const result = await api("/boxes", {
+  const result = await api("/sandboxes", {
     method: "POST",
     body,
     headers: { "Idempotency-Key": intent.operation },
   });
-  if (!result.box?.id) throw new Error("Create response missing VM identity");
-  intent.id = result.box.id;
+  if (!result.sandbox?.id) throw new Error("Create response missing VM identity");
+  intent.id = result.sandbox.id;
   intent.phase = "created";
   await save();
   await register(intent.id, botId);
@@ -544,9 +542,7 @@ async function handler(req, res) {
       }
       if (vm.phase !== "bootstrapping" || !vm.bootstrapProcess)
         throw new Error("No terminal legacy bootstrap to reconcile");
-      const process = await api(`/sandboxes/${id}/commands/${vm.bootstrapProcess}?tailBytes=100`, {
-        current: true,
-      });
+      const process = await api(`/sandboxes/${id}/commands/${vm.bootstrapProcess}?tailBytes=100`);
       if (process.running) throw new Error("Bootstrap is still running");
       delete vm.bootstrapProcess;
       vm.phase = "created";
@@ -557,19 +553,20 @@ async function handler(req, res) {
     if (req.url === "/admin/adopt" && req.method === "POST") {
       const { id } = JSON.parse(body);
       if (!/^bx_[a-z0-9]+$/.test(id)) throw new Error("invalid ID");
-      const d = await api(`/boxes/${id}`);
-      if (d.box.environment !== environment) throw new Error("wrong environment");
+      const d = await api(`/sandboxes/${id}`);
+      if (d.sandbox.environment !== environment) throw new Error("wrong environment");
       await register(id, "network-acceptance");
       await bootstrap(id);
       return json(200, { ready: true, id });
     }
     const url = new URL(req.url, "http://localhost");
-    if (!url.pathname.startsWith("/api/box/v1/")) return json(404, { error: "not found" });
-    const path = url.pathname.slice("/api/box/v1".length) + url.search;
-    if (path === "/boxes" && req.method === "POST")
+    const prefix = ["/api/v1", "/api/box/v1"].find((base) => url.pathname.startsWith(`${base}/`));
+    if (!prefix) return json(404, { error: "not found" });
+    const path = url.pathname.slice(prefix.length) + url.search;
+    if (path === "/sandboxes" && req.method === "POST")
       return json(200, await create(JSON.parse(body)));
-    const match = /^\/boxes\/(bx_[a-z0-9]+)(?:\/(.*))?$/.exec(
-      url.pathname.slice("/api/box/v1".length),
+    const match = /^\/sandboxes\/(bx_[a-z0-9]+)(?:\/(.*))?$/.exec(
+      url.pathname.slice(prefix.length),
     );
     if (match) {
       const [, id, action] = match;
@@ -592,8 +589,8 @@ async function handler(req, res) {
       if (!action && req.method === "GET") {
         const d = await api(path);
         if (
-          ["ready", "idle", "running"].includes(d.box.state) &&
-          !["pending", "failing"].includes(d.box.stop?.status)
+          ["ready", "idle", "running"].includes(d.sandbox.state) &&
+          !["pending", "failing"].includes(d.sandbox.stop?.status)
         )
           await bootstrap(id);
         return json(200, d);
@@ -629,11 +626,6 @@ async function handler(req, res) {
     res.writeHead(response.status, { "Content-Type": contentType, "Cache-Control": "no-store" });
     if (contentType.includes("application/json")) {
       const d = await response.json();
-      if (typeof d.stdout === "string")
-        d.stdout = d.stdout.replace(
-          /https:\/\/([a-z0-9-]+)\.on\.boat\.dev/g,
-          "https://$1.on.ascii.dev",
-        );
       res.end(JSON.stringify(d));
     } else if (response.body) Readable.fromWeb(response.body).pipe(res);
     else res.end();
@@ -688,7 +680,7 @@ async function main() {
       throw new Error("Computer operations are still pending");
     await assertNetworkApplyStopped(state.vms, state.bots, async (id) => {
       try {
-        return (await api(`/boxes/${id}`)).box;
+        return (await api(`/sandboxes/${id}`)).sandbox;
       } catch (error) {
         if (error.status === 404) return { state: "deleted" };
         throw error;
@@ -698,7 +690,7 @@ async function main() {
   }
   await assertModeTransition(state.vms, networkConfig.mode, async (id) => {
     try {
-      return (await api(`/boxes/${id}`)).box;
+      return (await api(`/sandboxes/${id}`)).sandbox;
     } catch (error) {
       if (error.status === 404) return { state: "deleted" };
       throw error;
@@ -714,7 +706,7 @@ async function main() {
   }
   for (const [id, vm] of Object.entries(state.vms)) {
     try {
-      await api(`/boxes/${id}`);
+      await api(`/sandboxes/${id}`);
     } catch (error) {
       if (error.status === 404) {
         await exec("wg", ["set", "rakazo0", "peer", vm.publicKey, "remove"]);

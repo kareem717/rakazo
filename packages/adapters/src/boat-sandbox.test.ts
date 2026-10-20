@@ -1,10 +1,10 @@
-import type { Command200Response } from "@asciidev/box-sdk";
+import type { Command200Response } from "@boatdev/sdk";
 import type { ComputerRef, ProcessEvent } from "@rakazo/adapter-kit";
 import { parse } from "shell-quote";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { boxResponseError } from "./box-errors.js";
-import type { BoxSandboxSdk } from "./box-sandbox.js";
-import { BoxSandboxProvider, isUnrecoverableBoxError } from "./box-sandbox.js";
+import { boatResponseError } from "./boat-errors.js";
+import type { BoatSandboxSdk } from "./boat-sandbox.js";
+import { BoatSandboxProvider, isUnrecoverableBoatError } from "./boat-sandbox.js";
 import { desktopCommandResponder } from "./linux-desktop.test-support.js";
 
 const context = {
@@ -21,21 +21,21 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("BoxSandboxProvider", () => {
-  it("creates no-env boxes and implements execution and file operations", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+describe("BoatSandboxProvider", () => {
+  it("creates no-env sandboxes and implements execution and file operations", async () => {
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
 
     expect(computer).toMatchObject({
       id: "bx_testbox2",
       providerRef: "bx_testbox2",
-      kind: "box",
+      kind: "boat",
       fresh: true,
     });
     expect(fixture.create).toHaveBeenCalledWith(
       {
-        createBoxRequest: {
+        createSandboxRequest: {
           ttlSeconds: 7200,
           noEnv: true,
           env: { RAKAZO_BOT_ID: "bot-a", RAKAZO_SANDBOX: "computer" },
@@ -90,14 +90,14 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("passes protected browser input through private uploads and cleans up on failure", async () => {
-    const fixture = boxFixture();
+    const fixture = boatFixture();
     const original = fixture.command.getMockImplementation()!;
     fixture.command.mockImplementation(async (request) => {
       if (request.commandRequest.command.includes("RAKAZO_BROWSER_ARGS_STDIN"))
         return finished({ stdout: JSON.stringify({ ok: true, completed: 1 }) });
       return original(request);
     });
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     const secret = "fake-protected-password";
     await expect(
@@ -133,7 +133,7 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("installs the selected optional driver before invoking it, keeping protected input off argv", async () => {
-    const fixture = boxFixture();
+    const fixture = boatFixture();
     const original = fixture.command.getMockImplementation()!;
     fixture.command.mockImplementation(async (request) => {
       const command = request.commandRequest.command;
@@ -146,7 +146,7 @@ describe("BoxSandboxProvider", () => {
         return finished({ stdout: JSON.stringify({ ok: true, completed: 1 }) });
       return original(request);
     });
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     await expect(
       provider.pageBrowser(
@@ -187,14 +187,14 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("does not run an action or silently change drivers when optional setup fails", async () => {
-    const fixture = boxFixture();
+    const fixture = boatFixture();
     const original = fixture.command.getMockImplementation()!;
     fixture.command.mockImplementation(async (request) =>
       request.commandRequest.command.includes("--requirements")
         ? finished({ stdout: "", exitCode: 1 })
         : original(request),
     );
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     await expect(
       provider.pageBrowser(computer, { command: "snapshot", driver: "patchright" }, context),
@@ -212,12 +212,12 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("checks provider state without resuming an archived or missing machine", async () => {
-    const fixture = boxFixture({ state: "archived" });
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture({ state: "archived" });
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = {
       id: "computer",
       botId: "bot-a",
-      kind: "box" as const,
+      kind: "boat" as const,
       providerRef: "bx_existing2",
     };
     expect(await provider.isRunning(computer, context)).toBe(false);
@@ -231,52 +231,52 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("resumes archived boxes and replaces deleted references", async () => {
-    const archived = boxFixture({ state: "archived" });
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, archived.client);
+    const archived = boatFixture({ state: "archived" });
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, archived.client);
     const reconnected = await provider.provision(
       {
         botId: "bot-a",
         homePath: "/unused",
         providerRef: "bx_existing2",
-        providerKind: "box",
+        providerKind: "boat",
       },
       context,
     );
     expect(reconnected).toMatchObject({ providerRef: "bx_existing2", fresh: false });
     expect(archived.resume).toHaveBeenCalledWith(
       {
-        boxId: "bx_existing2",
+        sandboxId: "bx_existing2",
         resumeRequest: { noEnv: true, ttlSeconds: 7200 },
       },
       { signal: context.signal },
     );
 
-    const missing = boxFixture();
+    const missing = boatFixture();
     missing.get.mockRejectedValueOnce({ status: 404 });
-    const replacing = new BoxSandboxProvider({ apiKey: "test-key" }, missing.client);
+    const replacing = new BoatSandboxProvider({ apiKey: "test-key" }, missing.client);
     const replacement = await replacing.provision(
       {
         botId: "bot-b",
         homePath: "/unused",
         providerRef: "bx_missing2",
-        providerKind: "box",
+        providerKind: "boat",
       },
       context,
     );
     expect(replacement).toMatchObject({ providerRef: "bx_testbox2", fresh: true });
   });
 
-  it.each(["box_not_ready", "box_starting"])(
+  it.each(["sandbox_not_ready", "sandbox_starting", "boat_starting"])(
     "waits through an update and retries a rejected command (%s) after preparation",
     async (code) => {
-      const fixture = boxFixture();
-      const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+      const fixture = boatFixture();
+      const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
       const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
       await provider.prepare(computer, context);
       fixture.command.mockClear();
       fixture.get.mockClear();
       fixture.command.mockRejectedValueOnce(
-        await boxResponseError(Response.json({ code }, { status: 409 }), "test-key"),
+        await boatResponseError(Response.json({ code }, { status: 409 }), "test-key"),
       );
       fixture.get
         .mockResolvedValueOnce(infoResponse(computer.id, "updating"))
@@ -292,15 +292,15 @@ describe("BoxSandboxProvider", () => {
   );
 
   it.each(["read", "write"])(
-    "retries a %s rejected while the box is updating",
+    "retries a %s rejected while the sandbox is updating",
     async (operation) => {
-      const fixture = boxFixture();
-      const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+      const fixture = boatFixture();
+      const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
       const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
       const endpoint = operation === "read" ? fixture.artifactRaw : fixture.writeFile;
       endpoint.mockRejectedValueOnce(
-        await boxResponseError(
-          Response.json({ code: "box_not_ready" }, { status: 409 }),
+        await boatResponseError(
+          Response.json({ code: "sandbox_not_ready" }, { status: 409 }),
           "test-key",
         ),
       );
@@ -322,12 +322,12 @@ describe("BoxSandboxProvider", () => {
     [502, "box_direct_failed"],
     [409, "another_conflict"],
     [409, undefined],
-    [503, "box_not_ready"],
+    [503, "sandbox_not_ready"],
   ])("does not replay ambiguous HTTP %s failures (%s)", async (status, code) => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
-    const error = await boxResponseError(Response.json({ code }, { status }), "test-key");
+    const error = await boatResponseError(Response.json({ code }, { status }), "test-key");
     fixture.command.mockRejectedValueOnce(error);
 
     await expect(executeTestCommand(provider, computer)).rejects.toBe(error);
@@ -336,8 +336,8 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("does not replay a command after a lost response", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     const error = new TypeError("fetch failed");
     fixture.command.mockRejectedValueOnce(error);
@@ -347,11 +347,11 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("bounds retries when the command is rejected again after readiness", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
-    const error = await boxResponseError(
-      Response.json({ code: "box_not_ready" }, { status: 409 }),
+    const error = await boatResponseError(
+      Response.json({ code: "sandbox_not_ready" }, { status: 409 }),
       "test-key",
     );
     fixture.command.mockRejectedValue(error);
@@ -362,11 +362,14 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("bounds readiness waiting without resubmitting a rejected command", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     fixture.command.mockRejectedValueOnce(
-      await boxResponseError(Response.json({ code: "box_not_ready" }, { status: 409 }), "test-key"),
+      await boatResponseError(
+        Response.json({ code: "sandbox_not_ready" }, { status: 409 }),
+        "test-key",
+      ),
     );
     fixture.get.mockResolvedValue(infoResponse(computer.id, "updating"));
     vi.spyOn(Date, "now")
@@ -378,12 +381,15 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("cancels readiness waiting without resubmitting the command", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     const controller = new AbortController();
     fixture.command.mockRejectedValueOnce(
-      await boxResponseError(Response.json({ code: "box_not_ready" }, { status: 409 }), "test-key"),
+      await boatResponseError(
+        Response.json({ code: "sandbox_not_ready" }, { status: 409 }),
+        "test-key",
+      ),
     );
     fixture.get.mockImplementationOnce(async () => {
       controller.abort();
@@ -414,14 +420,14 @@ describe("BoxSandboxProvider", () => {
         new Response(content, { headers: { "content-length": String(content.byteLength) } }),
       );
     try {
-      const provider = new BoxSandboxProvider({
+      const provider = new BoatSandboxProvider({
         apiKey: "test-key",
-        apiUrl: "https://box.test/api/box/v1",
+        apiUrl: "https://boat.test/api/v1",
       });
       const computer = {
         id: "bx_testbox2",
         providerRef: "bx_testbox2",
-        kind: "box" as const,
+        kind: "boat" as const,
         botId: "bot-a",
       };
       const filePath = "notes/a file & more.bin";
@@ -431,7 +437,7 @@ describe("BoxSandboxProvider", () => {
       expect(fetchMock).toHaveBeenCalledTimes(1);
       const [request, init] = fetchMock.mock.calls[0]!;
       const url = new URL(String(request));
-      expect(url.pathname).toBe("/api/box/v1/boxes/bx_testbox2/artifacts");
+      expect(url.pathname).toBe("/api/v1/sandboxes/bx_testbox2/artifacts");
       expect(url.searchParams.get("path")).toBe(`/home/user/rakazo-home/${filePath}`);
       expect(new Headers(init?.headers).get("Authorization")).toBe("Bearer test-key");
       expect(init?.signal).toBe(context.signal);
@@ -441,10 +447,10 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("exports browser profile files over 5 MiB without losing their bytes", async () => {
-    const fixture = boxFixture();
+    const fixture = boatFixture();
     const content = Buffer.alloc(6 * 1024 * 1024, 0xab);
     fixture.files.set("/home/user/rakazo-home/.browser-profiles/chrome/Default/History", content);
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     const exported = [];
     for await (const file of provider.exportWorkspace(computer, context)) exported.push(file);
@@ -454,7 +460,7 @@ describe("BoxSandboxProvider", () => {
     expect(Buffer.from(exported[0]!.content).equals(content)).toBe(true);
     expect(fixture.artifactRaw).toHaveBeenCalledWith(
       {
-        boxId: computer.id,
+        sandboxId: computer.id,
         path: "/home/user/rakazo-home/.browser-profiles/chrome/Default/History",
       },
       { signal: context.signal },
@@ -464,7 +470,7 @@ describe("BoxSandboxProvider", () => {
   it.each([undefined, "1", "20"])(
     "cancels oversized downloads with content-length %s",
     async (contentLength) => {
-      const fixture = boxFixture();
+      const fixture = boatFixture();
       const cancel = vi.fn();
       const pull = vi.fn((controller: ReadableStreamDefaultController<Uint8Array>) => {
         controller.enqueue(Uint8Array.from([1, 2, 3]));
@@ -475,7 +481,7 @@ describe("BoxSandboxProvider", () => {
           headers: contentLength ? { "content-length": contentLength } : undefined,
         }),
       });
-      const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+      const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
       const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
 
       await expect(
@@ -488,9 +494,9 @@ describe("BoxSandboxProvider", () => {
   );
 
   it("accepts empty files and files exactly at the download limit", async () => {
-    const fixture = boxFixture();
+    const fixture = boatFixture();
     fixture.files.set("/home/user/rakazo-home/exact.bin", Uint8Array.from([0, 255]));
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
 
     expect(await provider.readFile(computer, "empty.bin", context, { maxBytes: 0 })).toHaveLength(
@@ -502,7 +508,7 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("propagates interrupted downloads instead of returning partial files", async () => {
-    const fixture = boxFixture();
+    const fixture = boatFixture();
     const aborted = new DOMException("download aborted", "AbortError");
     let first = true;
     const body = new ReadableStream({
@@ -513,7 +519,7 @@ describe("BoxSandboxProvider", () => {
       },
     });
     fixture.artifactRaw.mockResolvedValueOnce({ raw: new Response(body) });
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
 
     await expect(provider.readFile(computer, "partial.bin", context)).rejects.toBe(aborted);
@@ -521,8 +527,8 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("wakes an externally archived computer before opening its screen even after preparation was cached", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     await provider.prepare(computer, context);
     fixture.get.mockResolvedValueOnce(infoResponse("bx_testbox2", "archived"));
@@ -533,8 +539,8 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("splits oversized restore files into bounded requests and atomically assembles them", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     const content = Buffer.alloc(8 * 1024 * 1024, 0xa7);
     await provider.writeFile(computer, { path: "large.bin", content }, context);
@@ -556,8 +562,8 @@ describe("BoxSandboxProvider", () => {
   });
 
   it("captures independent desktops and exposes protected ports", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     await provider.prepare(computer, context);
 
@@ -597,9 +603,24 @@ describe("BoxSandboxProvider", () => {
     expect(provider.describe().capabilities.multiScreen).toBe(true);
   });
 
+  it("refuses a desktop URL that is not served over HTTPS", async () => {
+    const fixture = boatFixture();
+    fixture.hostPort.mockResolvedValue({
+      ok: true,
+      type: "sandbox.host",
+      url: "http://boat-test-6100.on.boat.dev?_token=secret",
+    });
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
+    await provider.prepare(computer, context);
+    await expect(
+      provider.connectScreen(computer, { view: "stream", interactive: false }, context),
+    ).rejects.toThrow("Boat desktop URL is not protected");
+  });
+
   it("archives on stop and permanently deletes on destroy", async () => {
-    const fixture = boxFixture();
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" }, fixture.client);
+    const fixture = boatFixture();
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" }, fixture.client);
     const computer = await provider.provision({ botId: "bot-a", homePath: "/unused" }, context);
     fixture.stop.mockResolvedValueOnce(actionResponse("archiving"));
     fixture.get
@@ -607,9 +628,12 @@ describe("BoxSandboxProvider", () => {
       .mockResolvedValue(infoResponse("bx_testbox2", "archived"));
 
     await provider.stop(computer, context);
-    expect(fixture.stop).toHaveBeenCalledWith({ boxId: "bx_testbox2" }, { signal: context.signal });
+    expect(fixture.stop).toHaveBeenCalledWith(
+      { sandboxId: "bx_testbox2" },
+      { signal: context.signal },
+    );
     await provider.destroy(computer, context);
-    expect(fixture.deleteBox).toHaveBeenCalledWith("bx_testbox2");
+    expect(fixture.deleteSandbox).toHaveBeenCalledWith("bx_testbox2");
   });
 
   it("bounds a stalled permanent-delete request", async () => {
@@ -624,15 +648,15 @@ describe("BoxSandboxProvider", () => {
         }),
     );
     vi.stubGlobal("fetch", fetchMock);
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" });
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" });
 
     const pending = provider.destroy(
-      { id: "box-test", providerRef: "box-test", botId: "bot-test", kind: "box" },
+      { id: "boat-test", providerRef: "boat-test", botId: "bot-test", kind: "boat" },
       context,
     );
     deadline.abort(new DOMException("Timed out", "TimeoutError"));
 
-    await expect(pending).rejects.toThrow("Box box-test was not deleted within 60 seconds");
+    await expect(pending).rejects.toThrow("Boat boat-test was not deleted within 60 seconds");
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBe(deadline.signal);
   });
@@ -652,28 +676,28 @@ describe("BoxSandboxProvider", () => {
           }),
       );
     vi.stubGlobal("fetch", fetchMock);
-    const provider = new BoxSandboxProvider({ apiKey: "test-key" });
+    const provider = new BoatSandboxProvider({ apiKey: "test-key" });
 
     const pending = provider.destroy(
-      { id: "box-test", providerRef: "box-test", botId: "bot-test", kind: "box" },
+      { id: "boat-test", providerRef: "boat-test", botId: "bot-test", kind: "boat" },
       context,
     );
     await vi.waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
     deadline.abort(new DOMException("Timed out", "TimeoutError"));
 
-    await expect(pending).rejects.toThrow("Box box-test was not deleted within 60 seconds");
+    await expect(pending).rejects.toThrow("Boat boat-test was not deleted within 60 seconds");
     expect(fetchMock.mock.calls[0]?.[1]?.signal).toBe(deadline.signal);
     expect(fetchMock.mock.calls[1]?.[1]?.signal).toBe(deadline.signal);
   });
 
   it("recognizes provider 404 errors without swallowing transient failures", () => {
-    expect(isUnrecoverableBoxError({ status: 404 })).toBe(true);
-    expect(isUnrecoverableBoxError(new Error("temporary Box outage"))).toBe(false);
+    expect(isUnrecoverableBoatError({ status: 404 })).toBe(true);
+    expect(isUnrecoverableBoatError(new Error("temporary Boat outage"))).toBe(false);
   });
 });
 
 async function executeTestCommand(
-  provider: BoxSandboxProvider,
+  provider: BoatSandboxProvider,
   computer: ComputerRef,
   commandContext = context,
 ): Promise<ProcessEvent[]> {
@@ -684,26 +708,37 @@ async function executeTestCommand(
   return events;
 }
 
-function boxFixture(options: { state?: string } = {}) {
+function boatFixture(options: { state?: string } = {}) {
   const files = new Map<string, Uint8Array>();
   const respond = desktopCommandResponder();
   const create = vi.fn(async () => createResponse());
   const fixture = {
     state: options.state ?? "ready",
     create,
-    get: vi.fn(async ({ boxId }: { boxId: string }) => infoResponse(boxId, fixture.state)),
-    resume: vi.fn(async ({ boxId }: { boxId: string }) => {
+    get: vi.fn(async ({ sandboxId }: { sandboxId: string }) =>
+      infoResponse(sandboxId, fixture.state),
+    ),
+    resume: vi.fn(async ({ sandboxId }: { sandboxId: string }) => {
       fixture.state = "ready";
-      return actionResponse("ready", boxId);
+      return actionResponse("ready", sandboxId);
     }),
-    stop: vi.fn(async ({ boxId }: { boxId: string }) => actionResponse("archiving", boxId)),
-    update: vi.fn(async ({ boxId }: { boxId: string }) => infoResponse(boxId, fixture.state)),
-    deleteBox: vi.fn(async () => undefined),
+    stop: vi.fn(async ({ sandboxId }: { sandboxId: string }) =>
+      actionResponse("archiving", sandboxId),
+    ),
+    update: vi.fn(async ({ sandboxId }: { sandboxId: string }) =>
+      infoResponse(sandboxId, fixture.state),
+    ),
+    deleteSandbox: vi.fn(async () => undefined),
+    hostPort: vi.fn(async ({ hostPortRequest }: { hostPortRequest: { port: number } }) => ({
+      ok: true,
+      type: "sandbox.host",
+      url: `https://boat-test-${hostPortRequest.port}.on.boat.dev?_token=secret`,
+    })),
     desktop: vi.fn(async () => ({
       ok: true,
       type: "desktop.url",
       success: true,
-      desktopUrl: "https://vnc.box.test/vnc.html?password=pw&_token=secret",
+      desktopUrl: "https://vnc.sandbox.test/vnc.html?password=pw&_token=secret",
       mode: "vnc",
     })),
     commandStatus: vi.fn(),
@@ -711,10 +746,6 @@ function boxFixture(options: { state?: string } = {}) {
       const command = request.commandRequest.command;
       const response = respond(command);
       if (response) return finished(response);
-      if (command.includes("host ") && command.includes("--private")) {
-        const port = command.match(/host (\d+)/)?.[1];
-        return finished({ stdout: `https://box-test-${port}.on.ascii.dev?_token=secret` });
-      }
       if (command.includes("TEST_VALUE=works")) return finished({ stdout: "hello\n" });
       if (command.includes("find ") && command.includes("rakazo-home/bin")) {
         const target = "/home/user/rakazo-home/bin/tool";
@@ -744,7 +775,7 @@ function boxFixture(options: { state?: string } = {}) {
             "X=21",
             "Y=34",
             "WINDOW=42",
-            `TITLE=${Buffer.from("Box browser").toString("base64")}`,
+            `TITLE=${Buffer.from("Boat browser").toString("base64")}`,
             "",
           ].join("\n"),
         });
@@ -774,13 +805,13 @@ function boxFixture(options: { state?: string } = {}) {
       return { raw: new Response(Buffer.from(content)) };
     }),
   };
-  return { ...fixture, files, client: fixture as unknown as BoxSandboxSdk };
+  return { ...fixture, files, client: fixture as unknown as BoatSandboxSdk };
 }
 
-function box(id: string, state: string) {
+function sandbox(id: string, state: string) {
   return {
     id,
-    name: "Test Box",
+    name: "Test Boat",
     state,
     desktopAvailable: true,
     snapshotAvailable: state === "archived",
@@ -790,19 +821,19 @@ function box(id: string, state: string) {
 function createResponse() {
   return {
     ok: true,
-    type: "box.created",
+    type: "sandbox.created",
     status: "provisioning",
     ttlSeconds: null,
-    box: box("bx_testbox2", "provisioning"),
+    sandbox: sandbox("bx_testbox2", "provisioning"),
   };
 }
 
 function infoResponse(id: string, state: string) {
-  return { ok: true, type: "box.info", box: box(id, state) };
+  return { ok: true, type: "sandbox.info", sandbox: sandbox(id, state) };
 }
 
 function actionResponse(status: string, id = "bx_testbox2") {
-  return { ok: true, type: "box.action", id, status, box: box(id, status) };
+  return { ok: true, type: "sandbox.action", id, status, sandbox: sandbox(id, status) };
 }
 
 function finished(overrides: Partial<Command200Response> = {}): Command200Response {

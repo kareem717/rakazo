@@ -65,7 +65,7 @@ describe("computer browser provider", () => {
       id: "computer",
       botId: "bot",
       providerRef: "computer",
-      kind: "box",
+      kind: "boat",
     };
     await provider.navigate(computer, { url: "https://example.test" }, baseContext);
     await provider.snapshot(computer, {}, baseContext);
