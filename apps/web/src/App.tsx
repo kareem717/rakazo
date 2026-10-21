@@ -31,6 +31,7 @@ import { completeSsoCallback, SSO_CALLBACK_PATH } from "./lib/sso-flow";
 import { IntegrationSetupPage } from "./pages/IntegrationSetup";
 import { LocalSettingsPage } from "./pages/LocalSettings";
 import { McpOAuthCallbackPage } from "./pages/McpOAuthCallback";
+import { RunDetailsPage } from "./pages/RunDetails";
 import { ShellPage } from "./pages/Shell";
 
 const AuthPage = lazy(() =>
@@ -174,6 +175,7 @@ function SessionApp() {
           >
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/app" element={<ShellPage />} />
+            <Route path="/app/runs/:runId" element={<RunDetailsPage />} />
             <Route path="/app/g/:groupId" element={<ShellPage />} />
             <Route path="/app/artifacts" element={<ArtifactsPage />} />
             <Route path="/app/artifacts/:artifactId" element={<ArtifactsPage />} />

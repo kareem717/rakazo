@@ -85,9 +85,11 @@ import {
   nextFence,
   planActionGate,
   promptInvokesSkill,
+  RUN_SETUP_MAX_ATTEMPTS,
   redactSecrets,
   renderBotDirectory,
   resolveActionApprovalDetail,
+  runSetupRetryDelay,
   sandboxCommandTimeoutMs,
   TAKEOVER_COMPUTER_PENDING_STATE,
   toolRequiresApproval,
@@ -8092,23 +8094,63 @@ export function createRunExecutor(deps: ExecutorDeps) {
         }
       } catch (setupError) {
         const computerBusy = setupError instanceof ComputerBusyError;
-        const retryForever = computerBusy || isTooManyDatabaseConnections(setupError);
-        if (!computerBusy) {
-          // undici collapses every network failure to "fetch failed"; the cause names the
-          // host and errno, which is the only part worth paging over.
-          const causeMessage =
-            setupError instanceof Error && setupError.cause instanceof Error
-              ? `: ${setupError.cause.message}`
-              : "";
-          getLogger().error(
-            "run setup failed",
-            redactSecrets(
-              setupError instanceof Error
-                ? `${setupError.message}${causeMessage}`
-                : String(setupError),
-              runSecrets,
-            ),
-          );
+        const resourceWait = computerBusy || isTooManyDatabaseConnections(setupError);
+        const cause =
+          setupError instanceof Error && setupError.cause instanceof Error
+            ? `: ${setupError.cause.message}`
+            : "";
+        const detail = redactSecrets(
+          setupError instanceof Error ? `${setupError.message}${cause}` : String(setupError),
+          runSecrets,
+        ).slice(0, 2_000);
+        if (!computerBusy) getLogger().error("run setup failed", detail);
+        const failures = resourceWait
+          ? 0
+          : 1 +
+            (await deps.prisma.attempt.count({
+              where: { runId, status: "setup_failed", error: { not: null } },
+            }));
+        if (!resourceWait && failures >= RUN_SETUP_MAX_ATTEMPTS) {
+          const error = `Could not start after ${failures} attempts. ${detail}`;
+          const failed = await deps.events.finalizeRun({
+            spaceId: run.spaceId,
+            threadId: run.threadId,
+            botId: run.botId,
+            runId,
+            taskId: run.taskId,
+            attemptId: attempt.id,
+            leaseOwner: workerId,
+            leaseFence: fence,
+            outcome: "failed",
+            error,
+          });
+          if (failed && failed.continuationRunId) {
+            await deps.jobs.enqueue(runContinueJob(failed.continuationRunId));
+          }
+          if (failed && run.trigger === "bot_message") {
+            const failedBot = await deps.prisma.bot.findUniqueOrThrow({
+              where: { id: run.botId },
+              select: { name: true },
+            });
+            await returnBotMessageOutcome(
+              deps,
+              run,
+              { id: run.botId, name: failedBot.name },
+              `Could not complete the delegated request: ${error}`,
+              "status",
+              { forceUnread: true },
+            );
+          }
+          if (failed && runSendsFinishNotification(run.trigger)) {
+            await notifyRun(deps, run, {
+              kind: "failure",
+              title: "Could not start",
+              body: error.slice(0, 180),
+              botId: run.botId,
+              threadId: run.threadId,
+            });
+          }
+          return;
         }
         const released = await writeComputerRunRequeue(
           deps,
@@ -8117,25 +8159,24 @@ export function createRunExecutor(deps: ExecutorDeps) {
           fence,
           resumeCheckpoint,
           heldForTakeover,
-          retryForever ? null : "Run setup failed; retrying",
+          resourceWait ? null : detail,
         );
         if (released) {
           await deps.prisma.attempt.update({
             where: { id: attempt.id },
             data: {
               status: "setup_failed",
-              error: retryForever ? null : "Run setup failed; retrying",
+              error: resourceWait ? null : detail,
               finishedAt: new Date(),
             },
           });
-          if (retryForever) {
-            await deps.jobs.enqueue({
-              ...runContinueJob(runId),
-              availableAt: new Date(Date.now() + computerRetryDelay(fence)),
-            });
-            return;
-          }
-          throw new Error("Run setup failed; retrying");
+          await deps.jobs.enqueue({
+            ...runContinueJob(runId),
+            availableAt: new Date(
+              Date.now() +
+                (resourceWait ? computerRetryDelay(fence) : runSetupRetryDelay(failures)),
+            ),
+          });
         }
       } finally {
         detachShutdown?.();

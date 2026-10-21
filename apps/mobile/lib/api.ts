@@ -955,6 +955,7 @@ export type MobileBot = Pick<
   | "notifyOnFinish"
   | "threadId"
   | "pinned"
+  | "retry"
   | "status"
   | "sectionId"
   | "archivedAt"

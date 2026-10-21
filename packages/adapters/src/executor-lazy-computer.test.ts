@@ -1,6 +1,7 @@
 import type { ComputerRef } from "@rakazo/adapter-kit";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type * as ComputerLifecycleModule from "./computer-lifecycle.js";
+import { ComputerBusyError } from "./computer-lifecycle.js";
 import { createRunExecutor } from "./executor.js";
 
 const provisionComputer = vi.hoisted(() => vi.fn());
@@ -28,7 +29,12 @@ type ExecuteTool = (
 /** A routine run whose model makes the given tool calls, then answers. */
 async function runRoutine(
   toolCalls: Array<{ name: string; args: Record<string, unknown> }>,
-  options: { takeover?: boolean; native?: boolean; nativeUnavailable?: boolean } = {},
+  options: {
+    takeover?: boolean;
+    native?: boolean;
+    nativeUnavailable?: boolean;
+    setupFailures?: number;
+  } = {},
 ) {
   const run = {
     id: "run-1",
@@ -92,6 +98,7 @@ async function runRoutine(
       findMany: vi.fn(async () => []),
     },
     attempt: {
+      count: vi.fn(async () => options.setupFailures ?? 0),
       create: vi.fn(async () => ({ id: "attempt-1" })),
       update: vi.fn(),
       updateMany: vi.fn(async () => ({ count: 1 })),
@@ -171,7 +178,7 @@ async function runRoutine(
   const sleepJobs = enqueue.mock.calls
     .map((call) => (call as unknown[])[0] as { name: string })
     .filter((job) => job.name === "computer.sleep");
-  return { finalizeRun, sandbox, sleepJobs, toolResults };
+  return { finalizeRun, sandbox, sleepJobs, toolResults, enqueue, prisma };
 }
 
 beforeEach(() => {
@@ -233,13 +240,50 @@ describe("run computer provisioning", () => {
     expect(provisionComputer).toHaveBeenCalledOnce();
   });
 
-  it("keeps setup-failure retry semantics when the computer cannot start", async () => {
+  it("schedules a short retry and preserves the startup error", async () => {
     provisionComputer.mockRejectedValue(new Error("provider unavailable"));
-
-    await expect(runRoutine([{ name: "list_files", args: { path: "" } }])).rejects.toThrow(
-      "Run setup failed; retrying",
+    const { enqueue, prisma, finalizeRun } = await runRoutine([
+      { name: "list_files", args: { path: "" } },
+    ]);
+    expect(finalizeRun).not.toHaveBeenCalled();
+    expect(prisma.attempt.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ status: "setup_failed", error: "provider unavailable" }),
+      }),
     );
-    expect(provisionComputer).toHaveBeenCalledOnce();
+    expect(enqueue).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "run.continue", availableAt: expect.any(Date) }),
+    );
+  });
+
+  it("stops after three startup failures instead of requeueing", async () => {
+    provisionComputer.mockRejectedValue(new Error("provider unavailable"));
+    const { enqueue, finalizeRun } = await runRoutine(
+      [{ name: "list_files", args: { path: "" } }],
+      { setupFailures: 2 },
+    );
+    expect(finalizeRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        outcome: "failed",
+        error: "Could not start after 3 attempts. provider unavailable",
+      }),
+    );
+    expect(
+      enqueue.mock.calls.some(
+        (call) => (call as unknown as [{ name: string }])[0].name === "run.continue",
+      ),
+    ).toBe(false);
+  });
+
+  it("does not spend the failure budget while a computer is busy", async () => {
+    provisionComputer.mockRejectedValue(new ComputerBusyError());
+    const { enqueue, finalizeRun, prisma } = await runRoutine(
+      [{ name: "list_files", args: { path: "" } }],
+      { setupFailures: 20 },
+    );
+    expect(finalizeRun).not.toHaveBeenCalled();
+    expect(prisma.attempt.count).not.toHaveBeenCalled();
+    expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({ name: "run.continue" }));
   });
 });
 

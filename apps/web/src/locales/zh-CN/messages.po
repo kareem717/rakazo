@@ -752,6 +752,10 @@ msgstr ""
 msgid "Attachment"
 msgstr "附件"
 
+#: src/pages/RunDetails.tsx
+msgid "Attempts"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Authentication failed."
 msgstr "身份验证失败。"
@@ -801,6 +805,7 @@ msgstr "头像"
 #: src/pages/Board.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/RoutineEditor.tsx
+#: src/pages/RunDetails.tsx
 msgid "Back"
 msgstr "返回"
 
@@ -1729,6 +1734,10 @@ msgstr "无法加载模型设置"
 msgid "Could not load network settings"
 msgstr ""
 
+#: src/pages/RunDetails.tsx
+msgid "Could not load run"
+msgstr ""
+
 #: src/pages/RoutineRunHistory.tsx
 msgid "Could not load run history"
 msgstr "无法加载运行历史记录"
@@ -1934,6 +1943,15 @@ msgstr "无法发送重置邮件"
 #: src/lib/call-session.ts
 msgid "Could not send that"
 msgstr "无法发送"
+
+#: src/pages/RunDetails.tsx
+msgid "Could not start"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "Could not start after {attempts} attempts."
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not start OAuth"
@@ -2235,6 +2253,7 @@ msgid "Desktop update"
 msgstr ""
 
 #: src/pages/RoutineRunHistory.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/Shell.tsx
 msgid "Details"
 msgstr "详情"
@@ -2318,6 +2337,7 @@ msgstr "还没有账户？"
 
 #: src/lib/ticket-status.ts
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Done"
 msgstr "完成"
@@ -2526,6 +2546,8 @@ msgid "failed"
 msgstr "失败"
 
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
+#: src/pages/Shell.tsx
 msgid "Failed"
 msgstr "失败"
 
@@ -2863,6 +2885,10 @@ msgstr ""
 msgid "Integrations"
 msgstr "集成"
 
+#: src/pages/RunDetails.tsx
+msgid "Interrupted"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 #: src/pages/RoutineSchedule.tsx
 msgid "Interval"
@@ -3037,6 +3063,7 @@ msgstr "正在加载语音提供方…"
 #: src/pages/Onboarding.tsx
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineRunHistory.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/Shell.tsx
 msgid "Loading…"
 msgstr "加载中…"
@@ -3379,6 +3406,7 @@ msgid "Needs an answer"
 msgstr ""
 
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
 msgid "Needs input"
 msgstr "需要输入"
 
@@ -3556,6 +3584,10 @@ msgstr ""
 msgid "No tickets yet"
 msgstr ""
 
+#: src/pages/RunDetails.tsx
+msgid "No tool activity recorded"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "No tools available."
 msgstr ""
@@ -3672,6 +3704,10 @@ msgstr ""
 
 #: src/pages/Shell.tsx
 msgid "Open call"
+msgstr ""
+
+#: src/pages/RunDetails.tsx
+msgid "Open chat"
 msgstr ""
 
 #. placeholder {0}: call.botName
@@ -3959,6 +3995,10 @@ msgstr ""
 #: src/pages/ActivityList.tsx
 msgid "Recent"
 msgstr "最近"
+
+#: src/pages/RunDetails.tsx
+msgid "Recent activity"
+msgstr ""
 
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Reconnect"
@@ -4257,9 +4297,15 @@ msgstr ""
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "重试"
+
+#. placeholder {0}: time(run.retry.at)
+#: src/pages/RunDetails.tsx
+msgid "Retry at {0}"
+msgstr ""
 
 #: src/components/NetworkConnectionSettings.tsx
 msgid "Retry connection"
@@ -4272,6 +4318,12 @@ msgstr "立即重试"
 
 #: src/pages/Shell.tsx
 msgid "Retry screen"
+msgstr ""
+
+#. placeholder {0}: retry.attempt
+#. placeholder {1}: retry.maxAttempts
+#: src/lib/roster-status.ts
+msgid "Retrying {0}/{1}…"
 msgstr ""
 
 #. placeholder {0}: call.botName
@@ -4323,6 +4375,10 @@ msgstr ""
 
 #: src/components/NetworkSettings.tsx
 msgid "Routing"
+msgstr ""
+
+#: src/pages/RunDetails.tsx
+msgid "Run activity"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -5424,8 +5480,8 @@ msgid "Version"
 msgstr ""
 
 #: src/pages/RoutineRunHistory.tsx
-msgid "View chat"
-msgstr "查看聊天"
+msgid "View run"
+msgstr ""
 
 #: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
@@ -5529,6 +5585,7 @@ msgstr ""
 
 #: src/lib/roster-status.ts
 #: src/pages/Auth.tsx
+#: src/pages/RunDetails.tsx
 msgid "Working…"
 msgstr "处理中…"
 

@@ -10,6 +10,7 @@ import {
   isBackgroundRunTrigger,
   phoneCallSettings,
   ringingCall,
+  runRetryState,
   userVisibleMessages,
 } from "@rakazo/core";
 import type { Prisma, PrismaClient } from "./client.js";
@@ -253,6 +254,7 @@ export function createRepos(
         parentBotId: bot.parentBotId,
         preview: previewFromBlocks(bot.thread.messages[0]?.blocks),
         status: bot.runs[0]?.status ?? "idle",
+        retry: bot.runs[0] ? runRetryState(bot.runs[0]) : null,
         runErrorId: rosterRunErrorId(bot.thread.runs[0], bot.runs[0]),
         updatedAt: rosterUpdatedAt(bot.thread.messages[0], bot.updatedAt).toISOString(),
       };
@@ -498,18 +500,21 @@ export function createRepos(
             });
             if (messages.length === 0) break;
           }
-          return mapBot(
-            bot,
-            preview,
-            bot.runs[0]?.status ?? "idle",
-            rosterRunErrorId(bot.thread?.runs[0], bot.runs[0]),
-            updatedAt,
-            ringingCall(
-              bot.thread && callsByThread.has(bot.thread.id)
-                ? [callsByThread.get(bot.thread.id)!]
-                : [],
+          return {
+            ...mapBot(
+              bot,
+              preview,
+              bot.runs[0]?.status ?? "idle",
+              rosterRunErrorId(bot.thread?.runs[0], bot.runs[0]),
+              updatedAt,
+              ringingCall(
+                bot.thread && callsByThread.has(bot.thread.id)
+                  ? [callsByThread.get(bot.thread.id)!]
+                  : [],
+              ),
             ),
-          );
+            retry: bot.runs[0] ? runRetryState(bot.runs[0]) : null,
+          };
         }),
       );
     },

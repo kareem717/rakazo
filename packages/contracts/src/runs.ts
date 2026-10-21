@@ -20,11 +20,20 @@ export const RUN_TRIGGERS = [
 export const RunTriggerSchema = z.enum(RUN_TRIGGERS);
 export type RunTrigger = z.infer<typeof RunTriggerSchema>;
 
+export const RunRetrySchema = z.object({
+  attempt: z.number().int().positive(),
+  maxAttempts: z.number().int().positive(),
+  at: IsoDate,
+  error: z.string(),
+});
+export type RunRetry = z.infer<typeof RunRetrySchema>;
+
 export const RoutineRunSchema = z.object({
   id: Id,
   botId: Id,
   groupId: Id.nullable(),
   status: RunStatus,
+  retry: RunRetrySchema.nullable().optional(),
   error: z.string().nullable(),
   createdAt: IsoDate,
   startedAt: IsoDate.nullable(),
@@ -49,6 +58,7 @@ export const RunActivityRowSchema = z.object({
   groupName: z.string().nullable(),
   threadId: Id,
   status: RunStatus,
+  retry: RunRetrySchema.nullable().optional(),
   trigger: RunTriggerSchema,
   notificationsEnabled: z.boolean(),
   promptSnippet: z.string(),
@@ -60,3 +70,31 @@ export const RunsListOutputSchema = z.object({
   runs: z.array(RunActivityRowSchema),
 });
 export type RunsListOutput = z.infer<typeof RunsListOutputSchema>;
+
+export const RunToolActivitySchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  startedAt: IsoDate,
+  completedAt: IsoDate.nullable(),
+  status: z.enum(["running", "succeeded", "failed", "paused", "interrupted"]),
+  error: z.string().nullable(),
+});
+export type RunToolActivity = z.infer<typeof RunToolActivitySchema>;
+
+export const RunDetailsSchema = z.object({
+  run: RunActivityRowSchema,
+  routineName: z.string().nullable(),
+  error: z.string().nullable(),
+  attempts: z.array(
+    z.object({
+      number: z.number().int().positive(),
+      status: z.string(),
+      error: z.string().nullable(),
+      startedAt: IsoDate,
+      finishedAt: IsoDate.nullable(),
+    }),
+  ),
+  tools: z.array(RunToolActivitySchema),
+  messageId: Id.nullable(),
+});
+export type RunDetails = z.infer<typeof RunDetailsSchema>;

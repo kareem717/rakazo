@@ -919,4 +919,17 @@ export const ZH_MESSAGES: Record<string, string> = {
   "Live calls require web or desktop on this version.":
     "此版本的实时通话需要使用网页版或桌面应用。",
   "Use standard call": "使用标准通话",
+  Attempts: "尝试次数",
+  "Could not load run": "无法加载运行记录",
+  Interrupted: "已中断",
+  "Needs an answer": "需要回答",
+  "Needs you": "需要你处理",
+  "No tool activity recorded": "未记录工具活动",
+  "Open chat": "打开聊天",
+  "Recent activity": "最近活动",
+  "Retry at {time}": "将在 {time} 重试",
+  "Retrying {attempt}/{maxAttempts}…": "正在重试 {attempt}/{maxAttempts}…",
+  "Run activity": "运行活动",
+  "Waiting in line…": "正在排队…",
+  "Could not start after {attempts} attempts.": "尝试 {attempts} 次后仍无法启动。",
 };

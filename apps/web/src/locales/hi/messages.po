@@ -752,6 +752,10 @@ msgstr ""
 msgid "Attachment"
 msgstr "अटैचमेंट"
 
+#: src/pages/RunDetails.tsx
+msgid "Attempts"
+msgstr ""
+
 #: src/lib/model-connection-preflight.ts
 msgid "Authentication failed."
 msgstr "प्रमाणीकरण विफल रहा।"
@@ -801,6 +805,7 @@ msgstr ""
 #: src/pages/Board.tsx
 #: src/pages/PluginsOverlay.tsx
 #: src/pages/RoutineEditor.tsx
+#: src/pages/RunDetails.tsx
 msgid "Back"
 msgstr ""
 
@@ -1729,6 +1734,10 @@ msgstr "मॉडल सेटिंग्स लोड नहीं हो स�
 msgid "Could not load network settings"
 msgstr ""
 
+#: src/pages/RunDetails.tsx
+msgid "Could not load run"
+msgstr ""
+
 #: src/pages/RoutineRunHistory.tsx
 msgid "Could not load run history"
 msgstr "रन का इतिहास लोड नहीं हो सका"
@@ -1934,6 +1943,15 @@ msgstr "रीसेट ईमेल नहीं भेजा जा सका"
 #: src/lib/call-session.ts
 msgid "Could not send that"
 msgstr "वह भेजा नहीं जा सका"
+
+#: src/pages/RunDetails.tsx
+msgid "Could not start"
+msgstr ""
+
+#. js-lingui-explicit-id
+#: src/lib/run-error.ts
+msgid "Could not start after {attempts} attempts."
+msgstr ""
 
 #: src/pages/McpServersOverlay.tsx
 msgid "Could not start OAuth"
@@ -2235,6 +2253,7 @@ msgid "Desktop update"
 msgstr ""
 
 #: src/pages/RoutineRunHistory.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/Shell.tsx
 msgid "Details"
 msgstr "विवरण"
@@ -2318,6 +2337,7 @@ msgstr "खाता नहीं है?"
 
 #: src/lib/ticket-status.ts
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/shell/avatar-studio-popover.tsx
 msgid "Done"
 msgstr "पूर्ण"
@@ -2526,6 +2546,8 @@ msgid "failed"
 msgstr "असफल"
 
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
+#: src/pages/Shell.tsx
 msgid "Failed"
 msgstr "विफल"
 
@@ -2863,6 +2885,10 @@ msgstr ""
 msgid "Integrations"
 msgstr "इंटीग्रेशन"
 
+#: src/pages/RunDetails.tsx
+msgid "Interrupted"
+msgstr ""
+
 #: src/pages/RoutineEditor.tsx
 #: src/pages/RoutineSchedule.tsx
 msgid "Interval"
@@ -3037,6 +3063,7 @@ msgstr "आवाज़ प्रोवाइडर्स लोड हो र�
 #: src/pages/Onboarding.tsx
 #: src/pages/PeerMessagesOverlay.tsx
 #: src/pages/RoutineRunHistory.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/Shell.tsx
 msgid "Loading…"
 msgstr "लोड हो रहा है…"
@@ -3379,6 +3406,7 @@ msgid "Needs an answer"
 msgstr ""
 
 #: src/pages/ActivityList.tsx
+#: src/pages/RunDetails.tsx
 msgid "Needs input"
 msgstr "इनपुट चाहिए"
 
@@ -3556,6 +3584,10 @@ msgstr ""
 msgid "No tickets yet"
 msgstr ""
 
+#: src/pages/RunDetails.tsx
+msgid "No tool activity recorded"
+msgstr ""
+
 #: src/pages/PluginsOverlay.tsx
 msgid "No tools available."
 msgstr ""
@@ -3673,6 +3705,10 @@ msgstr ""
 #: src/pages/Shell.tsx
 msgid "Open call"
 msgstr "कॉल खोलें"
+
+#: src/pages/RunDetails.tsx
+msgid "Open chat"
+msgstr ""
 
 #. placeholder {0}: call.botName
 #: src/components/call/CallCard.tsx
@@ -3959,6 +3995,10 @@ msgstr ""
 #: src/pages/ActivityList.tsx
 msgid "Recent"
 msgstr "हाल के"
+
+#: src/pages/RunDetails.tsx
+msgid "Recent activity"
+msgstr ""
 
 #: src/pages/VoiceSettingsOverlay.tsx
 msgid "Reconnect"
@@ -4257,9 +4297,15 @@ msgstr ""
 #: src/components/AccountAccess.tsx
 #: src/pages/Auth.tsx
 #: src/pages/ModelBackupsSettings.tsx
+#: src/pages/RunDetails.tsx
 #: src/pages/SettingsOverlay.tsx
 msgid "Retry"
 msgstr "फिर कोशिश करें"
+
+#. placeholder {0}: time(run.retry.at)
+#: src/pages/RunDetails.tsx
+msgid "Retry at {0}"
+msgstr ""
 
 #: src/components/NetworkConnectionSettings.tsx
 msgid "Retry connection"
@@ -4272,6 +4318,12 @@ msgstr "अभी पुनः प्रयास करें"
 
 #: src/pages/Shell.tsx
 msgid "Retry screen"
+msgstr ""
+
+#. placeholder {0}: retry.attempt
+#. placeholder {1}: retry.maxAttempts
+#: src/lib/roster-status.ts
+msgid "Retrying {0}/{1}…"
 msgstr ""
 
 #. placeholder {0}: call.botName
@@ -4323,6 +4375,10 @@ msgstr ""
 
 #: src/components/NetworkSettings.tsx
 msgid "Routing"
+msgstr ""
+
+#: src/pages/RunDetails.tsx
+msgid "Run activity"
 msgstr ""
 
 #: src/pages/RoutineEditor.tsx
@@ -5424,8 +5480,8 @@ msgid "Version"
 msgstr ""
 
 #: src/pages/RoutineRunHistory.tsx
-msgid "View chat"
-msgstr "चैट देखें"
+msgid "View run"
+msgstr ""
 
 #: src/components/VoicePicker.tsx
 #: src/pages/SettingsOverlay.tsx
@@ -5529,6 +5585,7 @@ msgstr ""
 
 #: src/lib/roster-status.ts
 #: src/pages/Auth.tsx
+#: src/pages/RunDetails.tsx
 msgid "Working…"
 msgstr "काम चल रहा है…"
 

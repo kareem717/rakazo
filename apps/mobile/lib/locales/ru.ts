@@ -956,4 +956,17 @@ export const RU_MESSAGES: Record<string, string> = {
   "Live calls require web or desktop on this version.":
     "В этой версии живые звонки доступны только в веб-приложении или приложении для компьютера.",
   "Use standard call": "Использовать обычный звонок",
+  Attempts: "Попытки",
+  "Could not load run": "Не удалось загрузить запуск",
+  Interrupted: "Прервано",
+  "Needs an answer": "Нужен ответ",
+  "Needs you": "Нужна ваша помощь",
+  "No tool activity recorded": "Действия инструментов не записаны",
+  "Open chat": "Открыть чат",
+  "Recent activity": "Недавние действия",
+  "Retry at {time}": "Повтор в {time}",
+  "Retrying {attempt}/{maxAttempts}…": "Повторная попытка {attempt}/{maxAttempts}…",
+  "Run activity": "Ход выполнения",
+  "Waiting in line…": "В очереди…",
+  "Could not start after {attempts} attempts.": "Не удалось запустить после {attempts} попыток.",
 };

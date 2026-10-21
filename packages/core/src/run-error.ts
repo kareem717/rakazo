@@ -40,6 +40,15 @@ export function normalizeRunError(
   translate: RunErrorTranslator = english,
   locale = "en-US",
 ): { summary: string; details: string } {
+  const startup = details.trim().match(/^Could not start after (\d+) attempts\./);
+  if (startup) {
+    return {
+      summary: translate("Could not start after {attempts} attempts.", {
+        attempts: Number(startup[1]),
+      }),
+      details,
+    };
+  }
   const prefix = details.trim().match(/^(\d{3})\s*:\s*/);
   const body = details.trim().slice(prefix?.[0].length ?? 0);
   let parsed: unknown;

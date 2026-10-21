@@ -49,3 +49,15 @@ describe("compactRosterStatusLabel", () => {
     expect(compactRosterStatusLabel("idle")).toBeNull();
   });
 });
+
+it("distinguishes a startup retry from an ordinary queue wait", () => {
+  const retry = {
+    attempt: 2,
+    maxAttempts: 3,
+    at: "2026-01-01T00:00:30Z",
+    error: "Computer unavailable",
+  };
+  expect(rosterWorkStatusLabel("queued", retry)).toBe("Retrying 2/3…");
+  expect(compactRosterStatusLabel("queued", retry)).toBe("Retrying 2/3…");
+  expect(rosterWorkStatusLabel("running", retry)).toBe("Working…");
+});

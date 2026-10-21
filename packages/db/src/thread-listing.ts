@@ -1,4 +1,9 @@
-import { ACTIVE_RUN_STATUSES, BACKGROUND_RUN_TRIGGERS, plainTextFromMarkdown } from "@rakazo/core";
+import {
+  ACTIVE_RUN_STATUSES,
+  BACKGROUND_RUN_TRIGGERS,
+  plainTextFromMarkdown,
+  RUN_SETUP_MAX_ATTEMPTS,
+} from "@rakazo/core";
 
 export const activeRunStatuses = [...ACTIVE_RUN_STATUSES];
 const backgroundRunTriggers = [...BACKGROUND_RUN_TRIGGERS];
@@ -9,6 +14,13 @@ const latestBotRunOrderBy = [{ createdAt: "desc" as const }, { id: "desc" as con
  * The newest conversational/foreground run for a bot's sidebar status. Background
  * ticket runs keep working silently, so they must not make the avatar spin.
  */
+export const runSetupAttemptsSelection = {
+  where: { status: "setup_failed", error: { not: null } },
+  orderBy: { finishedAt: "desc" as const },
+  take: RUN_SETUP_MAX_ATTEMPTS,
+  select: { error: true, finishedAt: true },
+} as const;
+
 export const activeRunSelection = {
   where: {
     status: { in: activeRunStatuses },
@@ -16,7 +28,7 @@ export const activeRunSelection = {
   },
   orderBy: { createdAt: "desc" as const },
   take: 1,
-  select: { status: true },
+  select: { status: true, error: true, attempts: runSetupAttemptsSelection },
 } as const;
 
 /** Latest user-visible run for a bot roster error signal; later success clears an older failure. */

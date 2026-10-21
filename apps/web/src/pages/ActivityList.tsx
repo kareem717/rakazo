@@ -12,6 +12,7 @@ import {
   filterActivityRuns,
 } from "../lib/activity-list-filters";
 import { formatRelativeTime } from "../lib/relative-time";
+import { rosterWorkStatusLabel } from "../lib/roster-status";
 import { rpc } from "../lib/rpc";
 
 export function statusTone(status: RunActivityRow["status"], updatedAt?: string): string {
@@ -356,7 +357,9 @@ function FilterChip({ label, onClear }: { label: string; onClear: () => void }) 
 function ActivityRow({ run, onOpen }: { run: RunActivityRow; onOpen: () => void }) {
   const { t } = useLingui();
   const title = run.groupName ? `${run.botName} · ${run.groupName}` : run.botName;
-  const label = statusLabel(run.status);
+  const label = run.retry
+    ? (rosterWorkStatusLabel(run.status, run.retry) ?? statusLabel(run.status))
+    : statusLabel(run.status);
   const activityLabel = t`${title}, ${label}`;
   const tone = statusTone(run.status, run.updatedAt);
   return (

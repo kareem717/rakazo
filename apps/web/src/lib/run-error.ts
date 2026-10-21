@@ -4,6 +4,12 @@ import type { RunErrorTranslator } from "@rakazo/core";
 /** Static descriptors keep shared run-error messages in Lingui extraction. */
 export const translateRunError: RunErrorTranslator = (message, values) => {
   switch (message) {
+    case "Could not start after {attempts} attempts.":
+      return i18n._({
+        id: "Could not start after {attempts} attempts.",
+        message: "Could not start after {attempts} attempts.",
+        values,
+      });
     case "Your OpenRouter":
       return i18n._({ id: "Your OpenRouter", message: "Your OpenRouter", values });
     case "Your OpenAI":
