@@ -1,6 +1,7 @@
 import { useLingui } from "@lingui/react/macro";
 import { attachmentSizeLabel } from "@rakazo/contracts";
 import { Button } from "@rakazo/ui-web";
+import { isFileDrag } from "@rakazo/ui-web/hooks/use-file-drop";
 import { ArrowLeft, Download, File, Folder, Upload } from "lucide-react";
 import { type DragEvent, useCallback, useEffect, useRef, useState } from "react";
 import { decodeArtifactBase64, downloadArtifactBytes } from "../../lib/artifact-open";
@@ -13,7 +14,7 @@ import {
   sortEntries,
   subscribeComputerCommands,
 } from "../../lib/computer-workspace";
-import { isFileDrag, readFileAsBase64 } from "../../lib/pending-attachments";
+import { readFileAsBase64 } from "../../lib/pending-attachments";
 import { rpc } from "../../lib/rpc";
 import { useObjectUrl } from "../../lib/use-object-url";
 import { errorText } from "../../lib/user-error";
